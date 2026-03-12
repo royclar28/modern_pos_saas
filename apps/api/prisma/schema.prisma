@@ -85,6 +85,7 @@ model Sale {
   invoiceNumber String?  @unique
   comment       String?
   saleTime      DateTime @default(now())
+  terminalId    String   @default("CAJA_01") // Multi-terminal support
 
   // Relations
   customerId Int?

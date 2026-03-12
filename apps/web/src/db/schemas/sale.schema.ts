@@ -21,6 +21,7 @@ export type SaleDocType = {
     saleTime: number;        // Unix timestamp (ms)
     customerId?: string;
     employeeId: string;
+    terminalId: string;      // Multi-terminal: identifies the POS register (e.g. "CAJA_01")
     subtotal: number;
     taxPercent: number;      // e.g. 16 for 16% IVA
     taxAmount: number;
@@ -36,7 +37,7 @@ export type SaleDocType = {
 export const saleSchema: RxJsonSchema<SaleDocType> = {
     title: 'Sale schema',
     description: 'Point of sale transactions',
-    version: 0,
+    version: 1,   // bumped: added terminalId
     primaryKey: 'id',
     type: 'object',
     properties: {
@@ -46,6 +47,7 @@ export const saleSchema: RxJsonSchema<SaleDocType> = {
         saleTime: { type: 'number' },
         customerId: { type: 'string' },
         employeeId: { type: 'string' },
+        terminalId: { type: 'string', default: 'CAJA_01' },
         subtotal: { type: 'number' },
         taxPercent: { type: 'number' },
         taxAmount: { type: 'number' },
@@ -70,5 +72,5 @@ export const saleSchema: RxJsonSchema<SaleDocType> = {
         },
         updatedAt: { type: 'number' },
     },
-    required: ['id', 'saleTime', 'employeeId', 'subtotal', 'taxPercent', 'taxAmount', 'total', 'items', 'updatedAt'],
+    required: ['id', 'saleTime', 'employeeId', 'terminalId', 'subtotal', 'taxPercent', 'taxAmount', 'total', 'items', 'updatedAt'],
 };

@@ -20,7 +20,7 @@ let dbPromise: Promise<PosDatabase> | null = null;
 export const getDatabase = (): Promise<PosDatabase> => {
     if (!dbPromise) {
         dbPromise = createRxDatabase<DatabaseCollections>({
-            name: 'posdb_v3', // bump version whenever schema changes
+            name: 'posdb_v4', // bumped: sale schema v1 (terminalId added)
             storage: getRxStorageDexie(),
             multiInstance: false,
         }).then(async (db) => {

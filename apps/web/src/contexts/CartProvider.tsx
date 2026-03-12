@@ -3,25 +3,22 @@
  *
  * Global cart state for the POS terminal.
  *
- * Tax Logic (from legacy Sale_lib.php analysis):
- * - Original system applies taxes PER-ITEM using a per-item `Item_taxes` table
- *   with support for multiple named rates (e.g., "16% IVA", "8% Special").
- * - Two modes existed: additive (tax on top of price) and inclusive (tax baked in).
+ * Tax Logic:
+ * - taxRate is fetched from the NestJS /settings endpoint via useSettings().
+ * - Applies a flat IVA rate additively on the subtotal after discounts.
+ * - Falls back to 16% when the API is unreachable (offline-safe).
  *
- * Simplification applied:
- * - We apply a flat TAX_RATE (16% IVA) additively on the subtotal after discounts.
- * - TODO: Replace TAX_RATE with a per-item tax lookup from the `Item` document
- *   once the `taxPercent` field is added to item.schema.ts and synced from backend.
+ * Multi-Terminal:
+ * - At checkout, the current terminalId (from localStorage via useTerminal())
+ *   is stamped onto every Sale document before writing it to RxDB.
+ *   This allows Reporte Z to filter and reconcile per-register.
  */
 import React, { createContext, useContext, useReducer, useMemo, useCallback } from 'react';
 import { ItemDocType } from '../db/schemas/item.schema';
 import { SaleDocType, SaleItemDocType } from '../db/schemas/sale.schema';
 import { getDatabase } from '../db/database';
-
-// ─── Config ──────────────────────────────────────────────────────────────────
-
-/** TODO: Replace with per-item tax lookup from item.schema once available */
-const DEFAULT_TAX_PERCENT = 16;
+import { useSettings } from '../hooks/useSettings';
+import { useTerminal } from '../hooks/useTerminal';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -53,6 +50,8 @@ type CartAction =
 type CartContextValue = {
     cartItems: CartItem[];
     totals: CartTotals;
+    taxRate: number;
+    terminalId: string;
     addToCart: (product: ItemDocType) => void;
     removeFromCart: (productId: string) => void;
     setQuantity: (productId: string, qty: number) => void;
@@ -110,13 +109,15 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
 
 // ─── Totals Calculator ────────────────────────────────────────────────────────
 
-const computeTotals = (items: CartItem[]): CartTotals => {
+const round2 = (n: number) => Math.round(n * 100) / 100;
+
+const computeTotals = (items: CartItem[], taxPercent: number): CartTotals => {
     const subtotal = items.reduce((acc, item) => {
         const linePrice = item.product.unitPrice * item.quantity * (1 - item.discount / 100);
         return acc + linePrice;
     }, 0);
 
-    const taxAmount = subtotal * (DEFAULT_TAX_PERCENT / 100);
+    const taxAmount = subtotal * (taxPercent / 100);
     const total = subtotal + taxAmount;
     const itemCount = items.reduce((acc, i) => acc + i.quantity, 0);
 
@@ -124,12 +125,10 @@ const computeTotals = (items: CartItem[]): CartTotals => {
         subtotal: round2(subtotal),
         taxAmount: round2(taxAmount),
         total: round2(total),
-        taxPercent: DEFAULT_TAX_PERCENT,
+        taxPercent,
         itemCount,
     };
 };
-
-const round2 = (n: number) => Math.round(n * 100) / 100;
 
 // ─── Context & Provider ───────────────────────────────────────────────────────
 
@@ -138,7 +137,16 @@ const CartContext = createContext<CartContextValue | null>(null);
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [state, dispatch] = useReducer(cartReducer, { items: [] });
 
-    const totals = useMemo(() => computeTotals(state.items), [state.items]);
+    // ── Dynamic tax rate from API (falls back to 16 offline) ────────────────
+    const { taxRate } = useSettings();
+
+    // ── Terminal identifier from localStorage ────────────────────────────────
+    const { getTerminalId } = useTerminal();
+
+    const totals = useMemo(
+        () => computeTotals(state.items, taxRate),
+        [state.items, taxRate]
+    );
 
     const addToCart = useCallback((product: ItemDocType) => {
         dispatch({ type: 'ADD', product });
@@ -162,12 +170,16 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     /**
      * checkout() — Builds the Sale document and inserts it into RxDB.
-     * No API call needed: RxDB replication will upload it automatically.
+     * Stamps the current terminalId for multi-register reconciliation.
+     * No API call needed in the hot path: RxDB replication uploads later.
      */
     const checkout = useCallback(async (employeeId: string): Promise<SaleDocType> => {
         const db = await getDatabase();
         const now = Date.now();
         const saleId = `sale_${now}_${Math.random().toString(36).slice(2, 7)}`;
+
+        // Snapshot the terminal at the moment of sale
+        const terminalId = getTerminalId();
 
         const saleItems: SaleItemDocType[] = state.items.map((ci, index) => ({
             id: `${saleId}_${index + 1}`,
@@ -184,6 +196,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             id: saleId,
             saleTime: now,
             employeeId,
+            terminalId,      // ← stamped here
             subtotal: totals.subtotal,
             taxPercent: totals.taxPercent,
             taxAmount: totals.taxAmount,
@@ -197,12 +210,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         dispatch({ type: 'CLEAR' });
         return saleDoc;
-    }, [state.items, totals]);
+    }, [state.items, totals, getTerminalId]);
 
     return (
         <CartContext.Provider value={{
             cartItems: state.items,
             totals,
+            taxRate,
+            terminalId: getTerminalId(),
             addToCart,
             removeFromCart,
             setQuantity,

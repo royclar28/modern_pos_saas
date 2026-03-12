@@ -6,6 +6,8 @@ import { LoginPage } from './pages/LoginPage';
 import { ProductsPage } from './pages/ProductsPage';
 import { PosPage } from './pages/PosPage';
 import { InventoryPage } from './pages/admin/InventoryPage';
+import { SalesDashboard } from './pages/admin/SalesDashboard';
+import { SettingsPage } from './pages/admin/SettingsPage';
 import { useSync } from './hooks/useSync';
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
@@ -39,6 +41,24 @@ const Dashboard = () => {
                         <div className="font-bold text-lg">Inventario</div>
                         <div className="text-slate-400 text-sm mt-1">Ver catálogo →</div>
                     </Link>
+
+                    <Link
+                        to="/admin/sales"
+                        className="group bg-white border border-slate-200 hover:border-emerald-300 text-slate-800 rounded-2xl p-6 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                    >
+                        <div className="text-4xl mb-3">📊</div>
+                        <div className="font-bold text-lg">Reporte Z</div>
+                        <div className="text-slate-400 text-sm mt-1">Dashboard de ventas →</div>
+                    </Link>
+
+                    <Link
+                        to="/admin/settings"
+                        className="group bg-white border border-slate-200 hover:border-slate-400 text-slate-800 rounded-2xl p-6 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                    >
+                        <div className="text-4xl mb-3">⚙️</div>
+                        <div className="font-bold text-lg">Configuración</div>
+                        <div className="text-slate-400 text-sm mt-1">IVA, moneda, terminal →</div>
+                    </Link>
                 </div>
 
                 <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-700 flex items-center gap-2">
@@ -70,6 +90,8 @@ export const App = () => {
                             <Route path="/" element={<Dashboard />} />
                             <Route path="/products" element={<ProductsPage />} />
                             <Route path="/admin/inventory" element={<InventoryPage />} />
+                            <Route path="/admin/sales" element={<SalesDashboard />} />
+                            <Route path="/admin/settings" element={<SettingsPage />} />
                             <Route path="/pos" element={<PosPage />} />
                         </Route>
 
