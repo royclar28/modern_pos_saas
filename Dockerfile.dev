@@ -1,0 +1,19 @@
+# Dockerfile.dev
+FROM node:20-slim
+
+# Instalar dependencias del sistema necesarias para Prisma (openssl) y utilidades básicas
+RUN apt-get update -y && \
+    apt-get install -y openssl procps curl && \
+    rm -rf /var/lib/apt/lists/*
+
+# Instalar pnpm globalmente
+RUN npm install -g pnpm@latest
+
+# Configurar el directorio de trabajo
+WORKDIR /app
+
+# NOTA PARA MODO DESARROLLO (HOT-RELOAD):
+# En lugar de copiar los archivos y hacer el build aquí, usamos este contenedor como un "Runner".
+# El archivo docker-compose.yml montará el volumen de tu código local en /app.
+# Las dependencias se instalaran en el arranque para garantizar que los binarios nativos 
+# (como Prisma o Argon2) se compilen específicamente para la arquitectura Linux del contenedor.

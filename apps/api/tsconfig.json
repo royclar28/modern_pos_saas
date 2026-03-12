@@ -1,0 +1,15 @@
+{
+    "extends": "../../tsconfig.base.json",
+    "compilerOptions": {
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "module": "commonjs",
+        "target": "ES2021",
+        "outDir": "dist",
+        "sourceMap": true
+    },
+    "include": [
+        "src/**/*",
+        "prisma/**/*"
+    ]
+}

@@ -1,0 +1,131 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  MANAGER
+  EMPLOYEE
+}
+
+model Employee {
+  id       Int    @id @default(autoincrement())
+  username String @unique
+  password String
+
+  // People data from legacy `ospos_people`
+  firstName String
+  lastName  String
+  email     String?
+  phone     String?
+  address   String?
+
+  // Relations
+  sales Sale[]
+
+  // Sync fields
+  role      Role      @default(EMPLOYEE)
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}
+
+model Customer {
+  id            Int     @id @default(autoincrement())
+  companyName   String?
+  accountNumber String? @unique
+  taxable       Boolean @default(true)
+
+  // People data from legacy `ospos_people`
+  firstName String
+  lastName  String
+  email     String?
+  phone     String?
+  address   String?
+
+  // Relations
+  sales Sale[]
+
+  // Sync fields
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}
+
+model Item {
+  id                  Int     @id @default(autoincrement())
+  name                String
+  category            String
+  itemNumber          String? @unique
+  description         String?
+  costPrice           Decimal @db.Decimal(15, 2)
+  unitPrice           Decimal @db.Decimal(15, 2)
+  reorderLevel        Decimal @default(0) @db.Decimal(15, 2)
+  receivingQuantity   Int     @default(1)
+  allowAltDescription Boolean @default(false)
+  isSerialized        Boolean @default(false)
+
+  // Relations
+  saleItems SaleItem[]
+
+  // Sync fields
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}
+
+model Sale {
+  id            Int      @id @default(autoincrement())
+  invoiceNumber String?  @unique
+  comment       String?
+  saleTime      DateTime @default(now())
+
+  // Relations
+  customerId Int?
+  customer   Customer?  @relation(fields: [customerId], references: [id])
+  employeeId Int
+  employee   Employee   @relation(fields: [employeeId], references: [id])
+  items      SaleItem[]
+
+  // Sync fields
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}
+
+model SaleItem {
+  id                Int     @id @default(autoincrement())
+  line              Int     @default(0)
+  description       String?
+  serialNumber      String?
+  quantityPurchased Decimal @default(0) @db.Decimal(15, 2)
+  itemCostPrice     Decimal @db.Decimal(15, 2)
+  itemUnitPrice     Decimal @db.Decimal(15, 2)
+  discountPercent   Decimal @default(0) @db.Decimal(15, 2)
+
+  // Relations
+  saleId Int
+  sale   Sale @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  itemId Int
+  item   Item @relation(fields: [itemId], references: [id])
+
+  // Sync fields
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@unique([saleId, itemId, line])
+}
+
+model StoreConfig {
+  key   String @id
+  value String
+
+  // Sync fields
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}

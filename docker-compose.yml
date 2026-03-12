@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: modern_pos_postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-modern_pos}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pos_db_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: modern_pos_api
+    ports:
+      - "3333:3001"
+    volumes:
+      - .:/app
+      # Volumenes anónimos para node_modules. Evita que la carpeta linux se sobreescriba
+      # con tu node_modules de Windows/Mac si compartes carpetas directamente.
+      - /app/node_modules
+      - /app/apps/api/node_modules
+      - /app/packages/pos-shared/node_modules
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-modern_pos}?schema=public
+      - JWT_SECRET=${JWT_SECRET:-super-secret-jwt-key}
+    depends_on:
+      postgres:
+        condition: service_started
+    # Script de arranque mágico: Instala dependencias en el contenedor -> Genera Prisma -> Migra -> Seedea -> Lanza NestJS
+    command: >
+      sh -c "pnpm install &&
+             cd apps/api &&
+             npx prisma generate &&
+             npx prisma migrate deploy &&
+             npx prisma db seed &&
+             pnpm dev"
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: modern_pos_web
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/apps/web/node_modules
+      - /app/packages/pos-shared/node_modules
+    environment:
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:3001}
+    depends_on:
+      - api
+    # Flag --host es absolutamente obligatorio en Docker para Vite, de lo contrario bloquea el acceso externo al localhost interno
+    command: sh -c "pnpm install && cd apps/web && pnpm dev --host 0.0.0.0"
+
+volumes:
+  pos_db_data:
+    name: pos_db_data_dev
