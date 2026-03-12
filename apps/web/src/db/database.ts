@@ -8,6 +8,10 @@ import { RxCollection } from 'rxdb';
 // Enable dev mode for clearer error messages during development
 addRxPlugin(RxDBDevModePlugin);
 
+// Enable migrations so RxDB can handle schema bumps (e.g., v0 -> v1)
+import { RxDBMigrationSchemaPlugin } from 'rxdb/plugins/migration-schema';
+addRxPlugin(RxDBMigrationSchemaPlugin);
+
 export type DatabaseCollections = {
     items: RxCollection<ItemDocType>;
     sales: RxCollection<SaleDocType>;

@@ -43,10 +43,16 @@ export const useSettings = (): ParsedSettings => {
     const [error, setError] = useState<string | null>(null);
 
     const fetchSettings = useCallback(async () => {
+        const token = localStorage.getItem('pos_token');
+        if (!token) {
+            // Not logged in yet, just use defaults peacefully
+            setIsLoading(false);
+            return;
+        }
+
         setIsLoading(true);
         setError(null);
         try {
-            const token = localStorage.getItem('pos_token');
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3333';
             const res = await fetch(`${apiUrl}/settings`, {
                 headers: { Authorization: `Bearer ${token}` },
