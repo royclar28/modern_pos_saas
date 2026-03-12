@@ -34,7 +34,7 @@ export const getDatabase = (): Promise<PosDatabase> => {
                     schema: saleSchema,
                     migrationStrategies: {
                         // Migrate v0 -> v1: add the new terminalId field
-                        0: function(oldDoc) {
+                        1: function(oldDoc) {
                             oldDoc.terminalId = 'CAJA_01';
                             return oldDoc;
                         }
