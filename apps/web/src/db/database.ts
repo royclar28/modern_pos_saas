@@ -24,22 +24,13 @@ let dbPromise: Promise<PosDatabase> | null = null;
 export const getDatabase = (): Promise<PosDatabase> => {
     if (!dbPromise) {
         dbPromise = createRxDatabase<DatabaseCollections>({
-            name: 'posdb_v4', // bumped: sale schema v1 (terminalId added)
+            name: 'posdb_v5', // bumped: full reset to v0 with terminalId
             storage: getRxStorageDexie(),
             multiInstance: false,
         }).then(async (db) => {
             await db.addCollections({
                 items: { schema: itemSchema },
-                sales: { 
-                    schema: saleSchema,
-                    migrationStrategies: {
-                        // Migrate v0 -> v1: add the new terminalId field
-                        1: function(oldDoc) {
-                            oldDoc.terminalId = 'CAJA_01';
-                            return oldDoc;
-                        }
-                    }
-                },
+                sales: { schema: saleSchema },
             });
             return db;
         });

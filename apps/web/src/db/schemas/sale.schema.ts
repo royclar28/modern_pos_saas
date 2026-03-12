@@ -37,7 +37,7 @@ export type SaleDocType = {
 export const saleSchema: RxJsonSchema<SaleDocType> = {
     title: 'Sale schema',
     description: 'Point of sale transactions',
-    version: 1,   // bumped: added terminalId
+    version: 0,
     primaryKey: 'id',
     type: 'object',
     properties: {
