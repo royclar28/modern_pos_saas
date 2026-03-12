@@ -30,7 +30,16 @@ export const getDatabase = (): Promise<PosDatabase> => {
         }).then(async (db) => {
             await db.addCollections({
                 items: { schema: itemSchema },
-                sales: { schema: saleSchema },
+                sales: { 
+                    schema: saleSchema,
+                    migrationStrategies: {
+                        // Migrate v0 -> v1: add the new terminalId field
+                        1: function(oldDoc) {
+                            oldDoc.terminalId = 'CAJA_01';
+                            return oldDoc;
+                        }
+                    }
+                },
             });
             return db;
         });
