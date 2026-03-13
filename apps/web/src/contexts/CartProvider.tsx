@@ -51,6 +51,7 @@ type CartContextValue = {
     cartItems: CartItem[];
     totals: CartTotals;
     taxRate: number;
+    exchangeRate: number;
     terminalId: string;
     addToCart: (product: ItemDocType) => void;
     removeFromCart: (productId: string) => void;
@@ -58,6 +59,7 @@ type CartContextValue = {
     setDiscount: (productId: string, discount: number) => void;
     clearCart: () => void;
     checkout: (employeeId: string) => Promise<SaleDocType>;
+    refetchSettings: () => void;
 };
 
 // ─── Reducer ─────────────────────────────────────────────────────────────────
@@ -138,7 +140,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [state, dispatch] = useReducer(cartReducer, { items: [] });
 
     // ── Dynamic tax rate from API (falls back to 16 offline) ────────────────
-    const { taxRate } = useSettings();
+    const { taxRate, exchangeRate, refetch } = useSettings();
 
     // ── Terminal identifier from localStorage ────────────────────────────────
     const { getTerminalId } = useTerminal();
@@ -217,6 +219,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             cartItems: state.items,
             totals,
             taxRate,
+            exchangeRate,
             terminalId: getTerminalId(),
             addToCart,
             removeFromCart,
@@ -224,6 +227,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setDiscount,
             clearCart,
             checkout,
+            refetchSettings: refetch,
         }}>
             {children}
         </CartContext.Provider>

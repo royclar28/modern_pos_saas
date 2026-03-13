@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_DB: ${DB_NAME:-modern_pos}
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pos_db_data:/var/lib/postgresql/data
     restart: unless-stopped
@@ -49,7 +49,7 @@ services:
       dockerfile: Dockerfile.dev
     container_name: modern_pos_web
     ports:
-      - "5173:5173"
+      - "5174:5173"
     volumes:
       - .:/app
       - /app/node_modules

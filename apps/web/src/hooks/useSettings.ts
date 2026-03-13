@@ -13,6 +13,7 @@ import { useState, useEffect, useCallback } from 'react';
 export type StoreSettings = {
     default_tax_rate: string; // e.g. "16"
     currency_symbol: string;  // e.g. "$"
+    exchange_rate: string;    // e.g. "36.25"
     company: string;
     timezone: string;
     language: string;
@@ -22,6 +23,7 @@ export type StoreSettings = {
 export type ParsedSettings = {
     raw: StoreSettings;
     taxRate: number;        // e.g. 16  (ready for math)
+    exchangeRate: number;   // e.g. 36.25  (ready for math)
     currencySymbol: string;
     company: string;
     isLoading: boolean;
@@ -32,6 +34,7 @@ export type ParsedSettings = {
 const DEFAULTS: StoreSettings = {
     default_tax_rate: '16',
     currency_symbol: '$',
+    exchange_rate: '1',
     company: 'Modern POS',
     timezone: 'America/Mexico_City',
     language: 'es',
@@ -76,6 +79,7 @@ export const useSettings = (): ParsedSettings => {
     return {
         raw,
         taxRate: Math.max(0, Number(raw.default_tax_rate) || 16),
+        exchangeRate: Math.max(1, Number(raw.exchange_rate) || 1),
         currencySymbol: raw.currency_symbol || '$',
         company: raw.company || 'Modern POS',
         isLoading,

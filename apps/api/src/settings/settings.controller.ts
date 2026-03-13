@@ -1,11 +1,21 @@
-import { Controller, Get, Patch, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Patch, Body, UseGuards, Post } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { SettingsService, StoreSettings } from './settings.service';
+import { BcvService } from './bcv.service';
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('settings')
 export class SettingsController {
-    constructor(private readonly settingsService: SettingsService) {}
+    constructor(
+        private readonly settingsService: SettingsService,
+        private readonly bcvService: BcvService
+    ) {}
+
+    @Post('bcv/sync')
+    async forceSyncBcv() {
+        await this.bcvService.updateBcvRate();
+        return this.settingsService.getAll();
+    }
 
     /**
      * GET /settings

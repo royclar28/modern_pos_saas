@@ -4,7 +4,7 @@ import { AppModule } from './app.module';
 async function bootstrap() {
     const app = await NestFactory.create(AppModule);
     app.enableCors({
-        origin: 'http://localhost:5173', // Vite dev server default
+        origin: true, // Allow all origins for dev server
         credentials: true,
     });
     await app.listen(3001);
