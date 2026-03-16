@@ -7,8 +7,8 @@ async function bootstrap() {
         origin: true, // Allow all origins for dev server
         credentials: true,
     });
-    await app.listen(3001);
-    console.log('🚀 NestJS API running at http://localhost:3001');
+    await app.listen(process.env.PORT || 3333);
+    console.log(`🚀 NestJS API running at http://localhost:${process.env.PORT || 3333}`);
 }
 
 bootstrap();

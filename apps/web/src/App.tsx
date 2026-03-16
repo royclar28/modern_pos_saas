@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthProvider';
 import { CartProvider } from './contexts/CartProvider';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { ReloadPrompt } from './components/ReloadPrompt';
 import { LoginPage } from './pages/LoginPage';
 import { ProductsPage } from './pages/ProductsPage';
 import { PosPage } from './pages/PosPage';
@@ -117,6 +118,7 @@ export const App = () => {
                     </Routes>
                 </CartProvider>
             </AuthProvider>
+            <ReloadPrompt />
         </BrowserRouter>
     );
 };
