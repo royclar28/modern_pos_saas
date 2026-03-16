@@ -38,7 +38,7 @@ export class BcvService implements OnModuleInit {
       await this.prisma.storeConfig.upsert({
         where: { key: `exchange_rate_${storeId}` },
         update: { value: String(rate) },
-        create: { key: 'exchange_rate', value: String(rate), storeId },
+        create: { key: `exchange_rate_${storeId}`, value: String(rate), storeId },
       });
 
       this.logger.log(`BCV Rate successfully updated to Bs. ${rate} for store ${storeId}`);

@@ -50,6 +50,7 @@ model User {
   sales Sale[]
 
   // Sync fields
+  telegramChatId String?
   role      Role      @default(CASHIER)
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
@@ -121,6 +122,9 @@ model Sale {
   items      SaleItem[]
 
   // Sync fields
+  paymentMethod String    @default("DIVISA") // 'DIVISA', 'EFECTIVO_BS', 'PAGO_MOVIL', 'PUNTO', 'FIADO'
+  status        String    @default("PAGADO") // 'PENDIENTE', 'PAGADO' (Fiados)
+  total         Decimal   @default(0) @db.Decimal(15, 2)
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 }
