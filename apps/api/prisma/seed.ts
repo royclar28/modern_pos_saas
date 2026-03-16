@@ -4,52 +4,42 @@ import * as argon2 from 'argon2';
 const prisma = new PrismaClient();
 
 async function main() {
-    console.log('Seeding database...');
+  console.log('Iniciando semilla (seed)...');
 
-    // 1. Seed Super Admin User
-    const hashedPassword = await argon2.hash('123456');
+  // 1. Crear tienda por defecto
+  const store = await prisma.store.create({
+    data: {
+      name: 'Bodega Principal',
+      primaryColor: '#8B5CF6',
+    },
+  });
+  console.log(`✅ Tienda creada: ${store.name} (ID: ${store.id})`);
 
-    const superAdmin = await prisma.employee.upsert({
-        where: { username: 'admin' },
-        update: {},
-        create: {
-            username: 'admin',
-            password: hashedPassword,
-            firstName: 'Super',
-            lastName: 'Admin',
-            email: 'admin@pos.com',
-            role: Role.SUPER_ADMIN,
-        },
-    });
-    console.log('Super Admin user created:', superAdmin.username);
+  // 2. Encriptar contraseña para el usuario base
+  const hashedPassword = await argon2.hash('123456');
 
-    // 2. Migrate legacy 'ospos_app_config' default values to StoreConfig
-    const legacyConfigs = [
-        { key: 'currency_symbol', value: '$' },
-        { key: 'default_tax_rate', value: '8' },
-        { key: 'language', value: 'es' },
-        { key: 'company', value: 'Open Source Point of Sale' },
-        { key: 'timezone', value: 'America/New_York' },
-    ];
-
-    for (const config of legacyConfigs) {
-        const upserted = await prisma.storeConfig.upsert({
-            where: { key: config.key },
-            update: {},
-            create: {
-                key: config.key,
-                value: config.value,
-            },
-        });
-        console.log(`Config [${upserted.key}]: ${upserted.value}`);
-    }
+  // 3. Crear usuario administrador base asociado a la tienda
+  const adminUser = await prisma.user.create({
+    data: {
+      username: 'admin@merx.com', // Usando el correo como username
+      email: 'admin@merx.com',
+      password: hashedPassword,
+      firstName: 'Super',
+      lastName: 'Admin',
+      role: Role.SUPER_ADMIN,
+      storeId: store.id,
+    },
+  });
+  console.log(`✅ Usuario creado: ${adminUser.username} (Rol: ${adminUser.role})`);
+  
+  console.log('Seed completado con éxito.');
 }
 
 main()
-    .catch((e) => {
-        console.error(e);
-        process.exit(1);
-    })
-    .finally(async () => {
-        await prisma.$disconnect();
-    });
+  .catch((e) => {
+    console.error('Error durante el seed:', e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

@@ -12,15 +12,32 @@ datasource db {
 
 enum Role {
   SUPER_ADMIN
-  ADMIN
-  MANAGER
-  EMPLOYEE
+  STORE_ADMIN
+  CASHIER
 }
 
-model Employee {
+model Store {
+  id           String   @id @default(cuid()) // Or UUID depending on preference, but usually UUID or CUID for stores
+  name         String
+  primaryColor String?  @default("#3B82F6")
+  logoUrl      String?
+  createdAt    DateTime @default(now())
+
+  // Relations
+  users        User[]
+  customers    Customer[]
+  items        Item[]
+  sales        Sale[]
+  configs      StoreConfig[]
+}
+
+model User {
   id       Int    @id @default(autoincrement())
   username String @unique
   password String
+
+  storeId  String
+  store    Store  @relation(fields: [storeId], references: [id])
 
   // People data from legacy `ospos_people`
   firstName String
@@ -33,7 +50,7 @@ model Employee {
   sales Sale[]
 
   // Sync fields
-  role      Role      @default(EMPLOYEE)
+  role      Role      @default(CASHIER)
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 }
@@ -43,6 +60,9 @@ model Customer {
   companyName   String?
   accountNumber String? @unique
   taxable       Boolean @default(true)
+
+  storeId       String
+  store         Store   @relation(fields: [storeId], references: [id])
 
   // People data from legacy `ospos_people`
   firstName String
@@ -65,6 +85,9 @@ model Item {
   category            String
   itemNumber          String? @unique
   description         String?
+
+  storeId             String
+  store               Store   @relation(fields: [storeId], references: [id])
   costPrice           Decimal @db.Decimal(15, 2)
   unitPrice           Decimal @db.Decimal(15, 2)
   reorderLevel        Decimal @default(0) @db.Decimal(15, 2)
@@ -87,11 +110,14 @@ model Sale {
   saleTime      DateTime @default(now())
   terminalId    String   @default("CAJA_01") // Multi-terminal support
 
+  storeId       String
+  store         Store    @relation(fields: [storeId], references: [id])
+
   // Relations
   customerId Int?
   customer   Customer?  @relation(fields: [customerId], references: [id])
   employeeId Int
-  employee   Employee   @relation(fields: [employeeId], references: [id])
+  employee   User       @relation(fields: [employeeId], references: [id])
   items      SaleItem[]
 
   // Sync fields
@@ -123,8 +149,11 @@ model SaleItem {
 }
 
 model StoreConfig {
-  key   String @id
-  value String
+  key     String @id
+  value   String
+
+  storeId String
+  store   Store  @relation(fields: [storeId], references: [id])
 
   // Sync fields
   updatedAt DateTime  @updatedAt

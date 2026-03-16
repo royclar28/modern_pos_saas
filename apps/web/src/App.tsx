@@ -1,7 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthProvider';
+import { ThemeProvider } from './contexts/ThemeProvider';
 import { CartProvider } from './contexts/CartProvider';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { RequireRole } from './components/RequireRole';
 import { ReloadPrompt } from './components/ReloadPrompt';
 import { LoginPage } from './pages/LoginPage';
 import { ProductsPage } from './pages/ProductsPage';
@@ -100,23 +102,43 @@ export const App = () => {
     return (
         <BrowserRouter>
             <AuthProvider>
-                <CartProvider>
-                    <Routes>
-                        <Route path="/login" element={<LoginPage />} />
+                <ThemeProvider>
+                    <CartProvider>
+                        <Routes>
+                            <Route path="/login" element={<LoginPage />} />
 
-                        <Route element={<ProtectedRoute />}>
-                            <Route path="/" element={<Dashboard />} />
-                            <Route path="/products" element={<ProductsPage />} />
-                            <Route path="/admin/inventory" element={<InventoryPage />} />
-                            <Route path="/admin/sales" element={<SalesDashboard />} />
-                            <Route path="/admin/settings" element={<SettingsPage />} />
-                            <Route path="/admin/fiados" element={<FiadosPage />} />
-                            <Route path="/pos" element={<PosPage />} />
-                        </Route>
+                            <Route element={<ProtectedRoute />}>
+                                <Route path="/" element={<Dashboard />} />
+                                <Route path="/products" element={<ProductsPage />} />
+                                <Route path="/pos" element={<PosPage />} />
 
-                        <Route path="*" element={<Navigate to="/" replace />} />
-                    </Routes>
-                </CartProvider>
+                                {/* Admin routes — CASHIER role cannot access */}
+                                <Route path="/admin/inventory" element={
+                                    <RequireRole allowed={['SUPER_ADMIN', 'STORE_ADMIN']}>
+                                        <InventoryPage />
+                                    </RequireRole>
+                                } />
+                                <Route path="/admin/sales" element={
+                                    <RequireRole allowed={['SUPER_ADMIN', 'STORE_ADMIN']}>
+                                        <SalesDashboard />
+                                    </RequireRole>
+                                } />
+                                <Route path="/admin/settings" element={
+                                    <RequireRole allowed={['SUPER_ADMIN', 'STORE_ADMIN']}>
+                                        <SettingsPage />
+                                    </RequireRole>
+                                } />
+                                <Route path="/admin/fiados" element={
+                                    <RequireRole allowed={['SUPER_ADMIN', 'STORE_ADMIN']}>
+                                        <FiadosPage />
+                                    </RequireRole>
+                                } />
+                            </Route>
+
+                            <Route path="*" element={<Navigate to="/" replace />} />
+                        </Routes>
+                    </CartProvider>
+                </ThemeProvider>
             </AuthProvider>
             <ReloadPrompt />
         </BrowserRouter>

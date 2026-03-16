@@ -2,6 +2,8 @@ import { RxJsonSchema } from 'rxdb';
 
 export type EmployeeDocType = {
     id: string; // RxDB prefieres strings as PKs
+    storeId: string;
+    role: string;
     username: string;
     // Note: we might not want to sync the password hash to the frontend, 
     // but it's here for completeness if offline auth is needed.
@@ -23,6 +25,8 @@ export const employeeSchema: RxJsonSchema<EmployeeDocType> = {
     type: 'object',
     properties: {
         id: { type: 'string', maxLength: 100 },
+        storeId: { type: 'string', maxLength: 100 },
+        role: { type: 'string' },
         username: { type: 'string' },
         password: { type: 'string' }, // Omit required validation just in case we strip it during sync
         firstName: { type: 'string' },
@@ -33,5 +37,5 @@ export const employeeSchema: RxJsonSchema<EmployeeDocType> = {
         updatedAt: { type: 'number' },
         deleted: { type: 'boolean' }
     },
-    required: ['id', 'username', 'firstName', 'lastName', 'updatedAt', 'deleted']
+    required: ['id', 'storeId', 'username', 'firstName', 'lastName', 'updatedAt', 'deleted']
 };

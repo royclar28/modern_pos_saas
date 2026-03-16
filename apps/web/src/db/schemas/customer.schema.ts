@@ -2,6 +2,7 @@ import { RxJsonSchema } from 'rxdb';
 
 export type CustomerDocType = {
     id: string; // RxDB prefieres strings as PKs
+    storeId: string;
     companyName?: string;
     accountNumber?: string;
     taxable: boolean;
@@ -22,6 +23,7 @@ export const customerSchema: RxJsonSchema<CustomerDocType> = {
     type: 'object',
     properties: {
         id: { type: 'string', maxLength: 100 },
+        storeId: { type: 'string', maxLength: 100 },
         companyName: { type: 'string' },
         accountNumber: { type: 'string' },
         taxable: { type: 'boolean' },
@@ -33,5 +35,5 @@ export const customerSchema: RxJsonSchema<CustomerDocType> = {
         updatedAt: { type: 'number' },
         deleted: { type: 'boolean' }
     },
-    required: ['id', 'taxable', 'firstName', 'lastName', 'updatedAt', 'deleted']
+    required: ['id', 'storeId', 'taxable', 'firstName', 'lastName', 'updatedAt', 'deleted']
 };

@@ -9,12 +9,20 @@ export class BcvService implements OnModuleInit {
   constructor(private readonly prisma: PrismaService) {}
 
   async onModuleInit() {
-    await this.updateBcvRate();
+    // On startup, update BCV rate for all stores
+    await this.updateBcvRateForAllStores();
   }
 
   @Cron(CronExpression.EVERY_12_HOURS)
-  async updateBcvRate() {
-    this.logger.debug('Fetching BCV rate from API...');
+  async updateBcvRateForAllStores() {
+    const stores = await this.prisma.store.findMany({ select: { id: true } });
+    for (const store of stores) {
+      await this.updateBcvRate(store.id);
+    }
+  }
+
+  async updateBcvRate(storeId: string) {
+    this.logger.debug(`Fetching BCV rate from API for store ${storeId}...`);
     try {
       const response = await fetch('https://ve.dolarapi.com/v1/dolares/oficial');
       if (!response.ok) {
@@ -28,12 +36,12 @@ export class BcvService implements OnModuleInit {
       }
 
       await this.prisma.storeConfig.upsert({
-        where: { key: 'exchange_rate' },
+        where: { key: `exchange_rate_${storeId}` },
         update: { value: String(rate) },
-        create: { key: 'exchange_rate', value: String(rate) },
+        create: { key: 'exchange_rate', value: String(rate), storeId },
       });
 
-      this.logger.log(`BCV Rate successfully updated to Bs. ${rate}`);
+      this.logger.log(`BCV Rate successfully updated to Bs. ${rate} for store ${storeId}`);
     } catch (error) {
       this.logger.error('Failed to fetch/update BCV rate', error instanceof Error ? error.message : error);
     }

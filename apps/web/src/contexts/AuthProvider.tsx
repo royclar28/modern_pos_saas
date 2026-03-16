@@ -5,6 +5,7 @@ interface User {
     username: string;
     role: string;
     sub: number;
+    storeId: string;
 }
 
 interface AuthContextType {
@@ -31,6 +32,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     username: payload.username,
                     role: payload.role,
                     sub: payload.sub,
+                    storeId: payload.storeId,
                 });
             } catch (e) {
                 console.error('Invalid token stored', e);
@@ -50,6 +52,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         localStorage.removeItem('pos_token');
         setToken(null);
         setUser(null);
+        // Reset theme CSS variables on logout
+        document.documentElement.style.removeProperty('--color-primary');
+        document.documentElement.style.removeProperty('--color-primary-hover');
+        document.documentElement.style.removeProperty('--color-primary-light');
         navigate('/login');
     };
 

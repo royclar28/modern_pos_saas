@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Body, UseGuards, Post } from '@nestjs/common';
+import { Controller, Get, Patch, Body, UseGuards, Post, Req } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { SettingsService, StoreSettings } from './settings.service';
 import { BcvService } from './bcv.service';
@@ -12,9 +12,9 @@ export class SettingsController {
     ) {}
 
     @Post('bcv/sync')
-    async forceSyncBcv() {
-        await this.bcvService.updateBcvRate();
-        return this.settingsService.getAll();
+    async forceSyncBcv(@Req() req: any) {
+        await this.bcvService.updateBcvRate(req.user.storeId);
+        return this.settingsService.getAll(req.user.storeId);
     }
 
     /**
@@ -23,8 +23,8 @@ export class SettingsController {
      * Used by the React SettingsPage and CartProvider (to read taxRate).
      */
     @Get()
-    getAll(): Promise<StoreSettings> {
-        return this.settingsService.getAll();
+    getAll(@Req() req: any): Promise<StoreSettings> {
+        return this.settingsService.getAll(req.user.storeId);
     }
 
     /**
@@ -33,7 +33,7 @@ export class SettingsController {
      * Returns the updated full settings object.
      */
     @Patch()
-    update(@Body() body: Partial<StoreSettings>): Promise<StoreSettings> {
-        return this.settingsService.updateMany(body);
+    update(@Req() req: any, @Body() body: Partial<StoreSettings>): Promise<StoreSettings> {
+        return this.settingsService.updateMany(req.user.storeId, body);
     }
 }

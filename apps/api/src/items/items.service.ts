@@ -6,25 +6,30 @@ import { Prisma } from '@prisma/client';
 export class ItemsService {
     constructor(private prisma: PrismaService) { }
 
-    async findAll() {
+    async findAll(storeId: string) {
         return this.prisma.item.findMany({
-            where: { deletedAt: null },
+            where: { storeId, deletedAt: null },
             orderBy: { name: 'asc' },
         });
     }
 
-    async create(data: Prisma.ItemCreateInput) {
-        return this.prisma.item.create({ data });
+    async create(storeId: string, data: Prisma.ItemUncheckedCreateInput) {
+        return this.prisma.item.create({
+            data: { ...data, storeId }
+        });
     }
 
-    async update(id: number, data: Prisma.ItemUpdateInput) {
-        return this.prisma.item.update({ where: { id }, data });
+    async update(storeId: string, id: number, data: Prisma.ItemUpdateInput) {
+        return this.prisma.item.update({
+            where: { id, storeId },
+            data,
+        });
     }
 
-    async remove(id: number) {
+    async remove(storeId: string, id: number) {
         // Soft delete
         return this.prisma.item.update({
-            where: { id },
+            where: { id, storeId },
             data: { deletedAt: new Date() },
         });
     }
@@ -33,11 +38,12 @@ export class ItemsService {
      * Delta Sync: Returns only items updated after `since` timestamp.
      * This is the key for efficient RxDB replication — never download everything.
      */
-    async getDeltaSince(since: number) {
+    async getDeltaSince(storeId: string, since: number) {
         const sinceDate = since ? new Date(since) : new Date(0);
 
         const items = await this.prisma.item.findMany({
             where: {
+                storeId,
                 updatedAt: { gt: sinceDate },
             },
             orderBy: { updatedAt: 'asc' },

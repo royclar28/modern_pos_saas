@@ -11,7 +11,7 @@ export class AuthService {
     ) { }
 
     async validateUser(username: string, pass: string): Promise<any> {
-        const user = await this.prisma.employee.findUnique({ where: { username } });
+        const user = await this.prisma.user.findUnique({ where: { username } });
         if (user && await argon2.verify(user.password, pass)) {
             const { password, ...result } = user;
             return result;
@@ -20,7 +20,7 @@ export class AuthService {
     }
 
     async login(user: any) {
-        const payload = { username: user.username, sub: user.id, role: user.role };
+        const payload = { username: user.username, sub: user.id, role: user.role, storeId: user.storeId };
         return {
             access_token: this.jwtService.sign(payload),
         };

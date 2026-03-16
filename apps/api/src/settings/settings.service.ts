@@ -15,9 +15,12 @@ export class SettingsService {
     constructor(private readonly prisma: PrismaService) {}
 
     /** Return all public StoreConfig entries as a flat key→value object */
-    async getAll(): Promise<StoreSettings> {
+    async getAll(storeId: string): Promise<StoreSettings> {
         const rows = await this.prisma.storeConfig.findMany({
-            where: { key: { in: PUBLIC_KEYS as unknown as string[] } },
+            where: {
+                storeId,
+                key: { in: PUBLIC_KEYS as unknown as string[] },
+            },
         });
 
         // Build map with safe defaults
@@ -44,7 +47,7 @@ export class SettingsService {
      * Update one or more public settings via upsert.
      * Unknown keys are silently ignored for safety.
      */
-    async updateMany(patch: Partial<StoreSettings>): Promise<StoreSettings> {
+    async updateMany(storeId: string, patch: Partial<StoreSettings>): Promise<StoreSettings> {
         const validEntries = Object.entries(patch).filter(([k]) =>
             PUBLIC_KEYS.includes(k as PublicKey),
         );
@@ -54,11 +57,11 @@ export class SettingsService {
                 this.prisma.storeConfig.upsert({
                     where: { key },
                     update: { value: String(value) },
-                    create: { key, value: String(value) },
+                    create: { key, value: String(value), storeId },
                 }),
             ),
         );
 
-        return this.getAll();
+        return this.getAll(storeId);
     }
 }

@@ -32,6 +32,7 @@ export type SaleStatus = 'PENDIENTE' | 'PAGADO';
 
 export type SaleDocType = {
     id: string;
+    storeId: string;
     invoiceNumber?: string;
     comment?: string;
     saleTime: number;        // Unix timestamp (ms)
@@ -70,6 +71,7 @@ export const saleSchema: RxJsonSchema<SaleDocType> = {
     type: 'object',
     properties: {
         id: { type: 'string', maxLength: 100 },
+        storeId: { type: 'string', maxLength: 100 },
         invoiceNumber: { type: 'string' },
         comment: { type: 'string' },
         saleTime: { type: 'number' },
@@ -108,5 +110,5 @@ export const saleSchema: RxJsonSchema<SaleDocType> = {
         status: { type: 'string' },
         updatedAt: { type: 'number' },
     },
-    required: ['id', 'saleTime', 'employeeId', 'terminalId', 'subtotal', 'taxPercent', 'taxAmount', 'total', 'items', 'paymentMethod', 'updatedAt'],
+    required: ['id', 'storeId', 'saleTime', 'employeeId', 'terminalId', 'subtotal', 'taxPercent', 'taxAmount', 'total', 'items', 'paymentMethod', 'updatedAt'],
 };

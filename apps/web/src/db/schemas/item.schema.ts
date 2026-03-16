@@ -2,6 +2,7 @@ import { RxJsonSchema } from 'rxdb';
 
 export type ItemDocType = {
     id: string;
+    storeId: string;
     name: string;
     category: string;
     itemNumber?: string;
@@ -23,6 +24,7 @@ export const itemSchema: RxJsonSchema<ItemDocType> = {
     type: 'object',
     properties: {
         id: { type: 'string', maxLength: 100 },
+        storeId: { type: 'string', maxLength: 100 },
         name: { type: 'string' },
         category: { type: 'string' },
         itemNumber: { type: 'string' },
@@ -35,5 +37,5 @@ export const itemSchema: RxJsonSchema<ItemDocType> = {
         isSerialized: { type: 'boolean' },
         updatedAt: { type: 'number' },
     },
-    required: ['id', 'name', 'category', 'costPrice', 'unitPrice', 'updatedAt'],
+    required: ['id', 'storeId', 'name', 'category', 'costPrice', 'unitPrice', 'updatedAt'],
 };

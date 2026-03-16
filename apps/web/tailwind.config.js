@@ -6,6 +6,13 @@ export default {
     ],
     theme: {
         extend: {
+            colors: {
+                primary: {
+                    DEFAULT: 'var(--color-primary, #7C3AED)',
+                    hover: 'var(--color-primary-hover, #6D28D9)',
+                    light: 'var(--color-primary-light, #EDE9FE)',
+                },
+            },
             keyframes: {
                 'slide-up': {
                     '0%': { transform: 'translate(-50%, 100%)', opacity: '0' },
