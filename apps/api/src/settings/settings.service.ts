@@ -5,7 +5,7 @@ import { PrismaService } from '../prisma.service';
  * Keys we expose via the Settings API.
  * All other StoreConfig rows are internal and not surfaced.
  */
-const PUBLIC_KEYS = ['default_tax_rate', 'currency_symbol', 'company', 'timezone', 'language', 'exchange_rate'] as const;
+const PUBLIC_KEYS = ['default_tax_rate', 'currency_symbol', 'company', 'timezone', 'language', 'exchange_rate', 'enable_credit_sales'] as const;
 type PublicKey = (typeof PUBLIC_KEYS)[number];
 
 export type StoreSettings = Record<PublicKey, string>;
@@ -28,6 +28,7 @@ export class SettingsService {
             timezone: 'America/Mexico_City',
             language: 'es',
             exchange_rate: '1',
+            enable_credit_sales: 'false',
         };
 
         for (const row of rows) {

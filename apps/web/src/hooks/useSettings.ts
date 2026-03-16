@@ -17,6 +17,7 @@ export type StoreSettings = {
     company: string;
     timezone: string;
     language: string;
+    enable_credit_sales: string; // "true" | "false"
 };
 
 /** Parsed, consumer-friendly version */
@@ -26,6 +27,7 @@ export type ParsedSettings = {
     exchangeRate: number;   // e.g. 36.25  (ready for math)
     currencySymbol: string;
     company: string;
+    enableCreditSales: boolean;
     isLoading: boolean;
     error: string | null;
     refetch: () => void;
@@ -38,6 +40,7 @@ const DEFAULTS: StoreSettings = {
     company: 'Modern POS',
     timezone: 'America/Mexico_City',
     language: 'es',
+    enable_credit_sales: 'false',
 };
 
 export const useSettings = (): ParsedSettings => {
@@ -82,6 +85,7 @@ export const useSettings = (): ParsedSettings => {
         exchangeRate: Math.max(1, Number(raw.exchange_rate) || 1),
         currencySymbol: raw.currency_symbol || '$',
         company: raw.company || 'Modern POS',
+        enableCreditSales: raw.enable_credit_sales === 'true',
         isLoading,
         error,
         refetch: fetchSettings,

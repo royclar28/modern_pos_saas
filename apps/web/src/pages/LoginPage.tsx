@@ -66,8 +66,8 @@ export const LoginPage = () => {
     };
 
     return (
-        <div className="flex h-screen w-full items-center justify-center bg-gray-50">
-            <Card className="w-full max-w-sm">
+        <div className="flex min-h-screen w-full items-center justify-center bg-slate-50 p-6">
+            <Card className="w-full max-w-md shadow-xl border-slate-200">
                 <CardHeader>
                     <CardTitle className="text-2xl font-bold">POS Login</CardTitle>
                     <CardDescription>

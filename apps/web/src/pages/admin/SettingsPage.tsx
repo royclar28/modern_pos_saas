@@ -9,6 +9,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTerminal } from '../../hooks/useTerminal';
 import { useSettings, StoreSettings } from '../../hooks/useSettings';
+import { useHighVisibility } from '../../hooks/useHighVisibility';
 
 // ─── Reusable Field ───────────────────────────────────────────────────────────
 const Field = ({
@@ -75,6 +76,7 @@ const Toast = ({ msg, type }: { msg: string; type: 'success' | 'error' }) => (
 export const SettingsPage = () => {
     const { getTerminalId, setTerminalId } = useTerminal();
     const { raw, taxRate, isLoading, error, refetch } = useSettings();
+    const { isHighVis, toggleHighVis } = useHighVisibility();
 
     // Local terminal form state
     const [localTerminal, setLocalTerminal] = useState('');
@@ -83,9 +85,11 @@ export const SettingsPage = () => {
     const [globalForm, setGlobalForm] = useState<StoreSettings>({
         default_tax_rate: '16',
         currency_symbol: '$',
+        exchange_rate: '1',
         company: '',
         timezone: '',
         language: 'es',
+        enable_credit_sales: 'false',
     });
 
     const [isSavingGlobal, setIsSavingGlobal] = useState(false);
@@ -101,9 +105,11 @@ export const SettingsPage = () => {
             setGlobalForm({
                 default_tax_rate: raw.default_tax_rate,
                 currency_symbol: raw.currency_symbol,
+                exchange_rate: raw.exchange_rate,
                 company: raw.company,
                 timezone: raw.timezone,
                 language: raw.language,
+                enable_credit_sales: raw.enable_credit_sales,
             });
         }
     }, [isLoading, raw]);
@@ -242,6 +248,44 @@ export const SettingsPage = () => {
                                 {getTerminalId()}
                             </code>
                         </div>
+
+                        {/* High Visibility Mode Toggle */}
+                        <div className="border-t border-slate-100 pt-5 mt-2">
+                            <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                    <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                        <span className="text-lg">👁️</span> Modo de Alta Visibilidad
+                                    </h3>
+                                    <p className="text-xs text-slate-400 mt-1 leading-relaxed max-w-md">
+                                        Activa textos gigantes, botones enormes y una interfaz simplificada
+                                        ideal para pantallas pequeñas o personas con visión reducida.
+                                        Solo afecta a <strong>este terminal</strong>.
+                                    </p>
+                                </div>
+                                <button
+                                    id="high-vis-toggle"
+                                    onClick={toggleHighVis}
+                                    className={`relative w-14 h-8 rounded-full transition-all duration-300 shadow-inner ${
+                                        isHighVis
+                                            ? 'bg-violet-600'
+                                            : 'bg-slate-300'
+                                    }`}
+                                    aria-label="Toggle High Visibility Mode"
+                                >
+                                    <span
+                                        className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-300 ${
+                                            isHighVis ? 'translate-x-6' : 'translate-x-0'
+                                        }`}
+                                    />
+                                </button>
+                            </div>
+                            {isHighVis && (
+                                <div className="mt-3 bg-violet-50 border border-violet-200 rounded-xl px-4 py-3 text-sm text-violet-800 font-medium flex items-center gap-2">
+                                    <span className="text-lg">✅</span>
+                                    <span>Modo de Alta Visibilidad <strong>ACTIVO</strong>. La interfaz POS mostrará elementos agrandados.</span>
+                                </div>
+                            )}
+                        </div>
                     </Card>
 
                     {/* ── SECTION 2: Negocio (Global) ───────────────────────── */}
@@ -360,6 +404,69 @@ export const SettingsPage = () => {
                                 </div>
                             </form>
                         )}
+
+                        {/* ── Credit Sales Toggle ─────────────────────────── */}
+                        <div className="border-t border-slate-100 pt-5 mt-2">
+                            <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                    <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                        <span className="text-lg">📒</span> Permitir Ventas a Crédito (Fiado)
+                                    </h3>
+                                    <p className="text-xs text-slate-400 mt-1 leading-relaxed max-w-md">
+                                        Habilita la opción de vender a crédito en el punto de venta.
+                                        Al activarlo, aparecerá una pestaña "Fiado" en el modal de cobro
+                                        y se habilitará el cuaderno digital de deudas.
+                                    </p>
+                                </div>
+                                <button
+                                    id="credit-sales-toggle"
+                                    onClick={async () => {
+                                        const newValue = globalForm.enable_credit_sales === 'true' ? 'false' : 'true';
+                                        setGlobalForm(f => ({ ...f, enable_credit_sales: newValue }));
+                                        // Auto-save this toggle immediately
+                                        try {
+                                            const token = localStorage.getItem('pos_token');
+                                            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3333';
+                                            await fetch(`${apiUrl}/settings`, {
+                                                method: 'PATCH',
+                                                headers: {
+                                                    'Content-Type': 'application/json',
+                                                    Authorization: `Bearer ${token}`,
+                                                },
+                                                body: JSON.stringify({ enable_credit_sales: newValue }),
+                                            });
+                                            refetch();
+                                            showToast(
+                                                newValue === 'true'
+                                                    ? 'Ventas a crédito habilitadas'
+                                                    : 'Ventas a crédito deshabilitadas',
+                                                'success'
+                                            );
+                                        } catch {
+                                            showToast('Error al guardar configuración', 'error');
+                                        }
+                                    }}
+                                    className={`relative w-14 h-8 rounded-full transition-all duration-300 shadow-inner ${
+                                        globalForm.enable_credit_sales === 'true'
+                                            ? 'bg-emerald-600'
+                                            : 'bg-slate-300'
+                                    }`}
+                                    aria-label="Toggle Ventas a Crédito"
+                                >
+                                    <span
+                                        className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-300 ${
+                                            globalForm.enable_credit_sales === 'true' ? 'translate-x-6' : 'translate-x-0'
+                                        }`}
+                                    />
+                                </button>
+                            </div>
+                            {globalForm.enable_credit_sales === 'true' && (
+                                <div className="mt-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 text-sm text-emerald-800 font-medium flex items-center gap-2">
+                                    <span className="text-lg">✅</span>
+                                    <span>Ventas a Crédito <strong>HABILITADAS</strong>. La pestaña "Fiado" aparecerá en el modal de cobro.</span>
+                                </div>
+                            )}
+                        </div>
                     </Card>
 
                     {/* ── Info footer ──────────────────────────────────────── */}

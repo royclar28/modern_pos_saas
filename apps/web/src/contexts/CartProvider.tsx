@@ -16,6 +16,7 @@
 import React, { createContext, useContext, useReducer, useMemo, useCallback } from 'react';
 import { ItemDocType } from '../db/schemas/item.schema';
 import { SaleDocType, SaleItemDocType } from '../db/schemas/sale.schema';
+import { PaymentData } from '../components/CheckoutModal';
 import { getDatabase } from '../db/database';
 import { useSettings } from '../hooks/useSettings';
 import { useTerminal } from '../hooks/useTerminal';
@@ -58,7 +59,7 @@ type CartContextValue = {
     setQuantity: (productId: string, qty: number) => void;
     setDiscount: (productId: string, discount: number) => void;
     clearCart: () => void;
-    checkout: (employeeId: string) => Promise<SaleDocType>;
+    checkout: (employeeId: string, paymentData: PaymentData) => Promise<SaleDocType>;
     refetchSettings: () => void;
 };
 
@@ -175,7 +176,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
      * Stamps the current terminalId for multi-register reconciliation.
      * No API call needed in the hot path: RxDB replication uploads later.
      */
-    const checkout = useCallback(async (employeeId: string): Promise<SaleDocType> => {
+    const checkout = useCallback(async (employeeId: string, paymentData: PaymentData): Promise<SaleDocType> => {
         const db = await getDatabase();
         const now = Date.now();
         const saleId = `sale_${now}_${Math.random().toString(36).slice(2, 7)}`;
@@ -198,12 +199,22 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             id: saleId,
             saleTime: now,
             employeeId,
-            terminalId,      // ← stamped here
+            terminalId,
             subtotal: totals.subtotal,
             taxPercent: totals.taxPercent,
             taxAmount: totals.taxAmount,
             total: totals.total,
             items: saleItems,
+            // ── Payment fields ──
+            paymentMethod: paymentData.paymentMethod,
+            reference: paymentData.reference,
+            amountReceived: paymentData.amountReceived,
+            changeAmount: paymentData.changeAmount,
+            changeBs: paymentData.changeBs,
+            changeMethod: paymentData.changeMethod,
+            // ── Fiado fields ──
+            customerId: paymentData.customerId,
+            status: paymentData.paymentMethod === 'FIADO' ? 'PENDIENTE' : undefined,
             updatedAt: now,
         };
 

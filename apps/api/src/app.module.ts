@@ -5,9 +5,10 @@ import { SyncController } from './sync.controller';
 import { AuthModule } from './auth/auth.module';
 import { ItemsModule } from './items/items.module';
 import { SettingsModule } from './settings/settings.module';
+import { InventoryModule } from './inventory/inventory.module';
 
 @Module({
-    imports: [AuthModule, ItemsModule, SettingsModule, ScheduleModule.forRoot()],
+    imports: [AuthModule, ItemsModule, SettingsModule, InventoryModule, ScheduleModule.forRoot()],
     controllers: [SyncController],
     providers: [PrismaService],
 })
