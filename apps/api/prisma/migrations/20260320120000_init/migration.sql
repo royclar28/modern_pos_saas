@@ -1,21 +1,34 @@
 -- CreateEnum
-CREATE TYPE "Role" AS ENUM ('SUPER_ADMIN', 'ADMIN', 'MANAGER', 'EMPLOYEE');
+CREATE TYPE "Role" AS ENUM ('SUPER_ADMIN', 'STORE_ADMIN', 'CASHIER');
 
 -- CreateTable
-CREATE TABLE "Employee" (
+CREATE TABLE "Store" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "primaryColor" TEXT DEFAULT '#3B82F6',
+    "logoUrl" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Store_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "User" (
     "id" SERIAL NOT NULL,
     "username" TEXT NOT NULL,
     "password" TEXT NOT NULL,
+    "storeId" TEXT NOT NULL,
     "firstName" TEXT NOT NULL,
     "lastName" TEXT NOT NULL,
     "email" TEXT,
     "phone" TEXT,
     "address" TEXT,
-    "role" "Role" NOT NULL DEFAULT 'EMPLOYEE',
+    "telegramChatId" TEXT,
+    "role" "Role" NOT NULL DEFAULT 'CASHIER',
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "deletedAt" TIMESTAMP(3),
 
-    CONSTRAINT "Employee_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -24,6 +37,7 @@ CREATE TABLE "Customer" (
     "companyName" TEXT,
     "accountNumber" TEXT,
     "taxable" BOOLEAN NOT NULL DEFAULT true,
+    "storeId" TEXT NOT NULL,
     "firstName" TEXT NOT NULL,
     "lastName" TEXT NOT NULL,
     "email" TEXT,
@@ -42,6 +56,7 @@ CREATE TABLE "Item" (
     "category" TEXT NOT NULL,
     "itemNumber" TEXT,
     "description" TEXT,
+    "storeId" TEXT NOT NULL,
     "costPrice" DECIMAL(15,2) NOT NULL,
     "unitPrice" DECIMAL(15,2) NOT NULL,
     "reorderLevel" DECIMAL(15,2) NOT NULL DEFAULT 0,
@@ -60,8 +75,13 @@ CREATE TABLE "Sale" (
     "invoiceNumber" TEXT,
     "comment" TEXT,
     "saleTime" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "terminalId" TEXT NOT NULL DEFAULT 'CAJA_01',
+    "storeId" TEXT NOT NULL,
     "customerId" INTEGER,
     "employeeId" INTEGER NOT NULL,
+    "paymentMethod" TEXT NOT NULL DEFAULT 'DIVISA',
+    "status" TEXT NOT NULL DEFAULT 'PAGADO',
+    "total" DECIMAL(15,2) NOT NULL DEFAULT 0,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "deletedAt" TIMESTAMP(3),
 
@@ -90,6 +110,7 @@ CREATE TABLE "SaleItem" (
 CREATE TABLE "StoreConfig" (
     "key" TEXT NOT NULL,
     "value" TEXT NOT NULL,
+    "storeId" TEXT NOT NULL,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "deletedAt" TIMESTAMP(3),
 
@@ -97,7 +118,7 @@ CREATE TABLE "StoreConfig" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Employee_username_key" ON "Employee"("username");
+CREATE UNIQUE INDEX "User_username_key" ON "User"("username");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Customer_accountNumber_key" ON "Customer"("accountNumber");
@@ -112,13 +133,28 @@ CREATE UNIQUE INDEX "Sale_invoiceNumber_key" ON "Sale"("invoiceNumber");
 CREATE UNIQUE INDEX "SaleItem_saleId_itemId_line_key" ON "SaleItem"("saleId", "itemId", "line");
 
 -- AddForeignKey
+ALTER TABLE "User" ADD CONSTRAINT "User_storeId_fkey" FOREIGN KEY ("storeId") REFERENCES "Store"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Customer" ADD CONSTRAINT "Customer_storeId_fkey" FOREIGN KEY ("storeId") REFERENCES "Store"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Item" ADD CONSTRAINT "Item_storeId_fkey" FOREIGN KEY ("storeId") REFERENCES "Store"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Sale" ADD CONSTRAINT "Sale_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "Customer"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Sale" ADD CONSTRAINT "Sale_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Sale" ADD CONSTRAINT "Sale_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Sale" ADD CONSTRAINT "Sale_storeId_fkey" FOREIGN KEY ("storeId") REFERENCES "Store"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "SaleItem" ADD CONSTRAINT "SaleItem_saleId_fkey" FOREIGN KEY ("saleId") REFERENCES "Sale"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "SaleItem" ADD CONSTRAINT "SaleItem_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "Item"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "StoreConfig" ADD CONSTRAINT "StoreConfig_storeId_fkey" FOREIGN KEY ("storeId") REFERENCES "Store"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
