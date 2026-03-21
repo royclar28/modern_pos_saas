@@ -12,7 +12,7 @@ export type CustomerDocType = {
     phone?: string;
     address?: string;
     updatedAt: number; // Unix timestamp
-    deleted: boolean;
+    isDeleted: boolean;
 };
 
 export const customerSchema: RxJsonSchema<CustomerDocType> = {
@@ -33,7 +33,7 @@ export const customerSchema: RxJsonSchema<CustomerDocType> = {
         phone: { type: 'string' },
         address: { type: 'string' },
         updatedAt: { type: 'number' },
-        deleted: { type: 'boolean' }
+        isDeleted: { type: 'boolean' }
     },
-    required: ['id', 'storeId', 'taxable', 'firstName', 'lastName', 'updatedAt', 'deleted']
+    required: ['id', 'storeId', 'taxable', 'firstName', 'lastName', 'updatedAt', 'isDeleted']
 };

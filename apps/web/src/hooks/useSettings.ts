@@ -59,7 +59,7 @@ export const useSettings = (): ParsedSettings => {
         setIsLoading(true);
         setError(null);
         try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3333';
+            const apiUrl = `http://${window.location.hostname}:3333/api` || 'http://localhost:3333';
             const res = await fetch(`${apiUrl}/settings`, {
                 headers: { Authorization: `Bearer ${token}` },
             });

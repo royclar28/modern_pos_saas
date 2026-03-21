@@ -60,7 +60,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
         const applyTheme = async () => {
             try {
-                const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+                const API_URL = `http://${window.location.hostname}:3333/api` || 'http://localhost:3000';
                 const response = await fetch(`${API_URL}/settings`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });

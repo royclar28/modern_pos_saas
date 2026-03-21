@@ -133,7 +133,7 @@ export const SettingsPage = () => {
         setIsSavingGlobal(true);
         try {
             const token = localStorage.getItem('pos_token');
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3333';
+            const apiUrl = `http://${window.location.hostname}:3333/api` || 'http://localhost:3333';
             const res = await fetch(`${apiUrl}/settings`, {
                 method: 'PATCH',
                 headers: {
@@ -426,7 +426,7 @@ export const SettingsPage = () => {
                                         // Auto-save this toggle immediately
                                         try {
                                             const token = localStorage.getItem('pos_token');
-                                            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3333';
+                                            const apiUrl = `http://${window.location.hostname}:3333/api` || 'http://localhost:3333';
                                             await fetch(`${apiUrl}/settings`, {
                                                 method: 'PATCH',
                                                 headers: {

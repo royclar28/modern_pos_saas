@@ -9,6 +9,7 @@ import { ItemsModule } from './items/items.module';
 import { SettingsModule } from './settings/settings.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { TelegramModule } from './telegram/telegram.module';
+import { SaasModule } from './saas/saas.module';
 
 @Module({
     imports: [
@@ -21,7 +22,8 @@ import { TelegramModule } from './telegram/telegram.module';
         SettingsModule,
         InventoryModule,
         ScheduleModule.forRoot(),
-        TelegramModule
+        TelegramModule,
+        SaasModule
     ],
     controllers: [SyncController],
     providers: [PrismaService],

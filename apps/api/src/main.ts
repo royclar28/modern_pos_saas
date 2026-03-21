@@ -15,7 +15,7 @@ async function bootstrap() {
 
     // 3. Levantar el servidor
     const port = process.env.PORT || 3333;
-    await app.listen(port);
+    await app.listen(port, '0.0.0.0');
 
     // 4. Logs actualizados para mayor claridad
     console.log(`🚀 NestJS API endpoints running at http://localhost:${port}/api`);

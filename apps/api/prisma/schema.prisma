@@ -23,6 +23,12 @@ model Store {
   logoUrl      String?
   createdAt    DateTime @default(now())
 
+  // SaaS Fields
+  isActive     Boolean  @default(true)
+  plan         String   @default("FREE")
+  rif          String?
+  ownerEmail   String?
+
   // Relations
   users        User[]
   customers    Customer[]
@@ -153,7 +159,8 @@ model SaleItem {
 }
 
 model StoreConfig {
-  key     String @id
+  id      String @id @default(cuid())
+  key     String
   value   String
 
   storeId String
@@ -162,4 +169,6 @@ model StoreConfig {
   // Sync fields
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
+
+  @@unique([storeId, key])
 }

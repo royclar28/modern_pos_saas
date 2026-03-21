@@ -12,6 +12,7 @@ import { InventoryPage } from './pages/admin/InventoryPage';
 import { SalesDashboard } from './pages/admin/SalesDashboard';
 import { SettingsPage } from './pages/admin/SettingsPage';
 import { FiadosPage } from './pages/admin/FiadosPage';
+import { SuperAdminPage } from './pages/admin/SuperAdminPage';
 import { useSync } from './hooks/useSync';
 import { useSettings } from './hooks/useSettings';
 
@@ -86,6 +87,17 @@ const Dashboard = () => {
                             <div className="text-amber-600 text-sm mt-1">Gestionar créditos →</div>
                         </Link>
                     )}
+
+                    {user?.role === 'SUPER_ADMIN' && (
+                        <Link
+                            to="/super-admin"
+                            className="group bg-gradient-to-br from-indigo-900 to-purple-900 text-white rounded-2xl p-8 transition-all shadow-lg shadow-indigo-200 hover:shadow-indigo-300 hover:-translate-y-0.5"
+                        >
+                            <div className="text-5xl mb-3">🔒</div>
+                            <div className="font-bold text-xl">Panel SaaS</div>
+                            <div className="text-indigo-200 text-sm mt-1">Gestionar tiendas →</div>
+                        </Link>
+                    )}
                 </div>
 
                 <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-700 flex items-center gap-2">
@@ -131,6 +143,11 @@ export const App = () => {
                                 <Route path="/admin/fiados" element={
                                     <RequireRole allowed={['SUPER_ADMIN', 'STORE_ADMIN']}>
                                         <FiadosPage />
+                                    </RequireRole>
+                                } />
+                                <Route path="/super-admin" element={
+                                    <RequireRole allowed={['SUPER_ADMIN']}>
+                                        <SuperAdminPage />
                                     </RequireRole>
                                 } />
                             </Route>

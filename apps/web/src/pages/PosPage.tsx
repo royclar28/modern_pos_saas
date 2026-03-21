@@ -220,6 +220,7 @@ export const PosPage = () => {
     const [completedSale, setCompletedSale] = useState<SaleDocType | null>(null);
     const [isSyncingBCV, setIsSyncingBCV] = useState(false);
     const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+    const [mobileCartOpen, setMobileCartOpen] = useState(false);
     const searchInputRef = useRef<HTMLInputElement>(null);
 
     const filtered = useMemo(() => {
@@ -263,7 +264,7 @@ export const PosPage = () => {
         setIsSyncingBCV(true);
         try {
             const token = localStorage.getItem('pos_token');
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3333';
+            const apiUrl = `http://${window.location.hostname}:3333/api` || 'http://localhost:3333';
             await fetch(`${apiUrl}/settings/bcv/sync`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` }
@@ -410,9 +411,11 @@ export const PosPage = () => {
                     )}
                 </div>
 
-                {/* ── RIGHT: Ticket / Cart ───────────────────────────────────── */}
-                <div className={`flex flex-col bg-white border-l border-slate-200 shrink-0 shadow-2xl z-20 ${
+                {/* ── RIGHT: Ticket / Cart (slides in on mobile) ─────────── */}
+                <div className={`flex flex-col bg-white border-l border-slate-200 shrink-0 shadow-2xl z-20 transition-transform duration-300 ${
                     hv ? 'w-[420px]' : 'w-80 xl:w-96'
+                } fixed inset-y-0 right-0 md:static md:translate-x-0 ${
+                    mobileCartOpen ? 'translate-x-0' : 'translate-x-full md:translate-x-0'
                 }`}>
                     {/* Cart Header */}
                     <div className={`bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0 ${
@@ -528,6 +531,30 @@ export const PosPage = () => {
                     </div>
                 </div>
             </div>
+
+            {/* ── Mobile Cart FAB (Floating Action Button) ──────────── */}
+            <button
+                onClick={() => setMobileCartOpen(!mobileCartOpen)}
+                className={`md:hidden fixed bottom-6 right-6 z-30 w-16 h-16 rounded-full shadow-2xl flex items-center justify-center text-white font-black text-lg transition-all active:scale-90 print:hidden ${
+                    cartItems.length > 0
+                    ? 'bg-gradient-to-br from-violet-600 to-indigo-600 animate-pulse'
+                    : 'bg-slate-700'
+                }`}
+            >
+                🛒
+                {cartItems.length > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-black w-6 h-6 rounded-full flex items-center justify-center shadow-lg">
+                        {totals.itemCount}
+                    </span>
+                )}
+            </button>
+            {/* Mobile Cart Overlay */}
+            {mobileCartOpen && (
+                <div
+                    className="md:hidden fixed inset-0 bg-black/40 z-10 print:hidden"
+                    onClick={() => setMobileCartOpen(false)}
+                />
+            )}
 
             {/* ── Modals ──────────────────────────────────────────────── */}
             <CheckoutModal

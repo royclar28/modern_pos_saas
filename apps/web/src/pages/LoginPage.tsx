@@ -37,7 +37,7 @@ export const LoginPage = () => {
     const onSubmit = async (data: LoginFormValues) => {
         setError(null);
         try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3333';
+            const apiUrl = `http://${window.location.hostname}:3333/api` || 'http://localhost:3333';
             const response = await fetch(`${apiUrl}/auth/login`, {
                 method: 'POST',
                 headers: {

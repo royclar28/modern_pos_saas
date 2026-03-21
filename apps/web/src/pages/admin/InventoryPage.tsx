@@ -6,6 +6,7 @@ import { useItems } from '../../hooks/useItems';
 import { getDatabase } from '../../db/database';
 import { ItemDocType } from '../../db/schemas/item.schema';
 import { Link } from 'react-router-dom';
+import { InvoiceScannerModal, ScannedProduct } from '../../components/InvoiceScannerModal';
 
 // ─── Zod Schema for Validation ──────────────────────────────────────────────
 const itemSchema = z.object({
@@ -25,16 +26,7 @@ const itemSchema = z.object({
 
 type ItemFormData = z.infer<typeof itemSchema>;
 
-// ─── Scanned Product Type ─────────────────────────────────────────────────────
-interface ScannedProduct {
-    name: string;
-    sku: string;
-    costPrice: number;
-    unitPrice: number;
-    quantity: number;
-    category: string;
-}
-
+// ScannedProduct is imported from InvoiceScannerModal
 // ─── Lightweight inline toast (zero deps) ─────────────────────────────────────
 const toast = {
     _show(msg: string, bg: string) {
@@ -407,7 +399,6 @@ export const InventoryPage = () => {
     const [modalItem, setModalItem] = useState<ItemDocType | null | 'NEW'>(null);
 
     // Scanner state
-    const [isScanning, setIsScanning] = useState(false);
     const [scannedProducts, setScannedProducts] = useState<ScannedProduct[] | null>(null);
     const [isSavingUpsert, setIsSavingUpsert] = useState(false);
 
@@ -477,42 +468,6 @@ export const InventoryPage = () => {
     };
 
     // ── Invoice scanner handlers ──────────────────────────────────
-    const handleScanInvoice = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        setIsScanning(true);
-        try {
-            const token = localStorage.getItem('pos_token');
-            const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3333';
-
-            const formData = new FormData();
-            formData.append('invoice', file);
-
-            const res = await fetch(`${apiUrl}/inventory/scan-invoice`, {
-                method: 'POST',
-                headers: { Authorization: `Bearer ${token}` },
-                body: formData,
-            });
-
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data = await res.json();
-
-            if (data.products && data.products.length > 0) {
-                setScannedProducts(data.products);
-            } else {
-                toast.error('No se detectaron productos en la factura.');
-            }
-        } catch (err) {
-            console.error('Invoice scan failed:', err);
-            toast.error('Error al escanear la factura. Intente de nuevo.');
-        } finally {
-            setIsScanning(false);
-            // Reset file input
-            e.target.value = '';
-        }
-    };
-
     const handleUpsertAll = async (products: ScannedProduct[]) => {
         setIsSavingUpsert(true);
         try {
@@ -558,24 +513,10 @@ export const InventoryPage = () => {
                         </div>
                         <div className="flex items-center gap-3">
                             {/* Scanner Button */}
-                            <label
-                                className={`cursor-pointer bg-emerald-600 hover:bg-emerald-700 active:scale-95 transition-all text-white font-bold py-2 px-5 rounded-xl shadow-md flex items-center gap-2 whitespace-nowrap ${
-                                    isScanning ? 'opacity-60 pointer-events-none' : ''
-                                }`}
-                            >
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    className="hidden"
-                                    onChange={handleScanInvoice}
-                                    disabled={isScanning}
-                                />
-                                {isScanning ? (
-                                    <><span className="animate-spin">⟳</span> Escaneando...</>
-                                ) : (
-                                    <>📄 Escanear Factura</>
-                                )}
-                            </label>
+                            <InvoiceScannerModal 
+                                onScanSuccess={(products) => setScannedProducts(products)}
+                                onError={(msg) => toast.error(msg)} 
+                            />
 
                             {/* New Product Button */}
                             <button

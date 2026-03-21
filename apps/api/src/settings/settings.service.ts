@@ -55,11 +55,11 @@ export class SettingsService {
         await Promise.all(
             validEntries.map(([key, value]) =>
                 this.prisma.storeConfig.upsert({
-                    where: { key },
+                    where: { storeId_key: { storeId, key } },
                     update: { value: String(value) },
                     create: { key, value: String(value), storeId },
                 }),
-            ),
+            )
         );
 
         return this.getAll(storeId);

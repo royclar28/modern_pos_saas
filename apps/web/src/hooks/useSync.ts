@@ -18,7 +18,7 @@ export const useSync = () => {
                 pull: {
                     async handler(lastCheckpoint) {
                         const since = (lastCheckpoint as any)?.updatedAt ?? 0;
-                        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3333';
+                        const apiUrl = `http://${window.location.hostname}:3333/api` || 'http://localhost:3333';
                         const res = await fetch(`${apiUrl}/items/sync?since=${since}`, {
                             headers: {
                                 'Authorization': `Bearer ${token}`
@@ -41,7 +41,7 @@ export const useSync = () => {
                 },
                 push: {
                     async handler(docs) {
-                        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3333';
+                        const apiUrl = `http://${window.location.hostname}:3333/api` || 'http://localhost:3333';
                         await fetch(`${apiUrl}/sync/push`, {
                             method: 'POST',
                             headers: {
