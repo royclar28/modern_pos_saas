@@ -18,7 +18,7 @@ import { ItemDocType } from '../db/schemas/item.schema';
 import { SaleDocType, SaleItemDocType } from '../db/schemas/sale.schema';
 import { PaymentData } from '../components/CheckoutModal';
 import { getDatabase } from '../db/database';
-import { useSettings } from '../hooks/useSettings';
+import { useSettingsContext as useSettings } from '../contexts/SettingsProvider';
 import { useTerminal } from '../hooks/useTerminal';
 
 // ─── Types ───────────────────────────────────────────────────────────────────

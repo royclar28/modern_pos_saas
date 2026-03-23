@@ -55,6 +55,10 @@ export const FiadosPage = () => {
         setTimeout(() => setToast(null), 3500);
     };
 
+    const [paymentModal, setPaymentModal] = useState<{ customerId: string; totalOwed: number } | null>(null);
+    const [payAmount, setPayAmount] = useState('');
+    const [isPaying, setIsPaying] = useState(false);
+
     const loadDebts = useCallback(async () => {
         setIsLoading(true);
         try {
@@ -86,7 +90,7 @@ export const FiadosPage = () => {
             const debtList: CustomerDebt[] = [];
             grouped.forEach((tickets, custId) => {
                 const pendingTickets = tickets.filter(t => t.status !== 'PAGADO');
-                const totalOwed = pendingTickets.reduce((sum, t) => sum + t.total, 0);
+                const totalOwed = pendingTickets.reduce((sum, t) => sum + (t.total - (t.paidAmount || 0)), 0);
                 debtList.push({
                     customer: customerMap.get(custId) || null,
                     customerId: custId,
@@ -110,21 +114,37 @@ export const FiadosPage = () => {
         loadDebts();
     }, [loadDebts]);
 
-    const handleMarkPaid = async (saleId: string) => {
+    const handleMarkPaid = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!paymentModal || !payAmount) return;
+        setIsPaying(true);
         try {
-            const db = await getDatabase();
-            const sale = await db.sales.findOne(saleId).exec();
-            if (sale) {
-                await sale.patch({
-                    status: 'PAGADO',
-                    updatedAt: Date.now(),
-                });
-                showToast('Ticket marcado como PAGADO', 'success');
-                await loadDebts();
-            }
+            const token = localStorage.getItem('pos_token');
+            const apiUrl = `http://${window.location.hostname}:3333/api` || 'http://localhost:3333';
+            const res = await fetch(`${apiUrl}/customers/${paymentModal.customerId}/pay`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({ amount: Number(payAmount) })
+            });
+
+            if (!res.ok) throw new Error('Error en el pago');
+            
+            showToast('Abono registrado exitosamente', 'success');
+            setPaymentModal(null);
+            setPayAmount('');
+            
+            // Wait a moment for RxDB to sync the updates from backend before reloading
+            setTimeout(() => {
+                loadDebts();
+            }, 1000);
         } catch (err) {
-            console.error('Error marking sale as paid:', err);
-            showToast('Error al registrar pago', 'error');
+            console.error(err);
+            showToast('Error al procesar abono', 'error');
+        } finally {
+            setIsPaying(false);
         }
     };
 
@@ -311,11 +331,31 @@ export const FiadosPage = () => {
                                                     )}
                                                 </div>
                                             </div>
-                                            <button
-                                                onClick={() => setSelectedCustomerId(null)}
-                                                className="text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 p-2 rounded-lg transition-colors text-sm"
-                                                title="Cerrar detalle"
-                                            >✕</button>
+                                            <div className="flex items-center gap-2">
+                                                {selectedDebt.totalOwed > 0 && (
+                                                    <button
+                                                        onClick={() => setPaymentModal({ customerId: selectedDebt.customerId, totalOwed: selectedDebt.totalOwed })}
+                                                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-xl flex items-center gap-2 transition-transform active:scale-95 shadow-sm text-sm"
+                                                    >
+                                                        💵 Registrar Abono
+                                                    </button>
+                                                )}
+                                                {selectedDebt.customer?.phone && selectedDebt.totalOwed > 0 && (
+                                                    <a
+                                                        href={`https://wa.me/${cleanPhone(selectedDebt.customer.phone)}?text=${encodeURIComponent(`Hola ${selectedDebt.customer.firstName}, recuerda tu pago pendiente de $${formatCurrency(selectedDebt.totalOwed)} en ${localStorage.getItem('terminal_id') || 'nuestra tienda'}.`)}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="bg-[#25D366] hover:bg-[#1DA851] text-white font-bold py-2 px-4 rounded-xl flex items-center gap-2 transition-transform active:scale-95 shadow-sm text-sm"
+                                                    >
+                                                        💬 Recordatorio
+                                                    </a>
+                                                )}
+                                                <button
+                                                    onClick={() => setSelectedCustomerId(null)}
+                                                    className="text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 p-2 rounded-lg transition-colors text-sm ml-2"
+                                                    title="Cerrar detalle"
+                                                >✕</button>
+                                            </div>
                                         </div>
 
                                         <div className="grid grid-cols-3 gap-3">
@@ -397,14 +437,11 @@ export const FiadosPage = () => {
                                                             }`}>
                                                                 ${formatCurrency(ticket.total)}
                                                             </p>
-                                                            {!isPaid && (
-                                                                <button
-                                                                    onClick={() => handleMarkPaid(ticket.id)}
-                                                                    className="text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg transition-all active:scale-95 shadow-sm shadow-emerald-200 flex items-center gap-1"
-                                                                >
-                                                                    💵 Registrar Abono
-                                                                </button>
-                                                            )}
+                                                            {!isPaid && ticket.paidAmount ? (
+                                                                <p className="text-sm font-bold text-amber-600">
+                                                                    Resta: ${formatCurrency(ticket.total - ticket.paidAmount)}
+                                                                </p>
+                                                            ) : null}
                                                         </div>
                                                     </div>
                                                 );
@@ -416,6 +453,60 @@ export const FiadosPage = () => {
                     )}
                 </div>
             </main>
+
+            {/* Payment Modal */}
+            {paymentModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-[fadeIn_0.2s_ease]">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-[slideUp_0.2s_ease]">
+                        <div className="px-6 py-4 border-b border-slate-100 bg-slate-50">
+                            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                                💵 Registrar Abono
+                            </h2>
+                        </div>
+                        <form onSubmit={handleMarkPaid} className="p-6 space-y-5">
+                            <div>
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Montos a Pagar ($)</label>
+                                <div className="relative">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">$</span>
+                                    <input
+                                        type="number"
+                                        min="0.01"
+                                        max={paymentModal.totalOwed}
+                                        step="0.01"
+                                        value={payAmount}
+                                        onChange={(e) => setPayAmount(e.target.value)}
+                                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-lg font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                                        placeholder="0.00"
+                                        required
+                                        autoFocus
+                                    />
+                                </div>
+                                <p className="text-xs text-slate-500 mt-2 text-right">
+                                    Deuda actual: <strong className="text-red-500">${formatCurrency(paymentModal.totalOwed)}</strong>
+                                </p>
+                            </div>
+                            
+                            <div className="flex items-center gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setPaymentModal(null)}
+                                    className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors"
+                                    disabled={isPaying}
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isPaying || !payAmount || Number(payAmount) <= 0}
+                                    className="flex-1 px-4 py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold rounded-xl transition-all shadow-md shadow-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isPaying ? 'Procesando...' : 'Confirmar Abono'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
 
             {/* Toast */}
             {toast && (

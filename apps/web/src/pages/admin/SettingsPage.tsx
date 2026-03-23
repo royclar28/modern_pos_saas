@@ -8,7 +8,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTerminal } from '../../hooks/useTerminal';
-import { useSettings, StoreSettings } from '../../hooks/useSettings';
+import { useSettingsContext as useSettings, StoreSettings } from '../../contexts/SettingsProvider';
 import { useHighVisibility } from '../../hooks/useHighVisibility';
 
 // ─── Reusable Field ───────────────────────────────────────────────────────────
@@ -90,6 +90,7 @@ export const SettingsPage = () => {
         timezone: '',
         language: 'es',
         enable_credit_sales: 'false',
+        primaryColor: '#7C3AED',
     });
 
     const [isSavingGlobal, setIsSavingGlobal] = useState(false);
@@ -110,6 +111,7 @@ export const SettingsPage = () => {
                 timezone: raw.timezone,
                 language: raw.language,
                 enable_credit_sales: raw.enable_credit_sales,
+                primaryColor: raw.primaryColor || '#7C3AED',
             });
         }
     }, [isLoading, raw]);
@@ -156,7 +158,7 @@ export const SettingsPage = () => {
         'w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent transition-all';
 
     return (
-        <div className="flex flex-col h-screen bg-slate-50">
+        <div className="flex flex-col h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
             {/* ── Navbar ──────────────────────────────────────────────────────── */}
             <header className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between shadow-md shrink-0">
                 <div className="flex items-center gap-6">
@@ -174,6 +176,13 @@ export const SettingsPage = () => {
                         <Link to="/pos" className="text-sm text-slate-300 hover:text-white transition-colors">
                             Ir al POS →
                         </Link>
+                        <button
+                            onClick={() => document.documentElement.classList.toggle('dark')}
+                            className="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-3 py-1 rounded-lg text-sm transition-colors ml-4"
+                            title="Alternar Modo Oscuro"
+                        >
+                            🌞/🌙
+                        </button>
                     </nav>
                 </div>
 
@@ -191,19 +200,19 @@ export const SettingsPage = () => {
 
             {/* ── Main Content ──────────────────────────────────────────────── */}
             <main className="flex-1 overflow-auto p-6 md:p-8">
-                <div className="max-w-3xl mx-auto space-y-6">
+                <div className="max-w-3xl mx-auto space-y-6 text-slate-800 dark:text-slate-100">
 
                     {/* Page heading */}
                     <div>
-                        <h2 className="text-2xl font-extrabold text-slate-800">Ajustes</h2>
-                        <p className="text-slate-400 text-sm mt-1">
+                        <h2 className="text-2xl font-extrabold text-slate-800 dark:text-white">Ajustes</h2>
+                        <p className="text-slate-400 dark:text-slate-400 text-sm mt-1">
                             Configura este equipo y los parámetros globales del negocio.
                         </p>
                     </div>
 
                     {/* ── SECTION 1: Este equipo ─────────────────────────────── */}
                     <Card icon="🖥️" title="Ajustes de Este Equipo" badge="Local">
-                        <p className="text-sm text-slate-500 -mt-2">
+                        <p className="text-sm text-slate-500 dark:text-slate-400 -mt-2">
                             Este identificador se guarda <strong>solo en este navegador</strong>. Cada caja registradora
                             debe tener un nombre único para que el Reporte Z pueda segregar las ventas por terminal.
                         </p>
@@ -367,9 +376,27 @@ export const SettingsPage = () => {
                                             onChange={(e) =>
                                                 setGlobalForm((f) => ({ ...f, timezone: e.target.value }))
                                             }
-                                            placeholder="America/Mexico_City"
+                                            placeholder="America/Caracas"
                                             className={inputClass}
                                         />
+                                    </Field>
+
+                                    {/* Color Primario */}
+                                    <Field label="Color de la Marca" hint="Color principal de botones y enlaces">
+                                        <div className="flex gap-3 items-center">
+                                            <input
+                                                id="primary-color-input"
+                                                type="color"
+                                                value={globalForm.primaryColor}
+                                                onChange={(e) => {
+                                                    setGlobalForm((f) => ({ ...f, primaryColor: e.target.value }));
+                                                    // Immediately update CSS variable for preview
+                                                    document.documentElement.style.setProperty('--color-primary', e.target.value);
+                                                }}
+                                                className="w-12 h-12 rounded cursor-pointer border-0 p-0"
+                                            />
+                                            <span className="text-xs font-mono text-slate-500 uppercase">{globalForm.primaryColor}</span>
+                                        </div>
                                     </Field>
                                 </div>
 

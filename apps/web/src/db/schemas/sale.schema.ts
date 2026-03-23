@@ -55,6 +55,8 @@ export type SaleDocType = {
 
     // ── Credit (Fiado) fields ────────────────────────────────────
     status?: string;             // 'PENDIENTE' | 'PAGADO' — for Fiado tracking
+    paidAmount?: number;         // Amount paid towards the partial debt
+    dueDate?: number;            // Unix timestamp (ms) for payment deadline
 
     updatedAt: number;
 };
@@ -108,6 +110,8 @@ export const saleSchema: RxJsonSchema<SaleDocType> = {
         changeBs: { type: 'number' },
         changeMethod: { type: 'string' },
         status: { type: 'string' },
+        paidAmount: { type: 'number' },
+        dueDate: { type: 'number' },
         updatedAt: { type: 'number' },
     },
     required: ['id', 'storeId', 'saleTime', 'employeeId', 'terminalId', 'subtotal', 'taxPercent', 'taxAmount', 'total', 'items', 'paymentMethod', 'updatedAt'],

@@ -49,17 +49,35 @@ export class SaasService {
 
         // Crear dueño
         const username = ownerEmail;
-        const owner = await this.prisma.user.create({
-            data: {
-                storeId: store.id,
-                username,
-                password: hashedPassword,
-                email: ownerEmail,
-                role: 'STORE_ADMIN',
-                firstName: 'Dueño',
-                lastName: name,
-            }
+        let owner = await this.prisma.user.findUnique({
+            where: { username }
         });
+
+        if (owner) {
+            // El usuario ya existe, simplemente actualizamos la contraseña temporal
+            // y lo asignamos como dueño de esta nueva tienda.
+            owner = await this.prisma.user.update({
+                where: { username },
+                data: {
+                    storeId: store.id,
+                    password: hashedPassword,
+                    role: 'STORE_ADMIN'
+                }
+            });
+        } else {
+            // Crear usuario nuevo
+            owner = await this.prisma.user.create({
+                data: {
+                    storeId: store.id,
+                    username,
+                    password: hashedPassword,
+                    email: ownerEmail,
+                    role: 'STORE_ADMIN',
+                    firstName: 'Dueño',
+                    lastName: name,
+                }
+            });
+        }
 
         // 3. Simular servicio de emailing y enviar correo real con Resend
         try {

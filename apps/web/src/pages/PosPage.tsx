@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useItems } from '../hooks/useItems';
 import { useSync } from '../hooks/useSync';
 import { useCart } from '../contexts/CartProvider';
-import { useSettings } from '../hooks/useSettings';
+import { useSettingsContext as useSettings } from '../contexts/SettingsProvider';
 import { useAuth } from '../contexts/AuthProvider';
 import { useHighVisibility } from '../hooks/useHighVisibility';
 import { ItemDocType } from '../db/schemas/item.schema';
@@ -299,22 +299,30 @@ export const PosPage = () => {
     }, [completedSale, isCheckoutModalOpen, cartItems.length, clearCart]);
 
     return (
-        <div className="flex flex-col h-screen bg-slate-100 overflow-hidden print:bg-white print:h-auto print:overflow-visible font-sans selection:bg-violet-200">
-            {/* ── Top Bar ────────────────────────────────────────────────────── */}
-            <header className={`bg-slate-900 text-white px-5 flex items-center justify-between shrink-0 shadow z-10 print:hidden border-b border-slate-800 ${
-                hv ? 'py-2' : 'py-2.5'
-            }`}>
-                <div className="flex items-center gap-4">
-                    <Link to="/" className={`text-slate-400 hover:text-white transition-colors font-medium flex items-center gap-1 bg-slate-800/50 rounded-lg border border-slate-700/50 ${
-                        hv ? 'px-2.5 py-1.5 text-lg' : 'px-3 py-1.5 text-sm'
-                    }`}>
-                        {hv ? '🏠' : <><span>←</span> Dashboard</>}
-                    </Link>
-                    {!hv && <div className="h-4 w-px bg-slate-700" />}
-                    <h1 className={`font-black tracking-tight text-white flex items-center gap-2 ${hv ? 'text-2xl' : 'text-lg'}`}>
-                        <span className="text-violet-400">⚡</span> POS Terminal
-                        {hv && <span className="text-xs font-bold bg-amber-500 text-white px-2 py-0.5 rounded-full ml-2 animate-pulse">ALTA VISIBILIDAD</span>}
+        <div className="flex flex-col h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
+            {/* ── Navbar (Topbar) ──────────────────────────────────────────────────────── */}
+            <header className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between shadow-md shrink-0">
+                <div className="flex items-center gap-6">
+                    <h1 className="text-xl font-bold tracking-tight">
+                        <span className="text-primary mr-2">●</span>{'POS Terminal'}
                     </h1>
+                    <nav className="hidden sm:flex gap-4">
+                        <Link to="/" className="text-sm text-slate-300 hover:text-white transition-colors">
+                            ← Dashboard
+                        </Link>
+                        {user?.role === 'SUPER_ADMIN' || user?.role === 'STORE_ADMIN' ? (
+                            <Link to="/admin/settings" className="text-sm text-slate-300 hover:text-white transition-colors">
+                                Ajustes
+                            </Link>
+                        ) : null}
+                        <button
+                            onClick={() => document.documentElement.classList.toggle('dark')}
+                            className="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-3 py-1 rounded-lg text-sm transition-colors ml-4"
+                            title="Alternar Modo Oscuro"
+                        >
+                            🌞/🌙
+                        </button>
+                    </nav>
                 </div>
                 <div className="flex items-center gap-4">
                     <button
@@ -333,13 +341,11 @@ export const PosPage = () => {
                 </div>
             </header>
 
-            {/* ── Main Layout: Left (Catalog) + Right (Ticket) ──────────────── */}
-            <div className="flex flex-1 gap-0 overflow-hidden print:hidden relative">
-
-                {/* ── LEFT: Product Catalog ──────────────────────────────────── */}
-                <div className="flex flex-col flex-1 overflow-hidden bg-slate-100/50">
+            {/* ── Main Layout (Left: Grid, Right: Cart) ─────────────────────────────── */}
+            <main className="flex-1 flex overflow-hidden max-w-[1600px] w-full mx-auto">
+                <section className="flex-1 border-r border-slate-200 dark:border-slate-700 flex flex-col bg-white dark:bg-slate-800 transition-colors">
                     {/* Search Bar */}
-                    <div className={`bg-white border-b border-slate-200 shadow-sm shrink-0 z-10 flex gap-3 items-center ${
+                    <div className={`bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 shadow-sm shrink-0 z-10 flex gap-3 items-center ${
                         hv ? 'px-4 py-2' : 'px-4 py-3'
                     }`}>
                         <div className="relative flex-1">
@@ -350,7 +356,7 @@ export const PosPage = () => {
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
                                 placeholder={hv ? "Buscar o escanear..." : "Buscar artículo o escanear código de barras... [F2]"}
-                                className={`w-full border-2 border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-0 focus:border-violet-500 font-medium transition-all shadow-sm ${
+                                className={`w-full border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-0 focus:border-violet-500 font-medium transition-all shadow-sm ${
                                     hv
                                         ? 'pl-12 pr-4 py-4 text-xl rounded-2xl'
                                         : 'pl-10 pr-4 py-3 text-sm rounded-xl'
@@ -359,7 +365,7 @@ export const PosPage = () => {
                             {search && (
                                 <button
                                     onClick={() => { setSearch(''); searchInputRef.current?.focus(); }}
-                                    className={`absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors ${
+                                    className={`absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-lg transition-colors ${
                                         hv ? 'p-2 text-xl' : 'p-1'
                                     }`}
                                 >✕</button>
@@ -409,22 +415,22 @@ export const PosPage = () => {
                             </div>
                         </div>
                     )}
-                </div>
+                </section>
 
                 {/* ── RIGHT: Ticket / Cart (slides in on mobile) ─────────── */}
-                <div className={`flex flex-col bg-white border-l border-slate-200 shrink-0 shadow-2xl z-20 transition-transform duration-300 ${
+                <div className={`flex flex-col bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-700 shrink-0 shadow-2xl z-20 transition-transform duration-300 ${
                     hv ? 'w-[420px]' : 'w-80 xl:w-96'
                 } fixed inset-y-0 right-0 md:static md:translate-x-0 ${
                     mobileCartOpen ? 'translate-x-0' : 'translate-x-full md:translate-x-0'
                 }`}>
                     {/* Cart Header */}
-                    <div className={`bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0 ${
+                    <div className={`bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between shrink-0 ${
                         hv ? 'px-5 py-4' : 'px-4 py-3'
                     }`}>
                         <div className="flex items-center gap-2">
                             <span className={hv ? 'text-3xl' : 'text-xl'}>🧾</span>
                             <div>
-                                <h2 className={`font-black text-slate-800 tracking-tight leading-none mb-0.5 ${
+                                <h2 className={`font-black text-slate-800 dark:text-white tracking-tight leading-none mb-0.5 ${
                                     hv ? 'text-xl' : 'text-sm'
                                 }`}>Ticket Actual</h2>
                                 <p className={`font-semibold text-slate-400 uppercase tracking-wider ${
@@ -437,7 +443,7 @@ export const PosPage = () => {
                         {cartItems.length > 0 && (
                             <button
                                 onClick={clearCart}
-                                className={`font-bold bg-white text-red-500 hover:text-white hover:bg-red-500 border border-slate-200 hover:border-red-500 rounded-lg transition-all shadow-sm active:scale-95 ${
+                                className={`font-bold bg-white dark:bg-slate-700 text-red-500 hover:text-white hover:bg-red-500 border border-slate-200 dark:border-slate-600 hover:border-red-500 rounded-lg transition-all shadow-sm active:scale-95 ${
                                     hv ? 'text-sm px-4 py-2' : 'text-[10px] px-2.5 py-1.5'
                                 }`}
                                 title="[Esc] Limpiar Todo"
@@ -446,17 +452,17 @@ export const PosPage = () => {
                     </div>
 
                     {/* Cart Items */}
-                    <div className={`flex-1 overflow-y-auto bg-white scroll-smooth relative ${
+                    <div className={`flex-1 overflow-y-auto bg-white dark:bg-slate-900 scroll-smooth relative ${
                         hv ? 'px-5 py-3' : 'px-4 py-2'
                     }`}>
                         {cartItems.length === 0 ? (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-slate-50/50">
-                                <div className={`bg-slate-100 rounded-full flex items-center justify-center mb-3 ${
+                            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-slate-50/50 dark:bg-slate-800/50">
+                                <div className={`bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mb-3 ${
                                     hv ? 'w-24 h-24' : 'w-16 h-16'
                                 }`}>
                                     <span className={`opacity-50 grayscale ${hv ? 'text-5xl' : 'text-3xl'}`}>🛒</span>
                                 </div>
-                                <h3 className={`font-bold text-slate-700 ${hv ? 'text-2xl' : 'text-sm'}`}>Carrito Vacío</h3>
+                                <h3 className={`font-bold text-slate-700 dark:text-slate-300 ${hv ? 'text-2xl' : 'text-sm'}`}>Carrito Vacío</h3>
                                 <p className={`text-slate-400 font-medium mt-1 ${hv ? 'text-base' : 'text-xs'}`}>
                                     {hv ? 'Escanea o toca un producto.' : 'Escanea artículos o selecciónalos del catálogo a la izquierda.'}
                                 </p>
@@ -478,16 +484,16 @@ export const PosPage = () => {
                     </div>
 
                     {/* Totals + Checkout — In HV mode this becomes a GIANT footer */}
-                    <div className={`shrink-0 bg-slate-50 border-t-2 border-slate-200 flex flex-col ${
+                    <div className={`shrink-0 bg-slate-50 dark:bg-slate-800 border-t-2 border-slate-200 dark:border-slate-700 flex flex-col ${
                         hv ? 'px-6 py-6 gap-4' : 'px-5 py-4 gap-3'
                     }`}>
                         {!hv && (
                             <div className="space-y-1.5">
-                                <div className="flex justify-between text-xs font-semibold text-slate-500">
+                                <div className="flex justify-between text-xs font-semibold text-slate-500 dark:text-slate-400">
                                     <span>Subtotal</span>
                                     <span>${formatCurrency(totals.subtotal)}</span>
                                 </div>
-                                <div className="flex justify-between text-xs font-semibold text-slate-500">
+                                <div className="flex justify-between text-xs font-semibold text-slate-500 dark:text-slate-400">
                                     <span>IVA ({totals.taxPercent}%)</span>
                                     <span>${formatCurrency(totals.taxAmount)}</span>
                                 </div>
@@ -495,14 +501,14 @@ export const PosPage = () => {
                         )}
 
                         <div className={`flex justify-between items-end ${
-                            hv ? '' : 'border-t border-slate-300 pt-2 mt-2'
+                            hv ? '' : 'border-t border-slate-300 dark:border-slate-600 pt-2 mt-2'
                         }`}>
-                            <span className={`font-bold text-slate-700 tracking-tight ${hv ? 'text-2xl' : 'text-sm'}`}>TOTAL</span>
+                            <span className={`font-bold text-slate-700 dark:text-slate-300 tracking-tight ${hv ? 'text-2xl' : 'text-sm'}`}>TOTAL</span>
                             <div className="text-right flex flex-col">
                                 <span className={`font-black text-violet-700 leading-none ${hv ? 'text-5xl' : 'text-2xl'}`}>
                                     ${formatCurrency(totals.total)}
                                 </span>
-                                <span className={`font-bold text-slate-500 ${hv ? 'text-xl mt-1' : 'text-xs mt-1'}`}>
+                                <span className={`font-bold text-slate-500 dark:text-slate-400 ${hv ? 'text-xl mt-1' : 'text-xs mt-1'}`}>
                                     Bs. {formatCurrency(totals.total * exchangeRate)}
                                 </span>
                             </div>
@@ -530,7 +536,7 @@ export const PosPage = () => {
                         </button>
                     </div>
                 </div>
-            </div>
+            </main>
 
             {/* ── Mobile Cart FAB (Floating Action Button) ──────────── */}
             <button

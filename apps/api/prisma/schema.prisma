@@ -131,6 +131,8 @@ model Sale {
   paymentMethod String    @default("DIVISA") // 'DIVISA', 'EFECTIVO_BS', 'PAGO_MOVIL', 'PUNTO', 'FIADO'
   status        String    @default("PAGADO") // 'PENDIENTE', 'PAGADO' (Fiados)
   total         Decimal   @default(0) @db.Decimal(15, 2)
+  paidAmount    Decimal   @default(0) @db.Decimal(15, 2)
+  dueDate       DateTime?
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 }

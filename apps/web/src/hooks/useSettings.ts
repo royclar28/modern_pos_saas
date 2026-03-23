@@ -18,6 +18,7 @@ export type StoreSettings = {
     timezone: string;
     language: string;
     enable_credit_sales: string; // "true" | "false"
+    primaryColor?: string;
 };
 
 /** Parsed, consumer-friendly version */
@@ -28,9 +29,10 @@ export type ParsedSettings = {
     currencySymbol: string;
     company: string;
     enableCreditSales: boolean;
+    primaryColor: string;
     isLoading: boolean;
     error: string | null;
-    refetch: () => void;
+    refetch: () => Promise<void>;
 };
 
 const DEFAULTS: StoreSettings = {
@@ -38,9 +40,10 @@ const DEFAULTS: StoreSettings = {
     currency_symbol: '$',
     exchange_rate: '1',
     company: 'Modern POS',
-    timezone: 'America/Mexico_City',
+    timezone: 'America/Caracas',
     language: 'es',
     enable_credit_sales: 'false',
+    primaryColor: '#7C3AED',
 };
 
 export const useSettings = (): ParsedSettings => {
@@ -86,6 +89,7 @@ export const useSettings = (): ParsedSettings => {
         currencySymbol: raw.currency_symbol || '$',
         company: raw.company || 'Modern POS',
         enableCreditSales: raw.enable_credit_sales === 'true',
+        primaryColor: raw.primaryColor || '#7C3AED',
         isLoading,
         error,
         refetch: fetchSettings,

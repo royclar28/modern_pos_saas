@@ -5,6 +5,7 @@ import { join } from 'path';
 import { PrismaService } from './prisma.service';
 import { SyncController } from './sync.controller';
 import { AuthModule } from './auth/auth.module';
+import { CustomersModule } from './customers/customers.module';
 import { ItemsModule } from './items/items.module';
 import { SettingsModule } from './settings/settings.module';
 import { InventoryModule } from './inventory/inventory.module';
@@ -23,7 +24,8 @@ import { SaasModule } from './saas/saas.module';
         InventoryModule,
         ScheduleModule.forRoot(),
         TelegramModule,
-        SaasModule
+        SaasModule,
+        CustomersModule,
     ],
     controllers: [SyncController],
     providers: [PrismaService],

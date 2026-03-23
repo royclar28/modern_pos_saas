@@ -40,6 +40,7 @@ export const SuperAdminPage = () => {
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
+    const [successModalData, setSuccessModalData] = useState<{ email: string; temporaryPassword?: string } | null>(null);
     const [toggling, setToggling] = useState<string | null>(null);
 
     // Form state
@@ -104,17 +105,30 @@ export const SuperAdminPage = () => {
             const data = await res.json();
             
             if (data.temporaryPassword) {
-                toast.success(`Tienda "${formName}" creada. Clave temporal: ${data.temporaryPassword}`);
+                setSuccessModalData({ email: formEmail, temporaryPassword: data.temporaryPassword });
             } else {
+                setSuccessModalData({ email: formEmail });
                 toast.success(`Tienda "${formName}" creada exitosamente`);
             }
             setShowModal(false);
-            setFormName(''); setFormRif(''); setFormEmail('');
-            fetchStores();
         } catch (err: any) {
             toast.error('Error creando tienda: ' + err.message);
         } finally {
             setCreating(false);
+        }
+    };
+
+    const handleCloseSuccess = () => {
+        setSuccessModalData(null);
+        setFormName(''); setFormRif(''); setFormEmail('');
+        fetchStores();
+    };
+
+    const handleCopyCredentials = () => {
+        if (successModalData?.temporaryPassword) {
+            const textToCopy = `Usuario: ${successModalData.email} | Contraseña: ${successModalData.temporaryPassword}`;
+            navigator.clipboard.writeText(textToCopy);
+            toast.success('Credenciales copiadas al portapapeles');
         }
     };
 
@@ -256,6 +270,48 @@ export const SuperAdminPage = () => {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal Éxito Persistente */}
+            {successModalData && (
+                <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden text-center">
+                        <div className="px-6 mx-auto pt-8 pb-4">
+                            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">
+                                ✅
+                            </div>
+                            <h2 className="text-2xl font-black text-slate-800 mb-2">¡Tienda creada con éxito!</h2>
+                            <p className="text-slate-600 font-medium mb-6">
+                                Las credenciales de acceso para el dueño de la tienda son:
+                            </p>
+                            
+                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-left mb-6 relative">
+                                <p className="text-sm text-slate-500 mb-1">Usuario</p>
+                                <p className="font-bold text-slate-800 mb-3">{successModalData.email}</p>
+                                
+                                <p className="text-sm text-slate-500 mb-1">Contraseña temporal</p>
+                                <p className="font-mono font-bold text-lg text-slate-800">{successModalData.temporaryPassword || 'No generada'}</p>
+                            </div>
+                        </div>
+
+                        <div className="bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row gap-3 px-6 py-4">
+                            {successModalData.temporaryPassword && (
+                                <button
+                                    onClick={handleCopyCredentials}
+                                    className="flex-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 active:scale-95 font-bold py-2.5 px-4 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2"
+                                >
+                                    📋 Copiar credenciales
+                                </button>
+                            )}
+                            <button
+                                onClick={handleCloseSuccess}
+                                className="flex-1 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold py-2.5 px-4 rounded-xl transition-all shadow-sm"
+                            >
+                                Cerrar
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

@@ -33,6 +33,7 @@ services:
       - JWT_SECRET=${JWT_SECRET:-super-secret-jwt-key}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - API_KEY=${API_KEY}
+      - RESEND_API_KEY=${RESEND_API_KEY}
     depends_on:
       postgres:
         condition: service_started
