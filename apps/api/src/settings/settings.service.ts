@@ -31,7 +31,7 @@ export class SettingsService {
         const defaults: StoreSettings = {
             default_tax_rate: '16',
             currency_symbol: '$',
-            company: 'Modern POS',
+            company: store?.name || 'Mi Negocio',
             timezone: 'America/Caracas',
             language: 'es',
             exchange_rate: '1',
@@ -58,11 +58,11 @@ export class SettingsService {
         );
 
         await Promise.all(
-            validEntries.map(([key, value]) =>
+            validEntries.map(([configKey, value]) =>
                 this.prisma.storeConfig.upsert({
-                    where: { storeId_key: { storeId, key } },
+                    where: { storeId_key: { storeId, key: configKey } } as any,
                     update: { value: String(value) },
-                    create: { key, value: String(value), storeId },
+                    create: { key: configKey, value: String(value), storeId },
                 }),
             )
         );

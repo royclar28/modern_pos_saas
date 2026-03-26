@@ -207,7 +207,7 @@ const SuccessModal = ({ sale, onClose, exchangeRate }: { sale: SaleDocType; onCl
 export const PosPage = () => {
     const { items, isLoading } = useItems();
     const { cartItems, totals, addToCart, removeFromCart, setQuantity, clearCart, checkout, exchangeRate, refetchSettings } = useCart();
-    const { enableCreditSales } = useSettings();
+    const { enableCreditSales, company, toggleDarkMode, darkMode } = useSettings();
     const { user } = useAuth();
     const { isHighVis } = useHighVisibility();
     useSync();
@@ -304,7 +304,7 @@ export const PosPage = () => {
             <header className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between shadow-md shrink-0">
                 <div className="flex items-center gap-6">
                     <h1 className="text-xl font-bold tracking-tight">
-                        <span className="text-primary mr-2">●</span>{'POS Terminal'}
+                        <span className="text-primary mr-2">●</span>{company || 'POS Terminal'}
                     </h1>
                     <nav className="hidden sm:flex gap-4">
                         <Link to="/" className="text-sm text-slate-300 hover:text-white transition-colors">
@@ -316,11 +316,11 @@ export const PosPage = () => {
                             </Link>
                         ) : null}
                         <button
-                            onClick={() => document.documentElement.classList.toggle('dark')}
+                            onClick={toggleDarkMode}
                             className="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-3 py-1 rounded-lg text-sm transition-colors ml-4"
                             title="Alternar Modo Oscuro"
                         >
-                            🌞/🌙
+                            {darkMode ? '🌞' : '🌙'}
                         </button>
                     </nav>
                 </div>

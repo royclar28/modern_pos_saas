@@ -483,7 +483,7 @@ export const InventoryPage = () => {
     };
 
     return (
-        <div className="flex flex-col h-screen bg-slate-50">
+        <div className="flex flex-col h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
             {/* ── Navbar Admin ── */}
             <header className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between shadow-md shrink-0">
                 <div className="flex items-center gap-6">
@@ -530,7 +530,7 @@ export const InventoryPage = () => {
                     </div>
 
                     {/* Data Table */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden transition-colors">
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">
                                 <thead>

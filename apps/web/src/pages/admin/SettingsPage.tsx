@@ -4,12 +4,29 @@
  * Two-section admin panel:
  *   1. "Ajustes de Este Equipo" — local terminal name stored in localStorage.
  *   2. "Ajustes del Negocio"   — global store settings patched via PATCH /settings.
+ *   3. "Apariencia"            — color picker palette + dark mode toggle.
  */
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTerminal } from '../../hooks/useTerminal';
 import { useSettingsContext as useSettings, StoreSettings } from '../../contexts/SettingsProvider';
 import { useHighVisibility } from '../../hooks/useHighVisibility';
+
+// ─── Color Palette ────────────────────────────────────────────────────────────
+const COLOR_PALETTE = [
+    { name: 'Violeta', hex: '#7C3AED' },
+    { name: 'Índigo', hex: '#4F46E5' },
+    { name: 'Azul', hex: '#2563EB' },
+    { name: 'Cian', hex: '#0891B2' },
+    { name: 'Esmeralda', hex: '#059669' },
+    { name: 'Verde', hex: '#16A34A' },
+    { name: 'Ámbar', hex: '#D97706' },
+    { name: 'Naranja', hex: '#EA580C' },
+    { name: 'Rosa', hex: '#DB2777' },
+    { name: 'Rojo', hex: '#DC2626' },
+    { name: 'Slate', hex: '#475569' },
+    { name: 'Zinc', hex: '#3F3F46' },
+];
 
 // ─── Reusable Field ───────────────────────────────────────────────────────────
 const Field = ({
@@ -22,11 +39,11 @@ const Field = ({
     children: React.ReactNode;
 }) => (
     <div className="space-y-1">
-        <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+        <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
             {label}
         </label>
         {children}
-        {hint && <p className="text-xs text-slate-400">{hint}</p>}
+        {hint && <p className="text-xs text-slate-400 dark:text-slate-500">{hint}</p>}
     </div>
 );
 
@@ -42,14 +59,14 @@ const Card = ({
     badge?: string;
     children: React.ReactNode;
 }) => (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
+    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden transition-colors">
+        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center gap-3">
             <span className="text-2xl">{icon}</span>
             <div className="flex-1">
-                <h2 className="text-base font-bold text-slate-800">{title}</h2>
+                <h2 className="text-base font-bold text-slate-800 dark:text-white">{title}</h2>
             </div>
             {badge && (
-                <span className="text-[10px] font-bold uppercase tracking-widest bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">
+                <span className="text-[10px] font-bold uppercase tracking-widest bg-primary-light dark:bg-slate-700 text-primary dark:text-slate-300 px-2 py-0.5 rounded-full">
                     {badge}
                 </span>
             )}
@@ -75,7 +92,7 @@ const Toast = ({ msg, type }: { msg: string; type: 'success' | 'error' }) => (
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export const SettingsPage = () => {
     const { getTerminalId, setTerminalId } = useTerminal();
-    const { raw, taxRate, isLoading, error, refetch } = useSettings();
+    const { raw, taxRate, isLoading, error, refetch, setCompany, setPrimaryColor, toggleDarkMode, darkMode } = useSettings();
     const { isHighVis, toggleHighVis } = useHighVisibility();
 
     // Local terminal form state
@@ -95,6 +112,14 @@ export const SettingsPage = () => {
 
     const [isSavingGlobal, setIsSavingGlobal] = useState(false);
     const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+
+    // Security (Change Password) state
+    const [pwdForm, setPwdForm] = useState({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+    });
+    const [isChangingPwd, setIsChangingPwd] = useState(false);
 
     // Populate forms once settings are fetched
     useEffect(() => {
@@ -135,7 +160,7 @@ export const SettingsPage = () => {
         setIsSavingGlobal(true);
         try {
             const token = localStorage.getItem('pos_token');
-            const apiUrl = `http://${window.location.hostname}:3333/api` || 'http://localhost:3333';
+            const apiUrl = `http://${window.location.hostname}:3333/api`;
             const res = await fetch(`${apiUrl}/settings`, {
                 method: 'PATCH',
                 headers: {
@@ -145,6 +170,14 @@ export const SettingsPage = () => {
                 body: JSON.stringify(globalForm),
             });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+            // Instant reactivity: update global context immediately
+            setCompany(globalForm.company);
+            setPrimaryColor(globalForm.primaryColor || '#7C3AED');
+
+            // Cache store name for LoginPage
+            localStorage.setItem('pos_store_name', globalForm.company);
+
             await refetch();
             showToast('Ajustes globales guardados', 'success');
         } catch (err) {
@@ -154,8 +187,48 @@ export const SettingsPage = () => {
         }
     };
 
+    // ── Handle Password Change ───────────────────────────────────────────────
+    const handleChangePassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (pwdForm.newPassword !== pwdForm.confirmPassword) {
+            return showToast('Las contraseñas no coinciden', 'error');
+        }
+        if (pwdForm.newPassword.length < 6) {
+            return showToast('La contraseña debe tener al menos 6 caracteres', 'error');
+        }
+
+        setIsChangingPwd(true);
+        try {
+            const token = localStorage.getItem('pos_token');
+            const apiUrl = `http://${window.location.hostname}:3333/api`;
+            const res = await fetch(`${apiUrl}/auth/change-password`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    currentPassword: pwdForm.currentPassword,
+                    newPassword: pwdForm.newPassword
+                }),
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.message || 'Error al cambiar contraseña');
+            }
+
+            showToast('Contraseña actualizada con éxito', 'success');
+            setPwdForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        } catch (error: any) {
+            showToast(error.message || 'Hubo un error', 'error');
+        } finally {
+            setIsChangingPwd(false);
+        }
+    };
+
     const inputClass =
-        'w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent transition-all';
+        'w-full px-3 py-2 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all';
 
     return (
         <div className="flex flex-col h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
@@ -177,11 +250,11 @@ export const SettingsPage = () => {
                             Ir al POS →
                         </Link>
                         <button
-                            onClick={() => document.documentElement.classList.toggle('dark')}
+                            onClick={toggleDarkMode}
                             className="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-3 py-1 rounded-lg text-sm transition-colors ml-4"
                             title="Alternar Modo Oscuro"
                         >
-                            🌞/🌙
+                            {darkMode ? '🌞' : '🌙'}
                         </button>
                     </nav>
                 </div>
@@ -218,11 +291,11 @@ export const SettingsPage = () => {
                         </p>
 
                         {/* Multi-Caja explanation box */}
-                        <div className="bg-violet-50 border border-violet-200 rounded-xl p-4 text-sm text-violet-800 space-y-1">
+                        <div className="bg-primary-light dark:bg-slate-700 border border-primary/20 dark:border-slate-600 rounded-xl p-4 text-sm text-primary dark:text-slate-300 space-y-1">
                             <p className="font-bold flex items-center gap-2">🔀 ¿Cómo funciona el Multi-Caja?</p>
-                            <ul className="list-disc list-inside space-y-1 text-violet-700">
-                                <li>Cada instancia del POS en un dispositivo diferente tiene su propio <code className="bg-violet-100 px-1 rounded text-xs">terminalId</code>.</li>
-                                <li>El ID se escribe en cada ticket (<code className="bg-violet-100 px-1 rounded text-xs">SaleDoc.terminalId</code>) al momento del cobro.</li>
+                            <ul className="list-disc list-inside space-y-1 opacity-90">
+                                <li>Cada instancia del POS en un dispositivo diferente tiene su propio <code className="bg-white/50 dark:bg-slate-600 px-1 rounded text-xs">terminalId</code>.</li>
+                                <li>El ID se escribe en cada ticket (<code className="bg-white/50 dark:bg-slate-600 px-1 rounded text-xs">SaleDoc.terminalId</code>) al momento del cobro.</li>
                                 <li>Las ventas de todas las cajas se sincronizan al mismo servidor en segundo plano.</li>
                                 <li>El Reporte Z puede cruzar ventas por terminal para cerrar cada caja de forma independiente.</li>
                             </ul>
@@ -243,7 +316,7 @@ export const SettingsPage = () => {
                                     id="save-terminal-btn"
                                     onClick={handleSaveTerminal}
                                     disabled={!localTerminal.trim()}
-                                    className="px-5 py-2 bg-violet-600 hover:bg-violet-700 active:scale-95 text-white text-sm font-bold rounded-lg shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+                                    className="px-5 py-2 bg-primary hover:bg-primary-hover active:scale-95 text-white text-sm font-bold rounded-lg shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
                                 >
                                     Guardar
                                 </button>
@@ -251,18 +324,18 @@ export const SettingsPage = () => {
                         </Field>
 
                         {/* Current value display */}
-                        <div className="flex items-center gap-2 text-sm text-slate-500 bg-slate-50 rounded-lg px-4 py-2.5">
+                        <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-700 rounded-lg px-4 py-2.5">
                             <span>Terminal activa:</span>
-                            <code className="font-mono font-bold text-violet-700 bg-violet-50 px-2 py-0.5 rounded text-sm">
+                            <code className="font-mono font-bold text-primary bg-primary-light dark:bg-slate-600 px-2 py-0.5 rounded text-sm">
                                 {getTerminalId()}
                             </code>
                         </div>
 
                         {/* High Visibility Mode Toggle */}
-                        <div className="border-t border-slate-100 pt-5 mt-2">
+                        <div className="border-t border-slate-100 dark:border-slate-700 pt-5 mt-2">
                             <div className="flex items-center justify-between">
                                 <div className="flex-1">
-                                    <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                    <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
                                         <span className="text-lg">👁️</span> Modo de Alta Visibilidad
                                     </h3>
                                     <p className="text-xs text-slate-400 mt-1 leading-relaxed max-w-md">
@@ -276,8 +349,8 @@ export const SettingsPage = () => {
                                     onClick={toggleHighVis}
                                     className={`relative w-14 h-8 rounded-full transition-all duration-300 shadow-inner ${
                                         isHighVis
-                                            ? 'bg-violet-600'
-                                            : 'bg-slate-300'
+                                            ? 'bg-primary'
+                                            : 'bg-slate-300 dark:bg-slate-600'
                                     }`}
                                     aria-label="Toggle High Visibility Mode"
                                 >
@@ -289,7 +362,7 @@ export const SettingsPage = () => {
                                 </button>
                             </div>
                             {isHighVis && (
-                                <div className="mt-3 bg-violet-50 border border-violet-200 rounded-xl px-4 py-3 text-sm text-violet-800 font-medium flex items-center gap-2">
+                                <div className="mt-3 bg-primary-light dark:bg-slate-700 border border-primary/20 dark:border-slate-600 rounded-xl px-4 py-3 text-sm text-primary dark:text-slate-300 font-medium flex items-center gap-2">
                                     <span className="text-lg">✅</span>
                                     <span>Modo de Alta Visibilidad <strong>ACTIVO</strong>. La interfaz POS mostrará elementos agrandados.</span>
                                 </div>
@@ -299,7 +372,7 @@ export const SettingsPage = () => {
 
                     {/* ── SECTION 2: Negocio (Global) ───────────────────────── */}
                     <Card icon="🏢" title="Ajustes del Negocio" badge="Global · Todos los terminales">
-                        <p className="text-sm text-slate-500 -mt-2">
+                        <p className="text-sm text-slate-500 dark:text-slate-400 -mt-2">
                             Estos valores se guardan en el servidor y afectan a <strong>todos los terminales</strong> simultáneamente.
                             El cambio en el IVA se aplica inmediatamente al siguiente ciclo de cobro en cada caja.
                         </p>
@@ -307,7 +380,7 @@ export const SettingsPage = () => {
                         {isLoading ? (
                             <div className="space-y-4">
                                 {[1, 2, 3].map(i => (
-                                    <div key={i} className="h-10 bg-slate-100 rounded-lg animate-pulse" />
+                                    <div key={i} className="h-10 bg-slate-100 dark:bg-slate-700 rounded-lg animate-pulse" />
                                 ))}
                             </div>
                         ) : (
@@ -355,7 +428,7 @@ export const SettingsPage = () => {
                                     </Field>
 
                                     {/* Company */}
-                                    <Field label="Nombre del Negocio" hint="Aparece en tickets e informes">
+                                    <Field label="Nombre del Negocio" hint="Aparece en tickets, login y toda la interfaz">
                                         <input
                                             id="company-name-input"
                                             type="text"
@@ -380,29 +453,68 @@ export const SettingsPage = () => {
                                             className={inputClass}
                                         />
                                     </Field>
+                                </div>
 
-                                    {/* Color Primario */}
-                                    <Field label="Color de la Marca" hint="Color principal de botones y enlaces">
-                                        <div className="flex gap-3 items-center">
-                                            <input
-                                                id="primary-color-input"
-                                                type="color"
-                                                value={globalForm.primaryColor}
-                                                onChange={(e) => {
-                                                    setGlobalForm((f) => ({ ...f, primaryColor: e.target.value }));
-                                                    // Immediately update CSS variable for preview
-                                                    document.documentElement.style.setProperty('--color-primary', e.target.value);
-                                                }}
-                                                className="w-12 h-12 rounded cursor-pointer border-0 p-0"
+                                {/* ── Color Palette Section ── */}
+                                <div className="border-t border-slate-100 dark:border-slate-700 pt-5">
+                                    <Field label="Color de la Marca" hint="Elige un color de la paleta o usa el selector personalizado">
+                                        <div className="space-y-3">
+                                            {/* Predefined palette */}
+                                            <div className="flex flex-wrap gap-2">
+                                                {COLOR_PALETTE.map(c => (
+                                                    <button
+                                                        key={c.hex}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setGlobalForm(f => ({ ...f, primaryColor: c.hex }));
+                                                            setPrimaryColor(c.hex);
+                                                        }}
+                                                        className={`w-10 h-10 rounded-xl transition-all duration-200 shadow-sm hover:scale-110 hover:shadow-md relative group ${
+                                                            globalForm.primaryColor?.toUpperCase() === c.hex.toUpperCase()
+                                                                ? 'ring-2 ring-offset-2 ring-slate-800 dark:ring-white scale-110'
+                                                                : ''
+                                                        }`}
+                                                        style={{ backgroundColor: c.hex }}
+                                                        title={c.name}
+                                                    >
+                                                        {globalForm.primaryColor?.toUpperCase() === c.hex.toUpperCase() && (
+                                                            <span className="absolute inset-0 flex items-center justify-center text-white font-bold text-sm drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">✓</span>
+                                                        )}
+                                                        <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[9px] font-bold text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                                                            {c.name}
+                                                        </span>
+                                                    </button>
+                                                ))}
+                                            </div>
+
+                                            {/* Custom color picker */}
+                                            <div className="flex items-center gap-3 pt-2">
+                                                <input
+                                                    id="primary-color-input"
+                                                    type="color"
+                                                    value={globalForm.primaryColor}
+                                                    onChange={(e) => {
+                                                        setGlobalForm((f) => ({ ...f, primaryColor: e.target.value }));
+                                                        setPrimaryColor(e.target.value);
+                                                    }}
+                                                    className="w-10 h-10 rounded-lg cursor-pointer border-2 border-slate-200 dark:border-slate-600 p-0.5"
+                                                />
+                                                <span className="text-xs font-mono text-slate-500 dark:text-slate-400 uppercase bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">{globalForm.primaryColor}</span>
+                                                <span className="text-xs text-slate-400">← Color personalizado</span>
+                                            </div>
+
+                                            {/* Live preview bar */}
+                                            <div
+                                                className="h-3 rounded-full shadow-inner transition-colors duration-300"
+                                                style={{ backgroundColor: globalForm.primaryColor }}
                                             />
-                                            <span className="text-xs font-mono text-slate-500 uppercase">{globalForm.primaryColor}</span>
                                         </div>
                                     </Field>
                                 </div>
 
                                 {/* Warning when changing tax */}
                                 {String(globalForm.default_tax_rate) !== String(raw.default_tax_rate) && (
-                                    <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800">
+                                    <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
                                         <span className="text-xl leading-none">⚠️</span>
                                         <p>
                                             Estás cambiando el IVA de <strong>{raw.default_tax_rate}%</strong> a{' '}
@@ -417,7 +529,7 @@ export const SettingsPage = () => {
                                         id="save-global-settings-btn"
                                         type="submit"
                                         disabled={isSavingGlobal}
-                                        className="px-8 py-2.5 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white text-sm font-bold rounded-xl shadow-md transition-all disabled:opacity-50 flex items-center gap-2"
+                                        className="px-8 py-2.5 bg-primary hover:bg-primary-hover active:scale-95 text-white text-sm font-bold rounded-xl shadow-md transition-all disabled:opacity-50 flex items-center gap-2"
                                     >
                                         {isSavingGlobal ? (
                                             <>
@@ -433,10 +545,10 @@ export const SettingsPage = () => {
                         )}
 
                         {/* ── Credit Sales Toggle ─────────────────────────── */}
-                        <div className="border-t border-slate-100 pt-5 mt-2">
+                        <div className="border-t border-slate-100 dark:border-slate-700 pt-5 mt-2">
                             <div className="flex items-center justify-between">
                                 <div className="flex-1">
-                                    <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                    <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
                                         <span className="text-lg">📒</span> Permitir Ventas a Crédito (Fiado)
                                     </h3>
                                     <p className="text-xs text-slate-400 mt-1 leading-relaxed max-w-md">
@@ -453,7 +565,7 @@ export const SettingsPage = () => {
                                         // Auto-save this toggle immediately
                                         try {
                                             const token = localStorage.getItem('pos_token');
-                                            const apiUrl = `http://${window.location.hostname}:3333/api` || 'http://localhost:3333';
+                                            const apiUrl = `http://${window.location.hostname}:3333/api`;
                                             await fetch(`${apiUrl}/settings`, {
                                                 method: 'PATCH',
                                                 headers: {
@@ -476,7 +588,7 @@ export const SettingsPage = () => {
                                     className={`relative w-14 h-8 rounded-full transition-all duration-300 shadow-inner ${
                                         globalForm.enable_credit_sales === 'true'
                                             ? 'bg-emerald-600'
-                                            : 'bg-slate-300'
+                                            : 'bg-slate-300 dark:bg-slate-600'
                                     }`}
                                     aria-label="Toggle Ventas a Crédito"
                                 >
@@ -488,7 +600,7 @@ export const SettingsPage = () => {
                                 </button>
                             </div>
                             {globalForm.enable_credit_sales === 'true' && (
-                                <div className="mt-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 text-sm text-emerald-800 font-medium flex items-center gap-2">
+                                <div className="mt-3 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-xl px-4 py-3 text-sm text-emerald-800 dark:text-emerald-300 font-medium flex items-center gap-2">
                                     <span className="text-lg">✅</span>
                                     <span>Ventas a Crédito <strong>HABILITADAS</strong>. La pestaña "Fiado" aparecerá en el modal de cobro.</span>
                                 </div>
@@ -496,8 +608,67 @@ export const SettingsPage = () => {
                         </div>
                     </Card>
 
+                    {/* ── SECTION 4: Seguridad ─────────────────────────────── */}
+                    <Card icon="🔒" title="Seguridad de la Cuenta" badge="Personal">
+                        <form onSubmit={handleChangePassword} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                    Contraseña Actual
+                                </label>
+                                <input
+                                    type="password"
+                                    required
+                                    value={pwdForm.currentPassword}
+                                    onChange={e => setPwdForm({ ...pwdForm, currentPassword: e.target.value })}
+                                    className="w-full bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-neutral-100 placeholder-slate-400 dark:placeholder-slate-500 rounded-xl px-4 py-3 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
+                                    placeholder="••••••••"
+                                />
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                        Nueva Contraseña
+                                    </label>
+                                    <input
+                                        type="password"
+                                        required
+                                        minLength={6}
+                                        value={pwdForm.newPassword}
+                                        onChange={e => setPwdForm({ ...pwdForm, newPassword: e.target.value })}
+                                        className="w-full bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-neutral-100 placeholder-slate-400 dark:placeholder-slate-500 rounded-xl px-4 py-3 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
+                                        placeholder="Min 6 caracteres"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                        Confirmar Nueva Contraseña
+                                    </label>
+                                    <input
+                                        type="password"
+                                        required
+                                        minLength={6}
+                                        value={pwdForm.confirmPassword}
+                                        onChange={e => setPwdForm({ ...pwdForm, confirmPassword: e.target.value })}
+                                        className="w-full bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-neutral-100 placeholder-slate-400 dark:placeholder-slate-500 rounded-xl px-4 py-3 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
+                                        placeholder="Repetir clave"
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div className="pt-2 flex justify-end">
+                                <button
+                                    type="submit"
+                                    disabled={isChangingPwd || !pwdForm.currentPassword || !pwdForm.newPassword || !pwdForm.confirmPassword}
+                                    className="bg-primary hover:bg-primary-dark text-white font-bold py-3 px-6 rounded-xl shadow-md disabled:bg-slate-300 disabled:dark:bg-slate-600 transition-colors flex items-center justify-center min-w-[180px]"
+                                >
+                                    {isChangingPwd ? 'Actualizando...' : 'Cambiar Contraseña'}
+                                </button>
+                            </div>
+                        </form>
+                    </Card>
+
                     {/* ── Info footer ──────────────────────────────────────── */}
-                    <p className="text-center text-xs text-slate-400 pb-4">
+                    <p className="text-center text-xs text-slate-400 dark:text-slate-500 pb-4">
                         Los cambios globales se replican en tiempo real a todos los terminales conectados.
                         Los terminales offline usarán el último valor conocido hasta que recuperen conectividad.
                     </p>

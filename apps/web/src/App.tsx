@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthProvider';
-import { ThemeProvider } from './contexts/ThemeProvider';
+import { SettingsProvider, useSettingsContext } from './contexts/SettingsProvider';
 import { CartProvider } from './contexts/CartProvider';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { RequireRole } from './components/RequireRole';
@@ -14,31 +15,60 @@ import { SettingsPage } from './pages/admin/SettingsPage';
 import { FiadosPage } from './pages/admin/FiadosPage';
 import { SuperAdminPage } from './pages/admin/SuperAdminPage';
 import { useSync } from './hooks/useSync';
-import { useSettings } from './hooks/useSettings';
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 const Dashboard = () => {
     const { user, logout } = useAuth();
-    const { enableCreditSales, company } = useSettings();
+    const { enableCreditSales, company, toggleDarkMode, darkMode } = useSettingsContext();
     useSync();
+
+    const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+    useEffect(() => {
+        const handler = (e: any) => {
+            e.preventDefault();
+            setDeferredPrompt(e);
+        };
+        window.addEventListener('beforeinstallprompt', handler);
+        return () => window.removeEventListener('beforeinstallprompt', handler);
+    }, []);
+
+    const handleInstallClick = async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            setDeferredPrompt(null);
+        }
+    };
 
     return (
         <div className="min-h-screen w-full bg-slate-50 dark:bg-slate-900 transition-colors duration-300 flex items-center justify-center p-6 md:p-12 relative">
             <div className="w-full max-w-4xl">
                 <div className="mb-8 flex items-end justify-between">
                     <div>
-                        <h1 className="text-4xl font-black text-slate-800 dark:text-white tracking-tight">{company || 'Modern POS'}</h1>
+                        <h1 className="text-4xl font-black text-slate-800 dark:text-white tracking-tight">{company}</h1>
                         <p className="text-slate-500 dark:text-slate-400 mt-1 text-base">
                             Bienvenido, <strong>{user?.username}</strong> · <span className="text-primary font-semibold">{user?.role}</span>
                         </p>
                     </div>
-                    <button
-                        onClick={() => document.documentElement.classList.toggle('dark')}
-                        className="w-10 h-10 flex items-center justify-center rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 shadow-sm transition-colors text-xl"
-                        title="Alternar Modo Oscuro"
-                    >
-                        🌞/🌙
-                    </button>
+                    <div className="flex items-center gap-3">
+                        {deferredPrompt && (
+                            <button
+                                onClick={handleInstallClick}
+                                className="bg-primary hover:bg-primary-dark text-white font-bold py-2 px-4 rounded-xl shadow-md transition-colors"
+                            >
+                                📱 Instalar App
+                            </button>
+                        )}
+                        <button
+                            onClick={toggleDarkMode}
+                            className="w-10 h-10 flex items-center justify-center rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 shadow-sm transition-colors text-xl"
+                            title="Alternar Modo Oscuro"
+                        >
+                            {darkMode ? '🌞' : '🌙'}
+                        </button>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
@@ -101,7 +131,7 @@ const Dashboard = () => {
                     )}
                 </div>
 
-                <div className="bg-primary-light border border-primary rounded-xl p-4 text-sm text-primary flex items-center justify-between">
+                <div className="bg-primary-light dark:bg-slate-800 border border-primary dark:border-slate-700 rounded-xl p-4 text-sm text-primary dark:text-slate-300 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
                         RxDB Sync Engine activo — datos en tiempo real
@@ -126,7 +156,7 @@ export const App = () => {
     return (
         <BrowserRouter>
             <AuthProvider>
-                <ThemeProvider>
+                <SettingsProvider>
                     <CartProvider>
                         <Routes>
                             <Route path="/login" element={<LoginPage />} />
@@ -167,7 +197,7 @@ export const App = () => {
                             <Route path="*" element={<Navigate to="/" replace />} />
                         </Routes>
                     </CartProvider>
-                </ThemeProvider>
+                </SettingsProvider>
             </AuthProvider>
             <ReloadPrompt />
         </BrowserRouter>

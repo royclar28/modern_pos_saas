@@ -90,7 +90,7 @@ export const SalesDashboard = () => {
         const fetchRate = async () => {
             try {
                 const token = localStorage.getItem('pos_token');
-                const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3333';
+                const apiUrl = (import.meta as any).env?.VITE_API_URL || `http://${window.location.hostname}:3333/api`;
                 const res = await fetch(`${apiUrl}/settings`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
@@ -180,7 +180,7 @@ export const SalesDashboard = () => {
     const isToday = selectedDate === todayStr();
 
     return (
-        <div className="flex flex-col h-screen bg-slate-50">
+        <div className="flex flex-col h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
 
             {/* ── Navbar ─────────────────────────────────────────────────────── */}
             <header className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between shadow-md shrink-0">
@@ -226,7 +226,7 @@ export const SalesDashboard = () => {
 
                     {/* Section heading */}
                     <div>
-                        <h2 className="text-2xl font-extrabold text-slate-800">
+                        <h2 className="text-2xl font-extrabold text-slate-800 dark:text-white">
                             {isToday
                                 ? 'Cuadre de Caja — Hoy'
                                 : `Cuadre del ${new Date(selectedDate + 'T12:00:00').toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`
@@ -293,7 +293,7 @@ export const SalesDashboard = () => {
                     )}
 
                     {/* ── Transaction Table ────────────────────────────────────── */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden transition-colors">
 
                         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
                             <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
@@ -417,7 +417,7 @@ export const SalesDashboard = () => {
 
                     {/* ── Desglose por Método (mini-table) ─────────────────────── */}
                     {!isLoading && allSales.length > 0 && (
-                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden transition-colors">
                             <div className="px-6 py-4 border-b border-slate-100">
                                 <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
                                     <span>🧮</span>

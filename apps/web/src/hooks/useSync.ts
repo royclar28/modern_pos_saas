@@ -1,66 +1,107 @@
-import { useEffect } from 'react';
-import { replicateRxCollection } from 'rxdb/plugins/replication';
+/**
+ * useSync.ts — RxDB ↔ NestJS Bidirectional Replication (REST protocol)
+ *
+ * Uses replicateRxCollection with custom pull/push handlers.
+ * The token is read fresh on every request so session changes are respected.
+ *
+ * Pull: GET  /api/sync/pull?updatedAt=<ms>
+ * Push: POST /api/sync/push  { rows: [{ newDocumentState, assumedMasterState? }] }
+ */
+import { useEffect, useRef } from 'react';
+import { replicateRxCollection, RxReplicationState } from 'rxdb/plugins/replication';
 import { getDatabase } from '../db/database';
 
+const getApiUrl = () =>
+    (import.meta as any).env?.VITE_API_URL || `http://${window.location.hostname}:3333/api`;
+
+const getAuthHeaders = () => {
+    const token = localStorage.getItem('pos_token');
+    return {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+};
+
 export const useSync = () => {
+    const replicationRef = useRef<RxReplicationState<any, any> | null>(null);
+
     useEffect(() => {
-        let replicationState: any;
+        let cancelled = false;
 
         const startReplication = async () => {
             const db = await getDatabase();
-            const token = localStorage.getItem('pos_token'); // Fetch current token
+            if (cancelled) return;
 
-            // Delta-Sync replication toward NestJS /items/sync endpoint
-            replicationState = replicateRxCollection({
+            const replicationState = replicateRxCollection({
                 collection: db.items,
-                replicationIdentifier: 'pos-items-delta-sync-v1',
+                replicationIdentifier: 'pos-items-rest-sync-v2',
                 live: true,
+                retryTime: 5000, // retry every 5s on network failure
+
                 pull: {
-                    async handler(lastCheckpoint) {
-                        const since = (lastCheckpoint as any)?.updatedAt ?? 0;
-                        const apiUrl = `http://${window.location.hostname}:3333/api` || 'http://localhost:3333';
-                        const res = await fetch(`${apiUrl}/items/sync?since=${since}`, {
-                            headers: {
-                                'Authorization': `Bearer ${token}`
-                            }
-                        });
-                        if (!res.ok) throw new Error('Sync pull failed');
+                    async handler(lastCheckpoint, batchSize) {
+                        const updatedAt = (lastCheckpoint as any)?.updatedAt ?? 0;
+                        const apiUrl = getApiUrl();
+
+                        const res = await fetch(
+                            `${apiUrl}/sync/pull?updatedAt=${updatedAt}`,
+                            { headers: getAuthHeaders() },
+                        );
+
+                        if (!res.ok) {
+                            throw new Error(`Pull failed: ${res.status}`);
+                        }
+
                         const data = await res.json();
-                        // RxDB uses _deleted (not deleted) for soft-delete handling
-                        const documents = data.documents.map((doc: any) => {
-                            const { deleted, ...rest } = doc;
-                            return { ...rest, _deleted: !!deleted };
-                        });
+
                         return {
-                            documents,
-                            checkpoint: documents.length === 0
-                                ? lastCheckpoint
-                                : { updatedAt: documents[documents.length - 1].updatedAt }
+                            documents: data.documents,
+                            checkpoint: data.checkpoint,
                         };
-                    }
+                    },
                 },
+
                 push: {
                     async handler(docs) {
-                        const apiUrl = `http://${window.location.hostname}:3333/api` || 'http://localhost:3333';
-                        await fetch(`${apiUrl}/sync/push`, {
+                        const apiUrl = getApiUrl();
+
+                        const rows = docs.map((d) => ({
+                            newDocumentState: d.newDocumentState,
+                            assumedMasterState: d.assumedMasterState ?? undefined,
+                        }));
+
+                        const res = await fetch(`${apiUrl}/sync/push`, {
                             method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${token}`
-                            },
-                            body: JSON.stringify({ rows: docs.map(d => d.newDocumentState) })
+                            headers: getAuthHeaders(),
+                            body: JSON.stringify({ rows }),
                         });
-                        return [];
-                    }
-                }
+
+                        if (!res.ok) {
+                            throw new Error(`Push failed: ${res.status}`);
+                        }
+
+                        // conflicts = server docs that are newer
+                        const conflicts = await res.json();
+                        return conflicts;
+                    },
+                },
+            });
+
+            replicationRef.current = replicationState;
+
+            // Log errors for debugging
+            replicationState.error$.subscribe((err) => {
+                console.error('[RxDB Sync Error]', err);
             });
         };
 
         startReplication();
 
         return () => {
-            if (replicationState) {
-                replicationState.cancel();
+            cancelled = true;
+            if (replicationRef.current) {
+                replicationRef.current.cancel();
+                replicationRef.current = null;
             }
         };
     }, []);

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
@@ -14,6 +15,7 @@ import { SaasModule } from './saas/saas.module';
 
 @Module({
     imports: [
+        ConfigModule.forRoot({ isGlobal: true }),
         ServeStaticModule.forRoot({
             rootPath: join(__dirname, '..', '..', '..', 'web', 'dist'),
             exclude: ['/api/(.*)'],

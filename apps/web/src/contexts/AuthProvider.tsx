@@ -19,15 +19,42 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-    const [user, setUser] = useState<User | null>(null);
     const [token, setToken] = useState<string | null>(localStorage.getItem('pos_token'));
+    
+    // Safely initialize user synchronously from token to prevent F5 flashes
+    const [user, setUser] = useState<User | null>(() => {
+        const storedToken = localStorage.getItem('pos_token');
+        if (!storedToken) return null;
+        try {
+            const base64Url = storedToken.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            const payload = JSON.parse(jsonPayload);
+
+            return {
+                username: payload.username,
+                role: payload.role,
+                sub: payload.sub,
+                storeId: payload.storeId,
+            };
+        } catch (e) {
+            console.error('Invalid token stored', e);
+            return null;
+        }
+    });
+
     const navigate = useNavigate();
 
     useEffect(() => {
-        if (token) {
+        if (token && !user) {
+            // Unlikely to hit if we synchronously parse, but fallback protective check.
             try {
-                // Simple JWT decode for client-side state
-                const payload = JSON.parse(atob(token.split('.')[1]));
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+                const payload = JSON.parse(jsonPayload);
                 setUser({
                     username: payload.username,
                     role: payload.role,
@@ -35,7 +62,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     storeId: payload.storeId,
                 });
             } catch (e) {
-                console.error('Invalid token stored', e);
                 logout();
             }
         }

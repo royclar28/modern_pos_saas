@@ -34,4 +34,20 @@ export class AuthService {
             access_token: this.jwtService.sign(payload),
         };
     }
+
+    async changePassword(userId: number, currentPass: string, newPass: string): Promise<boolean> {
+        const user = await this.prisma.user.findUnique({ where: { id: userId } });
+        if (!user) throw new UnauthorizedException('Usuario no encontrado');
+
+        const isMatch = await argon2.verify(user.password, currentPass);
+        if (!isMatch) throw new UnauthorizedException('La contraseña actual es incorrecta');
+
+        const hashedPassword = await argon2.hash(newPass);
+        await this.prisma.user.update({
+            where: { id: userId },
+            data: { password: hashedPassword }
+        });
+
+        return true;
+    }
 }

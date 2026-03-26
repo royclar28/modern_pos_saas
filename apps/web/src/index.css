@@ -4,6 +4,9 @@
 
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --color-primary: #7C3AED;
+  --color-primary-hover: #6D28D9;
+  --color-primary-light: #EDE9FE;
 }
 
 body {
@@ -11,13 +14,20 @@ body {
   min-height: 100vh;
 }
 
-/* Thermal Printer CSS Rules */
+/* ── Dark mode base transitions ───────────────────────────────────────────── */
+html {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+/* ── Thermal Printer CSS Rules ──────────────────────────────────────────── */
 @media print {
   @page {
     margin: 0;
-    /* Remove default browser margins for tickets */
     size: 80mm auto;
-    /* Typical thermal receipt roll size */
   }
 
   body {
@@ -26,13 +36,21 @@ body {
     margin: 0;
     padding: 0;
     width: 100%;
-    /* Ensure content cuts cleanly rather than wrapping oddly on margins */
     max-width: 80mm;
   }
 
-  /* Force elements that should be hidden to actually hide */
   .print-hidden,
   .print\:hidden {
     display: none !important;
   }
+}
+
+/* ── Smooth scrollbar ───────────────────────────────────────────────────── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.dark * {
+  scrollbar-color: #475569 transparent;
 }

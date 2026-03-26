@@ -42,7 +42,7 @@ services:
       sh -c "pnpm install &&
              cd apps/api &&
              npx prisma generate &&
-             npx prisma migrate deploy &&
+             npx prisma db push --accept-data-loss &&
              npx prisma db seed &&
              pnpm dev"
 

@@ -20,16 +20,20 @@ export type ParsedSettings = {
     company: string;
     enableCreditSales: boolean;
     primaryColor: string;
+    darkMode: boolean;
     isLoading: boolean;
     error: string | null;
     refetch: () => Promise<void>;
+    setCompany: (name: string) => void;
+    setPrimaryColor: (color: string) => void;
+    toggleDarkMode: () => void;
 };
 
 const DEFAULTS: StoreSettings = {
     default_tax_rate: '16',
     currency_symbol: '$',
     exchange_rate: '1',
-    company: 'Merx POS',
+    company: 'Mi Negocio',
     timezone: 'America/Caracas',
     language: 'es',
     enable_credit_sales: 'false',
@@ -64,6 +68,19 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const [raw, setRaw] = useState<StoreSettings>(DEFAULTS);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [darkMode, setDarkMode] = useState(() => {
+        return localStorage.getItem('pos_dark_mode') === 'true';
+    });
+
+    // ── Apply dark mode class ────────────────────────────────────────
+    useEffect(() => {
+        if (darkMode) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+        localStorage.setItem('pos_dark_mode', String(darkMode));
+    }, [darkMode]);
 
     const applyThemeVariables = (color: string) => {
         const root = document.documentElement.style;
@@ -104,17 +121,35 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         fetchSettings();
     }, [fetchSettings]);
 
+    // ── Imperative setters for instant reactivity ────────────────────
+    const setCompany = (name: string) => {
+        setRaw(prev => ({ ...prev, company: name }));
+    };
+
+    const setPrimaryColor = (color: string) => {
+        setRaw(prev => ({ ...prev, primaryColor: color }));
+        applyThemeVariables(color);
+    };
+
+    const toggleDarkMode = () => {
+        setDarkMode(prev => !prev);
+    };
+
     const value: ParsedSettings = {
         raw,
         taxRate: Math.max(0, Number(raw.default_tax_rate) || 16),
         exchangeRate: Math.max(1, Number(raw.exchange_rate) || 1),
         currencySymbol: raw.currency_symbol || '$',
-        company: raw.company || 'Merx POS',
+        company: raw.company || 'Mi Negocio',
         enableCreditSales: raw.enable_credit_sales === 'true',
         primaryColor: raw.primaryColor || '#7C3AED',
+        darkMode,
         isLoading,
         error,
         refetch: fetchSettings,
+        setCompany,
+        setPrimaryColor,
+        toggleDarkMode,
     };
 
     return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
