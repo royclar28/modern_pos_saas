@@ -4,7 +4,7 @@
  * "Cuaderno Digital de Fiados" — Credit sales management page.
  *
  * Features:
- *   - Reads all sales with paymentMethod === 'FIADO' from RxDB
+ *   - Reads all sales with paymentMethod === 'FIADO' from Dexie
  *   - Groups by customerId, summing total owed
  *   - Shows customer cards with: name, phone (WhatsApp link), ticket count, total debt, days overdue
  *   - Click a customer to see detail of their owed tickets
@@ -13,10 +13,13 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { getDatabase } from '../../db/database';
+import { getOutboxDB } from '../../db/outbox';
+import { enqueueSyncEvent } from '../../db/enqueueSyncEvent';
+import { SyncEntityType, SyncAction } from '../../db/outbox.types';
 import { SaleDocType } from '../../db/schemas/sale.schema';
 import { CustomerDocType } from '../../db/schemas/customer.schema';
 import { useSettingsContext } from '../../contexts/SettingsProvider';
+import { useAuth } from '../../contexts/AuthProvider';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -67,6 +70,8 @@ export const FiadosPage = () => {
     const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
     const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
     const { company, toggleDarkMode, darkMode, currencySymbol } = useSettingsContext();
+    const { user } = useAuth();
+    const tenantId = user?.storeId || 'default-store';
 
     const showToast = (msg: string, type: 'success' | 'error') => {
         setToast({ msg, type });
@@ -80,28 +85,25 @@ export const FiadosPage = () => {
     const loadDebts = useCallback(async () => {
         setIsLoading(true);
         try {
-            const db = await getDatabase();
+            const db = getOutboxDB();
 
             // Get all Fiado sales
-            const allSales = await db.sales.find({
-                selector: { paymentMethod: 'FIADO' },
-            }).exec();
+            const allSales = await db.sales
+                .where('paymentMethod')
+                .equals('FIADO')
+                .toArray() as SaleDocType[];
 
             // Get all customers
-            const allCustomers = await db.customers.find().exec();
+            const allCustomers = await db.customers.toArray() as CustomerDocType[];
             const customerMap = new Map<string, CustomerDocType>();
-            allCustomers.forEach(c => {
-                const json = c.toJSON() as CustomerDocType;
-                customerMap.set(json.id, json);
-            });
+            allCustomers.forEach(c => customerMap.set(c.id, c));
 
             // Group by customerId
             const grouped = new Map<string, SaleDocType[]>();
             allSales.forEach(sale => {
-                const json = sale.toJSON() as SaleDocType;
-                const custId = json.customerId || 'UNKNOWN';
+                const custId = sale.customerId || 'UNKNOWN';
                 if (!grouped.has(custId)) grouped.set(custId, []);
-                grouped.get(custId)!.push(json);
+                grouped.get(custId)!.push(sale);
             });
 
             // Build debt summaries
@@ -110,7 +112,6 @@ export const FiadosPage = () => {
                 const pendingTickets = tickets.filter(t => t.status !== 'PAGADO');
                 const totalOwed = pendingTickets.reduce((sum, t) => sum + (t.total - (t.paidAmount || 0)), 0);
 
-                // Find oldest pending date for "days overdue"
                 const oldestPendingDate = pendingTickets.length > 0
                     ? Math.min(...pendingTickets.map(t => t.saleTime))
                     : null;
@@ -125,7 +126,6 @@ export const FiadosPage = () => {
                 });
             });
 
-            // Sort: highest debt first
             debtList.sort((a, b) => b.totalOwed - a.totalOwed);
             setDebts(debtList);
         } catch (err) {
@@ -144,27 +144,57 @@ export const FiadosPage = () => {
         if (!paymentModal || !payAmount) return;
         setIsPaying(true);
         try {
-            const token = localStorage.getItem('pos_token');
-            const apiUrl = `http://${window.location.hostname}:3333/api`;
-            const res = await fetch(`${apiUrl}/customers/${paymentModal.customerId}/pay`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`
-                },
-                body: JSON.stringify({ amount: Number(payAmount) })
-            });
+            const amount = Number(payAmount);
 
-            if (!res.ok) throw new Error('Error en el pago');
-            
+            // Enqueue a SALE_PAYMENT event with optimistic local update
+            // Find all pending sales for this customer and apply payment FIFO
+            const db = getOutboxDB();
+            const customerSales = await db.sales
+                .where('customerId')
+                .equals(paymentModal.customerId)
+                .toArray() as SaleDocType[];
+
+            const pendingSales = customerSales
+                .filter(s => s.status !== 'PAGADO' && s.paymentMethod === 'FIADO')
+                .sort((a, b) => a.saleTime - b.saleTime); // oldest first (FIFO)
+
+            let remaining = amount;
+            for (const sale of pendingSales) {
+                if (remaining <= 0) break;
+                const owed = sale.total - (sale.paidAmount || 0);
+                const applied = Math.min(remaining, owed);
+                const newPaid = (sale.paidAmount || 0) + applied;
+                const newStatus = newPaid >= sale.total ? 'PAGADO' : 'PENDIENTE';
+
+                await enqueueSyncEvent({
+                    entity_type: SyncEntityType.SALE_PAYMENT,
+                    action: SyncAction.UPDATE,
+                    payload: {
+                        saleId: sale.id,
+                        amount: applied,
+                        method: 'ABONO',
+                    },
+                    tenant_id: tenantId,
+                    localTable: 'sales',
+                    localRecordKey: sale.id,
+                    localUpdater: (existing: SaleDocType) => ({
+                        ...existing,
+                        paidAmount: newPaid,
+                        status: newStatus,
+                        updatedAt: Date.now(),
+                    }),
+                });
+
+                remaining -= applied;
+            }
+
             showToast('Abono registrado exitosamente', 'success');
             setPaymentModal(null);
             setPayAmount('');
-            
-            // Wait a moment for RxDB to sync the updates from backend before reloading
-            setTimeout(() => {
-                loadDebts();
-            }, 1000);
+
+            // Reload debts — liveQuery-backed reads will auto-refresh,
+            // but we also reload to recalculate grouping
+            setTimeout(() => loadDebts(), 300);
         } catch (err) {
             console.error(err);
             showToast('Error al procesar abono', 'error');

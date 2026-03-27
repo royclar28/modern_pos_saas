@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getDatabase } from '../../db/database';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { getOutboxDB } from '../../db/outbox';
 import { SaleDocType } from '../../db/schemas/sale.schema';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -81,9 +82,9 @@ const ArqueoCard = ({ icon, label, valueUsd, valueBs, sub, accent, ticketCount }
 
 export const SalesDashboard = () => {
     const [selectedDate, setSelectedDate] = useState<string>(todayStr());
-    const [allSales, setAllSales] = useState<SaleDocType[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
     const [exchangeRate, setExchangeRate] = useState(38.5); // fallback
+
+    const db = getOutboxDB();
 
     // ── Fetch exchange rate from settings ───────────────────────────
     useEffect(() => {
@@ -103,36 +104,18 @@ export const SalesDashboard = () => {
         fetchRate();
     }, []);
 
-    // ── Subscribe to RxDB ────────────────────────────────────────────
-    useEffect(() => {
-        let subscription: { unsubscribe: () => void } | null = null;
-
-        const init = async () => {
-            setIsLoading(true);
-            try {
-                const db = await getDatabase();
-                const [start, end] = dayBounds(selectedDate);
-
-                const query = db.sales.find({
-                    selector: {
-                        saleTime: { $gte: start, $lte: end },
-                    },
-                    sort: [{ saleTime: 'desc' }],
-                });
-
-                subscription = query.$.subscribe((docs) => {
-                    setAllSales(docs.map((d) => d.toJSON()) as unknown as SaleDocType[]);
-                    setIsLoading(false);
-                });
-            } catch (err) {
-                console.error('[SalesDashboard] Error fetching sales:', err);
-                setIsLoading(false);
-            }
-        };
-
-        init();
-        return () => { subscription?.unsubscribe(); };
-    }, [selectedDate]);
+    // ── Reactive query via Dexie liveQuery ────────────────────────────
+    const [start, end] = dayBounds(selectedDate);
+    const rawSales = useLiveQuery(
+        () => db.sales
+            .where('saleTime')
+            .between(start, end, true, true)
+            .reverse()
+            .toArray(),
+        [selectedDate],
+    );
+    const allSales = (rawSales ?? []) as SaleDocType[];
+    const isLoading = rawSales === undefined;
 
     // ── Arqueo calculations (memoized) ───────────────────────────────
     const arqueo = useMemo(() => {
@@ -490,7 +473,7 @@ export const SalesDashboard = () => {
 
                     {/* Footer */}
                     <p className="text-center text-xs text-slate-400 pb-4">
-                        Los datos se actualizan en tiempo real desde RxDB · Reporte Z generado a las{' '}
+                        Los datos se actualizan en tiempo real desde Dexie · Reporte Z generado a las{' '}
                         {new Date().toLocaleTimeString('es-MX')}
                     </p>
                 </div>

@@ -134,7 +134,7 @@ const Dashboard = () => {
                 <div className="bg-primary-light dark:bg-slate-800 border border-primary dark:border-slate-700 rounded-xl p-4 text-sm text-primary dark:text-slate-300 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
-                        RxDB Sync Engine activo — datos en tiempo real
+                        Dexie Outbox Sync activo — datos en tiempo real
                     </div>
                 </div>
 

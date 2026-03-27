@@ -1,40 +1,51 @@
 import { useState } from 'react';
 import { useItems } from '../hooks/useItems';
-import { useSync } from '../hooks/useSync';
-import { getDatabase } from '../db/database';
+import { enqueueSyncEvent, generateId } from '../db/enqueueSyncEvent';
+import { SyncEntityType, SyncAction } from '../db/outbox.types';
 import { useAuth } from '../contexts/AuthProvider';
 import { Link } from 'react-router-dom';
 
 const PRODUCT_CATEGORIES = ['ALIMENTOS', 'BEBIDAS', 'LIMPIEZA', 'ASEO', 'ELECTRÓNICA'];
 
-const createRandomItem = async () => {
-    const db = await getDatabase();
-    const id = `item_${Date.now()}`;
-    await db.items.insert({
-        id,
-        name: `Producto ${Math.random().toString(36).slice(2, 7).toUpperCase()}`,
-        category: PRODUCT_CATEGORIES[Math.floor(Math.random() * PRODUCT_CATEGORIES.length)],
-        costPrice: parseFloat((Math.random() * 50 + 1).toFixed(2)),
-        unitPrice: parseFloat((Math.random() * 100 + 10).toFixed(2)),
-        reorderLevel: 10,
-        receivingQuantity: 1,
-        allowAltDescription: false,
-        isSerialized: false,
-        updatedAt: Date.now(),
-        deleted: false,
-    });
-};
-
 export const ProductsPage = () => {
     const { items, isLoading } = useItems();
     const { user, logout } = useAuth();
     const [inserting, setInserting] = useState(false);
-    useSync(); // Start live replication when this page mounts
+    const tenantId = user?.storeId || 'default-store';
 
     const handleCreateRandom = async () => {
         setInserting(true);
         try {
-            await createRandomItem();
+            const id = generateId();
+            const now = Date.now();
+            await enqueueSyncEvent({
+                entity_type: SyncEntityType.ITEM,
+                action: SyncAction.CREATE,
+                payload: {
+                    id,
+                    name: `Producto ${Math.random().toString(36).slice(2, 7).toUpperCase()}`,
+                    category: PRODUCT_CATEGORIES[Math.floor(Math.random() * PRODUCT_CATEGORIES.length)],
+                    costPrice: parseFloat((Math.random() * 50 + 1).toFixed(2)),
+                    unitPrice: parseFloat((Math.random() * 100 + 10).toFixed(2)),
+                    reorderLevel: 10,
+                    receivingQuantity: 1,
+                },
+                tenant_id: tenantId,
+                localTable: 'items',
+                localRecord: {
+                    id,
+                    storeId: tenantId,
+                    name: `Producto ${Math.random().toString(36).slice(2, 7).toUpperCase()}`,
+                    category: PRODUCT_CATEGORIES[Math.floor(Math.random() * PRODUCT_CATEGORIES.length)],
+                    costPrice: parseFloat((Math.random() * 50 + 1).toFixed(2)),
+                    unitPrice: parseFloat((Math.random() * 100 + 10).toFixed(2)),
+                    reorderLevel: 10,
+                    receivingQuantity: 1,
+                    allowAltDescription: false,
+                    isSerialized: false,
+                    updatedAt: now,
+                },
+            });
         } finally {
             setInserting(false);
         }
@@ -66,7 +77,7 @@ export const ProductsPage = () => {
                         <h2 className="text-2xl font-bold text-slate-800">Catálogo Local</h2>
                         <p className="text-slate-500 text-sm mt-1">
                             {items.length} producto(s) — sincronizado via
-                            <span className="font-mono text-purple-600 ml-1">RxDB ⟷ NestJS</span>
+                            <span className="font-mono text-purple-600 ml-1">Dexie ⟷ NestJS</span>
                         </p>
                     </div>
                     <button
@@ -149,7 +160,7 @@ export const ProductsPage = () => {
 
                 {items.length > 0 && (
                     <p className="text-slate-400 text-xs mt-3 text-right">
-                        Leyendo de IndexedDB local via RxDB — sin peticiones al servidor
+                        Leyendo de IndexedDB local via Dexie — sin peticiones al servidor
                     </p>
                 )}
             </main>

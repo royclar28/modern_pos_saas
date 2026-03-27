@@ -10,16 +10,19 @@
  *
  * Multi-Terminal:
  * - At checkout, the current terminalId (from localStorage via useTerminal())
- *   is stamped onto every Sale document before writing it to RxDB.
+ *   is stamped onto every Sale document before writing it to Dexie.
  *   This allows Reporte Z to filter and reconcile per-register.
  */
 import React, { createContext, useContext, useReducer, useMemo, useCallback } from 'react';
 import { ItemDocType } from '../db/schemas/item.schema';
 import { SaleDocType, SaleItemDocType } from '../db/schemas/sale.schema';
 import { PaymentData } from '../components/CheckoutModal';
-import { getDatabase } from '../db/database';
+import { enqueueSyncEventBatch, generateId } from '../db/enqueueSyncEvent';
+import { SyncEntityType, SyncAction } from '../db/outbox.types';
+import type { EnqueueOptions } from '../db/enqueueSyncEvent';
 import { useSettingsContext as useSettings } from '../contexts/SettingsProvider';
 import { useTerminal } from '../hooks/useTerminal';
+import { useAuth } from '../contexts/AuthProvider';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -146,6 +149,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // ── Terminal identifier from localStorage ────────────────────────────────
     const { getTerminalId } = useTerminal();
 
+    // ── Tenant ID from JWT ──────────────────────────────────────────────────
+    const { user } = useAuth();
+    const tenantId = user?.storeId || 'default-store';
+
     const totals = useMemo(
         () => computeTotals(state.items, taxRate),
         [state.items, taxRate]
@@ -172,16 +179,19 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     /**
-     * checkout() — Builds the Sale document and inserts it into RxDB.
-     * Stamps the current terminalId for multi-register reconciliation.
-     * No API call needed in the hot path: RxDB replication uploads later.
+     * checkout() — Builds the Sale document and inserts it atomically.
+     *
+     * Uses enqueueSyncEventBatch to execute ALL operations in a single
+     * Dexie transaction:
+     *   1. SALE:CREATE — writes to local `sales` table + outbox
+     *   2. N x ITEM:ADJUST_STOCK — decrements stock for each sold item
+     *     in local `items` table + outbox (delta-based, not absolute)
+     *
+     * If ANY operation fails, the ENTIRE transaction rolls back.
      */
     const checkout = useCallback(async (employeeId: string, paymentData: PaymentData): Promise<SaleDocType> => {
-        const db = await getDatabase();
         const now = Date.now();
-        const saleId = `sale_${now}_${Math.random().toString(36).slice(2, 7)}`;
-
-        // Snapshot the terminal at the moment of sale
+        const saleId = `sale_${generateId()}`;
         const terminalId = getTerminalId();
 
         const saleItems: SaleItemDocType[] = state.items.map((ci, index) => ({
@@ -197,6 +207,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const saleDoc: SaleDocType = {
             id: saleId,
+            storeId: tenantId,
             saleTime: now,
             employeeId,
             terminalId,
@@ -205,25 +216,83 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             taxAmount: totals.taxAmount,
             total: totals.total,
             items: saleItems,
-            // ── Payment fields ──
             paymentMethod: paymentData.paymentMethod,
             reference: paymentData.reference,
             amountReceived: paymentData.amountReceived,
             changeAmount: paymentData.changeAmount,
             changeBs: paymentData.changeBs,
             changeMethod: paymentData.changeMethod,
-            // ── Fiado fields ──
             customerId: paymentData.customerId,
             status: paymentData.paymentMethod === 'FIADO' ? 'PENDIENTE' : undefined,
             updatedAt: now,
         };
 
-        // ✅ Insert offline — RxDB replication will sync to the server automatically
-        await db.sales.insert(saleDoc);
+        // ── Build the atomic batch ─────────────────────────────────────────────────
+        const batchEvents: EnqueueOptions<any>[] = [];
+
+        // Event 1: SALE:CREATE
+        batchEvents.push({
+            entity_type: SyncEntityType.SALE,
+            action: SyncAction.CREATE,
+            payload: {
+                id: saleId,
+                employeeId,
+                terminalId,
+                items: saleItems.map(si => ({
+                    itemId: si.itemId,
+                    quantity: si.quantityPurchased,
+                    unitPrice: si.itemUnitPrice,
+                    discountPercent: si.discountPercent,
+                })),
+                subtotal: totals.subtotal,
+                taxPercent: totals.taxPercent,
+                taxAmount: totals.taxAmount,
+                total: totals.total,
+                paymentMethod: paymentData.paymentMethod,
+                customerId: paymentData.customerId,
+                reference: paymentData.reference,
+                amountReceived: paymentData.amountReceived,
+                changeAmount: paymentData.changeAmount,
+                changeBs: paymentData.changeBs,
+                changeMethod: paymentData.changeMethod,
+                status: saleDoc.status,
+            },
+            tenant_id: tenantId,
+            localTable: 'sales' as const,
+            localRecord: saleDoc,
+        });
+
+        // Events 2..N: ITEM:ADJUST_STOCK (one per unique sold item)
+        for (const ci of state.items) {
+            batchEvents.push({
+                entity_type: SyncEntityType.ITEM,
+                action: SyncAction.ADJUST_STOCK,
+                payload: {
+                    id: ci.product.id,
+                    name: ci.product.name,
+                    category: ci.product.category,
+                    costPrice: ci.product.costPrice,
+                    unitPrice: ci.product.unitPrice,
+                    reorderLevel: ci.product.reorderLevel,
+                    receivingQuantity: -ci.quantity, // delta: negative = stock decremented
+                },
+                tenant_id: tenantId,
+                localTable: 'items' as const,
+                localRecordKey: ci.product.id,
+                localUpdater: (existing: ItemDocType) => ({
+                    ...existing,
+                    receivingQuantity: Math.max(0, (existing.receivingQuantity || 0) - ci.quantity),
+                    updatedAt: now,
+                }),
+            });
+        }
+
+        // ✨ Execute everything in a single atomic Dexie transaction
+        await enqueueSyncEventBatch(batchEvents);
 
         dispatch({ type: 'CLEAR' });
         return saleDoc;
-    }, [state.items, totals, getTerminalId]);
+    }, [state.items, totals, getTerminalId, tenantId]);
 
     return (
         <CartContext.Provider value={{

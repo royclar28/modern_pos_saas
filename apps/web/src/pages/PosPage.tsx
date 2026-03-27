@@ -407,7 +407,7 @@ export const PosPage = () => {
                         <div className="px-4 py-1.5 bg-slate-200/50 border-t border-slate-200 flex justify-between items-center text-[10px] font-bold text-slate-500 tracking-wide uppercase shrink-0">
                             <div className="flex items-center gap-2">
                                 <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                                RxDB IndexedDB Sync
+                                Dexie Offline Sync
                             </div>
                             <div className="flex gap-4">
                                 <span>{filtered.length} Artículos</span>

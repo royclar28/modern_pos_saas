@@ -1,10 +1,13 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useItems } from '../../hooks/useItems';
-import { getDatabase } from '../../db/database';
+import { getOutboxDB } from '../../db/outbox';
+import { enqueueSyncEvent, generateId } from '../../db/enqueueSyncEvent';
+import { SyncEntityType, SyncAction } from '../../db/outbox.types';
 import { ItemDocType } from '../../db/schemas/item.schema';
+import { useAuth } from '../../contexts/AuthProvider';
 import { Link } from 'react-router-dom';
 import { InvoiceScannerModal, ScannedProduct } from '../../components/InvoiceScannerModal';
 
@@ -17,8 +20,8 @@ const itemSchema = z.object({
     description: z.string().optional(),
     costPrice: z.number().min(0, "Debe ser mayor o igual a 0"),
     unitPrice: z.number().min(0, "Debe ser mayor o igual a 0"),
-    reorderLevel: z.number().min(0).default(0),
-    receivingQuantity: z.number().min(1).default(1),
+    reorderLevel: z.number().min(0),
+    receivingQuantity: z.number().min(1),
 }).refine((data) => data.unitPrice >= data.costPrice, {
     message: "El precio de venta debe ser mayor o igual al costo",
     path: ["unitPrice"],
@@ -329,49 +332,63 @@ const InvoiceReviewModal = ({
  *        - Update unitPrice if it changed
  *   3. If NOT FOUND (Insert): insert() a new document with scanned.quantity as receivingQuantity
  */
-async function upsertScannedProducts(products: ScannedProduct[]): Promise<{ updated: number; inserted: number }> {
-    const db = await getDatabase();
-    if (!db) throw new Error('Database not available');
-
+async function upsertScannedProducts(products: ScannedProduct[], tenantId: string): Promise<{ updated: number; inserted: number }> {
+    const db = getOutboxDB();
     let updated = 0;
     let inserted = 0;
 
     for (const product of products) {
-        let existingDoc = null;
+        let existing: ItemDocType | undefined = undefined;
 
         // 1. Try to find by SKU first
         if (product.sku) {
-            const results = await db.items.find({
-                selector: { itemNumber: { $eq: product.sku } }
-            }).exec();
-            if (results.length > 0) {
-                existingDoc = results[0];
-            }
+            existing = await db.items.where('itemNumber').equals(product.sku).first();
         }
 
         // 2. If not found by SKU, try by name (case-insensitive)
-        if (!existingDoc) {
-            const allItems = await db.items.find().exec();
-            existingDoc = allItems.find(
-                (doc: any) => doc.name.toLowerCase().trim() === product.name.toLowerCase().trim()
-            ) || null;
+        if (!existing) {
+            const allItems = await db.items.toArray();
+            existing = allItems.find(
+                (item) => item.name.toLowerCase().trim() === product.name.toLowerCase().trim()
+            );
         }
 
-        if (existingDoc) {
+        if (existing) {
             // ── UPDATE: sum stock and update prices ────────────────────────
-            await existingDoc.patch({
-                receivingQuantity: (existingDoc.receivingQuantity || 0) + product.quantity,
-                costPrice: product.costPrice,   // Always update to latest invoice cost
-                unitPrice: product.unitPrice > existingDoc.unitPrice
+            const updatedItem: ItemDocType = {
+                ...existing,
+                receivingQuantity: (existing.receivingQuantity || 0) + product.quantity,
+                costPrice: product.costPrice,
+                unitPrice: product.unitPrice > existing.unitPrice
                     ? product.unitPrice
-                    : existingDoc.unitPrice,     // Only increase sale price, never decrease
+                    : existing.unitPrice,
                 updatedAt: Date.now(),
+            };
+            await enqueueSyncEvent({
+                entity_type: SyncEntityType.ITEM,
+                action: SyncAction.UPDATE,
+                payload: {
+                    id: existing.id,
+                    name: updatedItem.name,
+                    category: updatedItem.category,
+                    itemNumber: updatedItem.itemNumber,
+                    costPrice: updatedItem.costPrice,
+                    unitPrice: updatedItem.unitPrice,
+                    reorderLevel: updatedItem.reorderLevel,
+                    receivingQuantity: updatedItem.receivingQuantity,
+                },
+                tenant_id: tenantId,
+                localTable: 'items',
+                localRecord: updatedItem,
             });
             updated++;
         } else {
             // ── INSERT: create new product ─────────────────────────────────
-            await db.items.insert({
-                id: crypto.randomUUID(),
+            const id = generateId();
+            const now = Date.now();
+            const newItem: ItemDocType = {
+                id,
+                storeId: tenantId,
                 name: product.name,
                 category: product.category || 'General',
                 itemNumber: product.sku || '',
@@ -382,7 +399,24 @@ async function upsertScannedProducts(products: ScannedProduct[]): Promise<{ upda
                 receivingQuantity: product.quantity,
                 allowAltDescription: false,
                 isSerialized: false,
-                updatedAt: Date.now(),
+                updatedAt: now,
+            };
+            await enqueueSyncEvent({
+                entity_type: SyncEntityType.ITEM,
+                action: SyncAction.CREATE,
+                payload: {
+                    id,
+                    name: newItem.name,
+                    category: newItem.category,
+                    itemNumber: newItem.itemNumber,
+                    costPrice: newItem.costPrice,
+                    unitPrice: newItem.unitPrice,
+                    reorderLevel: newItem.reorderLevel,
+                    receivingQuantity: newItem.receivingQuantity,
+                },
+                tenant_id: tenantId,
+                localTable: 'items',
+                localRecord: newItem,
             });
             inserted++;
         }
@@ -394,6 +428,8 @@ async function upsertScannedProducts(products: ScannedProduct[]): Promise<{ upda
 // ─── Main Inventory Page ──────────────────────────────────────────────────────
 export const InventoryPage = () => {
     const { items, isLoading } = useItems();
+    const { user } = useAuth();
+    const tenantId = user?.storeId || 'default-store';
 
     const [search, setSearch] = useState('');
     const [modalItem, setModalItem] = useState<ItemDocType | null | 'NEW'>(null);
@@ -413,40 +449,73 @@ export const InventoryPage = () => {
     }, [items, search]);
 
     const handleSave = async (data: ItemFormData) => {
-        const db = await getDatabase();
-        if (!db) return;
-
         try {
             if (modalItem === 'NEW') {
-                await db.items.insert({
-                    id: crypto.randomUUID(),
+                const id = generateId();
+                const now = Date.now();
+                const newItem: ItemDocType = {
+                    id,
+                    storeId: tenantId,
                     name: data.name,
                     category: data.category,
                     itemNumber: data.itemNumber,
                     description: data.description,
                     costPrice: data.costPrice,
                     unitPrice: data.unitPrice,
-                    reorderLevel: data.reorderLevel,
-                    receivingQuantity: data.receivingQuantity,
+                    reorderLevel: data.reorderLevel ?? 0,
+                    receivingQuantity: data.receivingQuantity ?? 1,
                     allowAltDescription: false,
                     isSerialized: false,
-                    updatedAt: Date.now(),
+                    updatedAt: now,
+                };
+                await enqueueSyncEvent({
+                    entity_type: SyncEntityType.ITEM,
+                    action: SyncAction.CREATE,
+                    payload: {
+                        id,
+                        name: newItem.name,
+                        category: newItem.category,
+                        itemNumber: newItem.itemNumber,
+                        costPrice: newItem.costPrice,
+                        unitPrice: newItem.unitPrice,
+                        reorderLevel: newItem.reorderLevel,
+                        receivingQuantity: newItem.receivingQuantity,
+                    },
+                    tenant_id: tenantId,
+                    localTable: 'items',
+                    localRecord: newItem,
                 });
             } else if (modalItem && typeof modalItem !== 'string') {
-                const doc = await db.items.findOne(modalItem.id).exec();
-                if (doc) {
-                    await doc.patch({
-                        name: data.name,
-                        category: data.category,
-                        itemNumber: data.itemNumber,
-                        description: data.description,
-                        costPrice: data.costPrice,
-                        unitPrice: data.unitPrice,
-                        reorderLevel: data.reorderLevel,
-                        receivingQuantity: data.receivingQuantity,
-                        updatedAt: Date.now(),
-                    });
-                }
+                const now = Date.now();
+                const updatedItem: ItemDocType = {
+                    ...modalItem,
+                    name: data.name,
+                    category: data.category,
+                    itemNumber: data.itemNumber,
+                    description: data.description,
+                    costPrice: data.costPrice,
+                    unitPrice: data.unitPrice,
+                    reorderLevel: data.reorderLevel ?? 0,
+                    receivingQuantity: data.receivingQuantity ?? 1,
+                    updatedAt: now,
+                };
+                await enqueueSyncEvent({
+                    entity_type: SyncEntityType.ITEM,
+                    action: SyncAction.UPDATE,
+                    payload: {
+                        id: modalItem.id,
+                        name: updatedItem.name,
+                        category: updatedItem.category,
+                        itemNumber: updatedItem.itemNumber,
+                        costPrice: updatedItem.costPrice,
+                        unitPrice: updatedItem.unitPrice,
+                        reorderLevel: updatedItem.reorderLevel,
+                        receivingQuantity: updatedItem.receivingQuantity,
+                    },
+                    tenant_id: tenantId,
+                    localTable: 'items',
+                    localRecord: updatedItem,
+                });
             }
             setModalItem(null);
         } catch (error) {
@@ -456,11 +525,24 @@ export const InventoryPage = () => {
     };
 
     const handleDelete = async (item: ItemDocType) => {
-        const db = await getDatabase();
-        if (!db || !window.confirm(`¿Estás seguro de eliminar "${item.name}"?`)) return;
+        if (!window.confirm(`¿Estás seguro de eliminar "${item.name}"?`)) return;
         try {
-            const doc = await db.items.findOne(item.id).exec();
-            if (doc) await doc.remove();
+            await enqueueSyncEvent({
+                entity_type: SyncEntityType.ITEM,
+                action: SyncAction.DELETE,
+                payload: {
+                    id: item.id,
+                    name: item.name,
+                    category: item.category,
+                    costPrice: item.costPrice,
+                    unitPrice: item.unitPrice,
+                    reorderLevel: item.reorderLevel,
+                    receivingQuantity: item.receivingQuantity,
+                },
+                tenant_id: tenantId,
+                localTable: 'items',
+                localRecordKey: item.id,
+            });
         } catch (error) {
             console.error('Error deleting item:', error);
             alert('Error al eliminar');
@@ -471,7 +553,7 @@ export const InventoryPage = () => {
     const handleUpsertAll = async (products: ScannedProduct[]) => {
         setIsSavingUpsert(true);
         try {
-            const result = await upsertScannedProducts(products);
+            const result = await upsertScannedProducts(products, tenantId);
             toast.success(`Carga exitosa: ${result.inserted} nuevos, ${result.updated} actualizados`);
             setScannedProducts(null);
         } catch (err) {
@@ -534,7 +616,7 @@ export const InventoryPage = () => {
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">
                                 <thead>
-                                    <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500 font-semibold">
+                                    <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold">
                                         <th className="px-6 py-4">SKU</th>
                                         <th className="px-6 py-4">Nombre</th>
                                         <th className="px-6 py-4">Categoría</th>
@@ -544,44 +626,44 @@ export const InventoryPage = () => {
                                         <th className="px-6 py-4 text-center">Acciones</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100 text-sm">
+                                <tbody className="divide-y divide-slate-100 dark:divide-slate-700 text-sm">
                                     {isLoading ? (
                                         <tr>
-                                            <td colSpan={7} className="text-center py-12 text-slate-400">
+                                            <td colSpan={7} className="text-center py-12 text-slate-400 dark:text-slate-500">
                                                 Cargando inventario...
                                             </td>
                                         </tr>
                                     ) : filtered.length === 0 ? (
                                         <tr>
-                                            <td colSpan={7} className="text-center py-12 text-slate-400 font-medium">
+                                            <td colSpan={7} className="text-center py-12 text-slate-400 dark:text-slate-500 font-medium">
                                                 Ningún producto encontrado
                                             </td>
                                         </tr>
                                     ) : (
                                         filtered.map(item => (
-                                            <tr key={item.id} className="hover:bg-slate-50 transition-colors group">
-                                                <td className="px-6 py-4 font-mono text-slate-500 text-xs">
+                                            <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group">
+                                                <td className="px-6 py-4 font-mono text-slate-500 dark:text-slate-400 text-xs">
                                                     {item.itemNumber || '-'}
                                                 </td>
-                                                <td className="px-6 py-4 font-semibold text-slate-800">
+                                                <td className="px-6 py-4 font-semibold text-slate-800 dark:text-slate-100">
                                                     {item.name}
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-md text-xs font-medium">
+                                                    <span className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-1 rounded-md text-xs font-medium">
                                                         {item.category}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4 text-right text-slate-500">
+                                                <td className="px-6 py-4 text-right text-slate-500 dark:text-slate-400">
                                                     ${item.costPrice.toFixed(2)}
                                                 </td>
-                                                <td className="px-6 py-4 text-right font-semibold text-violet-700">
+                                                <td className="px-6 py-4 text-right font-semibold text-violet-700 dark:text-violet-400">
                                                     ${item.unitPrice.toFixed(2)}
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
                                                     <span className={`font-bold text-sm ${
                                                         item.receivingQuantity <= (item.reorderLevel || 0)
-                                                            ? 'text-red-600 bg-red-50 px-2 py-0.5 rounded-md'
-                                                            : 'text-slate-700'
+                                                            ? 'text-red-700 bg-red-100 dark:text-red-300 dark:bg-red-900/60 px-2 py-0.5 rounded-md'
+                                                            : 'text-slate-700 dark:text-slate-300'
                                                     }`}>
                                                         {item.receivingQuantity}
                                                     </span>
@@ -590,13 +672,13 @@ export const InventoryPage = () => {
                                                     <div className="flex justify-center items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                                         <button
                                                             onClick={() => setModalItem(item)}
-                                                            className="text-violet-600 flex items-center gap-1 hover:text-violet-800 bg-violet-50 px-3 py-1.5 rounded-lg active:scale-95"
+                                                            className="text-violet-700 flex items-center gap-1 hover:text-violet-800 bg-violet-100 hover:bg-violet-200 dark:bg-violet-900/50 dark:text-violet-300 dark:hover:bg-violet-800/80 px-3 py-1.5 rounded-lg active:scale-95 transition-all"
                                                         >
                                                             Editar
                                                         </button>
                                                         <button
                                                             onClick={() => handleDelete(item)}
-                                                            className="text-red-600 flex items-center gap-1 hover:text-red-800 bg-red-50 px-3 py-1.5 rounded-lg active:scale-95"
+                                                            className="text-red-700 flex items-center gap-1 hover:text-red-800 bg-red-100 hover:bg-red-200 dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-800/80 px-3 py-1.5 rounded-lg active:scale-95 transition-all"
                                                         >
                                                             Eliminar
                                                         </button>

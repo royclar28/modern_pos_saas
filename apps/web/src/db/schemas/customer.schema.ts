@@ -1,7 +1,7 @@
-import { RxJsonSchema } from 'rxdb';
+// ─── Customer DocType (TypeScript only — no RxDB dependency) ─────────────────
 
 export type CustomerDocType = {
-    id: string; // RxDB prefieres strings as PKs
+    id: string;
     storeId: string;
     companyName?: string;
     accountNumber?: string;
@@ -13,27 +13,4 @@ export type CustomerDocType = {
     address?: string;
     updatedAt: number; // Unix timestamp
     isDeleted: boolean;
-};
-
-export const customerSchema: RxJsonSchema<CustomerDocType> = {
-    title: 'Customer schema',
-    description: 'Point of sale customers mapped from ospos_customers and ospos_people',
-    version: 0,
-    primaryKey: 'id',
-    type: 'object',
-    properties: {
-        id: { type: 'string', maxLength: 100 },
-        storeId: { type: 'string', maxLength: 100 },
-        companyName: { type: 'string' },
-        accountNumber: { type: 'string' },
-        taxable: { type: 'boolean' },
-        firstName: { type: 'string' },
-        lastName: { type: 'string' },
-        email: { type: 'string' },
-        phone: { type: 'string' },
-        address: { type: 'string' },
-        updatedAt: { type: 'number' },
-        isDeleted: { type: 'boolean' }
-    },
-    required: ['id', 'storeId', 'taxable', 'firstName', 'lastName', 'updatedAt', 'isDeleted']
 };

@@ -1,6 +1,4 @@
-import { RxJsonSchema } from 'rxdb';
-
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── Sale DocTypes (TypeScript only — no RxDB dependency) ────────────────────
 
 export type SaleItemDocType = {
     id: string;       // e.g. `${saleId}_${line}`
@@ -59,60 +57,4 @@ export type SaleDocType = {
     dueDate?: number;            // Unix timestamp (ms) for payment deadline
 
     updatedAt: number;
-};
-
-// ─── RxDB JSON Schema ────────────────────────────────────────────────────────
-// NOTE: `deleted` is RESERVED by RxDB — never add it here.
-// RxDB manages soft-deletes internally via _deleted.
-
-export const saleSchema: RxJsonSchema<SaleDocType> = {
-    title: 'Sale schema',
-    description: 'Point of sale transactions',
-    version: 0,
-    primaryKey: 'id',
-    type: 'object',
-    properties: {
-        id: { type: 'string', maxLength: 100 },
-        storeId: { type: 'string', maxLength: 100 },
-        invoiceNumber: { type: 'string' },
-        comment: { type: 'string' },
-        saleTime: { type: 'number' },
-        customerId: { type: 'string' },
-        employeeId: { type: 'string' },
-        terminalId: { type: 'string', default: 'CAJA_01' },
-        subtotal: { type: 'number' },
-        taxPercent: { type: 'number' },
-        taxAmount: { type: 'number' },
-        total: { type: 'number' },
-        items: {
-            type: 'array',
-            items: {
-                type: 'object',
-                properties: {
-                    id: { type: 'string' },
-                    line: { type: 'number' },
-                    description: { type: 'string' },
-                    serialNumber: { type: 'string' },
-                    quantityPurchased: { type: 'number' },
-                    itemCostPrice: { type: 'number' },
-                    itemUnitPrice: { type: 'number' },
-                    discountPercent: { type: 'number' },
-                    itemId: { type: 'string' },
-                },
-                required: ['id', 'line', 'quantityPurchased', 'itemCostPrice', 'itemUnitPrice', 'discountPercent', 'itemId'],
-            },
-        },
-        // Payment fields
-        paymentMethod: { type: 'string' },
-        reference: { type: 'string' },
-        amountReceived: { type: 'number' },
-        changeAmount: { type: 'number' },
-        changeBs: { type: 'number' },
-        changeMethod: { type: 'string' },
-        status: { type: 'string' },
-        paidAmount: { type: 'number' },
-        dueDate: { type: 'number' },
-        updatedAt: { type: 'number' },
-    },
-    required: ['id', 'storeId', 'saleTime', 'employeeId', 'terminalId', 'subtotal', 'taxPercent', 'taxAmount', 'total', 'items', 'paymentMethod', 'updatedAt'],
 };

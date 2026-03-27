@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { PaymentMethod, ChangeMethod } from '../db/schemas/sale.schema';
 import { CustomerDocType } from '../db/schemas/customer.schema';
-import { getDatabase } from '../db/database';
+import { getOutboxDB } from '../db/outbox';
+import { enqueueSyncEvent, generateId } from '../db/enqueueSyncEvent';
+import { SyncEntityType, SyncAction } from '../db/outbox.types';
+import { useAuth } from '../contexts/AuthProvider';
 
 // ─── Payment Data (exported for CartProvider) ─────────────────────────────────
 export interface PaymentData {
@@ -44,7 +47,8 @@ const CHANGE_OPTIONS: { key: ChangeMethod; label: string }[] = [
 const QuickCustomerForm: React.FC<{
     onCreated: (customer: CustomerDocType) => void;
     onCancel: () => void;
-}> = ({ onCreated, onCancel }) => {
+    tenantId: string;
+}> = ({ onCreated, onCancel, tenantId }) => {
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [phone, setPhone] = useState('');
@@ -56,19 +60,32 @@ const QuickCustomerForm: React.FC<{
 
     const handleSubmit = async () => {
         if (!isValid) return;
-        const db = await getDatabase();
-        const id = `cust_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+        const id = `cust_${generateId()}`;
         const now = Date.now();
         const newCustomer: CustomerDocType = {
             id,
+            storeId: tenantId,
             firstName: firstName.trim(),
             lastName: lastName.trim(),
             phone: phone.trim(),
             taxable: true,
             updatedAt: now,
-            deleted: false,
+            isDeleted: false,
         };
-        await db.customers.insert(newCustomer);
+        await enqueueSyncEvent({
+            entity_type: SyncEntityType.CUSTOMER,
+            action: SyncAction.CREATE,
+            payload: {
+                id,
+                firstName: newCustomer.firstName,
+                lastName: newCustomer.lastName,
+                phone: newCustomer.phone,
+                taxable: true,
+            },
+            tenant_id: tenantId,
+            localTable: 'customers',
+            localRecord: newCustomer,
+        });
         onCreated(newCustomer);
     };
 
@@ -143,6 +160,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     isProcessing = false,
     enableCreditSales = false
 }) => {
+    const { user } = useAuth();
+    const tenantId = user?.storeId || 'default-store';
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('DIVISA');
     const [amountReceived, setAmountReceived] = useState<string>('');
     const [reference, setReference] = useState<string>('');
@@ -187,23 +206,18 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     useEffect(() => {
         if (paymentMethod !== 'FIADO') return;
         const search = async () => {
-            const db = await getDatabase();
-            const allCustomers = await db.customers.find().exec();
+            const db = getOutboxDB();
+            const allCustomers = await db.customers.toArray();
             const q = customerSearch.toLowerCase().trim();
             if (!q) {
-                setCustomers(allCustomers.map(c => c.toJSON() as CustomerDocType));
+                setCustomers(allCustomers);
             } else {
                 setCustomers(
-                    allCustomers
-                        .filter(c => {
-                            const json = c.toJSON() as CustomerDocType;
-                            return (
-                                json.firstName.toLowerCase().includes(q) ||
-                                json.lastName.toLowerCase().includes(q) ||
-                                (json.phone && json.phone.includes(q))
-                            );
-                        })
-                        .map(c => c.toJSON() as CustomerDocType)
+                    allCustomers.filter(c =>
+                        c.firstName.toLowerCase().includes(q) ||
+                        c.lastName.toLowerCase().includes(q) ||
+                        (c.phone && c.phone.includes(q))
+                    )
                 );
             }
         };
@@ -603,6 +617,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                             {/* Customer search or new form */}
                             {showNewCustomerForm ? (
                                 <QuickCustomerForm
+                                    tenantId={tenantId}
                                     onCreated={(newCust) => {
                                         setSelectedCustomer(newCust);
                                         setShowNewCustomerForm(false);

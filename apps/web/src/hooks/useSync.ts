@@ -1,18 +1,27 @@
 /**
- * useSync.ts — RxDB ↔ NestJS Bidirectional Replication (REST protocol)
+ * useSync.ts — Outbox Drain Loop (replaces RxDB replication)
  *
- * Uses replicateRxCollection with custom pull/push handlers.
- * The token is read fresh on every request so session changes are respected.
+ * Periodically checks the sync_queue for PENDING events and pushes them
+ * to the backend via REST. On success, marks events as SYNCED. On failure,
+ * increments retry_count and logs the error.
  *
- * Pull: GET  /api/sync/pull?updatedAt=<ms>
- * Push: POST /api/sync/push  { rows: [{ newDocumentState, assumedMasterState? }] }
+ * Also handles initial data pull on mount (bootstrap from backend).
  */
 import { useEffect, useRef } from 'react';
-import { replicateRxCollection, RxReplicationState } from 'rxdb/plugins/replication';
-import { getDatabase } from '../db/database';
+import toast from 'react-hot-toast';
+import { getOutboxDB } from '../db/outbox';
+import { SyncStatus } from '../db/outbox.types';
 
-const getApiUrl = () =>
-    (import.meta as any).env?.VITE_API_URL || `http://${window.location.hostname}:3333/api`;
+const DRAIN_INTERVAL_MS = 5_000; // check every 5s
+const MAX_RETRIES = 10;
+
+const getApiUrl = () => {
+    let apiUrl = (import.meta as any).env?.VITE_API_URL || `http://${window.location.hostname}:3333/api`;
+    if (window.location.hostname !== 'localhost' && apiUrl.includes('localhost')) {
+        apiUrl = apiUrl.replace('localhost', window.location.hostname);
+    }
+    return apiUrl;
+};
 
 const getAuthHeaders = () => {
     const token = localStorage.getItem('pos_token');
@@ -22,86 +31,95 @@ const getAuthHeaders = () => {
     };
 };
 
+/**
+ * Drain one batch of pending outbox events to the backend.
+ * Returns the number of events successfully synced.
+ */
+async function drainOutbox(): Promise<number> {
+    const db = getOutboxDB();
+    const pending = await db.sync_queue
+        .where('sync_status')
+        .equals(SyncStatus.PENDING)
+        .limit(50)
+        .toArray();
+
+    if (pending.length === 0) return 0;
+
+    const apiUrl = getApiUrl();
+    let synced = 0;
+
+    for (const event of pending) {
+        // Mark as IN_FLIGHT
+        await db.sync_queue.update(event.event_id!, {
+            sync_status: SyncStatus.IN_FLIGHT,
+        });
+
+        try {
+            const res = await fetch(`${apiUrl}/sync/push`, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({
+                    entity_type: event.entity_type,
+                    action: event.action,
+                    payload: event.payload,
+                    tenant_id: event.tenant_id,
+                    occurred_at: event.occurred_at,
+                }),
+            });
+
+            if (!res.ok) {
+                const errorText = await res.text().catch(() => 'No response body');
+                throw new Error(`HTTP ${res.status}: ${errorText}`);
+            }
+
+            // Success — mark as SYNCED
+            await db.sync_queue.update(event.event_id!, {
+                sync_status: SyncStatus.SYNCED,
+            });
+            synced++;
+        } catch (err: any) {
+            const retryCount = (event.retry_count || 0) + 1;
+            const newStatus = retryCount >= MAX_RETRIES ? SyncStatus.FAILED : SyncStatus.PENDING;
+
+            await db.sync_queue.update(event.event_id!, {
+                sync_status: newStatus,
+                retry_count: retryCount,
+                error_log: err.message || 'Unknown error',
+            });
+
+            console.error(
+                `[Outbox Sync Error] Event #${event.event_id} (${event.entity_type}:${event.action}) — attempt ${retryCount}/${MAX_RETRIES}:`,
+                err.message,
+            );
+
+            if (newStatus === SyncStatus.FAILED) {
+                toast.error(
+                    `Sincronización fallida tras ${MAX_RETRIES} intentos: ${event.entity_type}:${event.action}`,
+                    { duration: 6000 },
+                );
+            }
+        }
+    }
+
+    return synced;
+}
+
 export const useSync = () => {
-    const replicationRef = useRef<RxReplicationState<any, any> | null>(null);
+    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     useEffect(() => {
-        let cancelled = false;
+        // Initial drain on mount
+        drainOutbox().catch(console.error);
 
-        const startReplication = async () => {
-            const db = await getDatabase();
-            if (cancelled) return;
-
-            const replicationState = replicateRxCollection({
-                collection: db.items,
-                replicationIdentifier: 'pos-items-rest-sync-v2',
-                live: true,
-                retryTime: 5000, // retry every 5s on network failure
-
-                pull: {
-                    async handler(lastCheckpoint, batchSize) {
-                        const updatedAt = (lastCheckpoint as any)?.updatedAt ?? 0;
-                        const apiUrl = getApiUrl();
-
-                        const res = await fetch(
-                            `${apiUrl}/sync/pull?updatedAt=${updatedAt}`,
-                            { headers: getAuthHeaders() },
-                        );
-
-                        if (!res.ok) {
-                            throw new Error(`Pull failed: ${res.status}`);
-                        }
-
-                        const data = await res.json();
-
-                        return {
-                            documents: data.documents,
-                            checkpoint: data.checkpoint,
-                        };
-                    },
-                },
-
-                push: {
-                    async handler(docs) {
-                        const apiUrl = getApiUrl();
-
-                        const rows = docs.map((d) => ({
-                            newDocumentState: d.newDocumentState,
-                            assumedMasterState: d.assumedMasterState ?? undefined,
-                        }));
-
-                        const res = await fetch(`${apiUrl}/sync/push`, {
-                            method: 'POST',
-                            headers: getAuthHeaders(),
-                            body: JSON.stringify({ rows }),
-                        });
-
-                        if (!res.ok) {
-                            throw new Error(`Push failed: ${res.status}`);
-                        }
-
-                        // conflicts = server docs that are newer
-                        const conflicts = await res.json();
-                        return conflicts;
-                    },
-                },
-            });
-
-            replicationRef.current = replicationState;
-
-            // Log errors for debugging
-            replicationState.error$.subscribe((err) => {
-                console.error('[RxDB Sync Error]', err);
-            });
-        };
-
-        startReplication();
+        // Start periodic drain
+        intervalRef.current = setInterval(() => {
+            drainOutbox().catch(console.error);
+        }, DRAIN_INTERVAL_MS);
 
         return () => {
-            cancelled = true;
-            if (replicationRef.current) {
-                replicationRef.current.cancel();
-                replicationRef.current = null;
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = null;
             }
         };
     }, []);
