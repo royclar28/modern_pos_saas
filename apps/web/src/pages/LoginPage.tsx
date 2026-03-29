@@ -34,8 +34,8 @@ export const LoginPage = () => {
     const onSubmit = async (data: LoginFormValues) => {
         setError(null);
         try {
-            const apiUrl = `http://${window.location.hostname}:3333/api`;
-            const response = await fetch(`${apiUrl}/auth/login`, {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001/api';
+            const response = await fetch(`${apiUrl}/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -49,11 +49,11 @@ export const LoginPage = () => {
 
             const result = await response.json();
 
-            login(result.access_token, {
-                username: data.username,
-                role: 'EMPLOYEE',
-                sub: 0,
-                storeId: '',
+            login(result.token, {
+                username: result.user.username || data.username,
+                role: result.user.role || 'SUPER_ADMIN',
+                sub: result.user.id || 0,
+                storeId: result.user.tenant_id || '',
             });
 
         } catch (err: any) {

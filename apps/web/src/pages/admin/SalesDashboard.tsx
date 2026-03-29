@@ -91,7 +91,7 @@ export const SalesDashboard = () => {
         const fetchRate = async () => {
             try {
                 const token = localStorage.getItem('pos_token');
-                const apiUrl = (import.meta as any).env?.VITE_API_URL || `http://${window.location.hostname}:3333/api`;
+                const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001/api';
                 const res = await fetch(`${apiUrl}/settings`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });

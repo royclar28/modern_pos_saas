@@ -175,6 +175,7 @@ export async function enqueueSyncEvent<T extends SyncEntityType>(
 
     eventId = (await db.sync_queue.add({
       tenant_id,
+      uuid: uuidv4(),
       entity_type,
       action,
       payload: payload as any,
@@ -230,6 +231,7 @@ export async function enqueueSyncEventBatch(
       // 2. Enqueue outbox event
       const id = (await db.sync_queue.add({
         tenant_id: options.tenant_id,
+        uuid: uuidv4(),
         entity_type: options.entity_type,
         action: options.action,
         payload: options.payload as any,

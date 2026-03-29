@@ -160,7 +160,7 @@ export const SettingsPage = () => {
         setIsSavingGlobal(true);
         try {
             const token = localStorage.getItem('pos_token');
-            const apiUrl = `http://${window.location.hostname}:3333/api`;
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001/api';
             const res = await fetch(`${apiUrl}/settings`, {
                 method: 'PATCH',
                 headers: {
@@ -200,7 +200,7 @@ export const SettingsPage = () => {
         setIsChangingPwd(true);
         try {
             const token = localStorage.getItem('pos_token');
-            const apiUrl = `http://${window.location.hostname}:3333/api`;
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001/api';
             const res = await fetch(`${apiUrl}/auth/change-password`, {
                 method: 'PATCH',
                 headers: {
@@ -565,7 +565,7 @@ export const SettingsPage = () => {
                                         // Auto-save this toggle immediately
                                         try {
                                             const token = localStorage.getItem('pos_token');
-                                            const apiUrl = `http://${window.location.hostname}:3333/api`;
+                                            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001/api';
                                             await fetch(`${apiUrl}/settings`, {
                                                 method: 'PATCH',
                                                 headers: {

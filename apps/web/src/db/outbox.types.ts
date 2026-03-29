@@ -92,6 +92,7 @@ export type SyncPayloadMap = {
 
 export interface SyncQueueEvent<T extends SyncEntityType = SyncEntityType> {
   event_id?: number;         // auto-increment PK (Dexie)
+  uuid: string;              // Global UUID for idempotency
   tenant_id: string;         // storeId del JWT
   entity_type: T;
   action: SyncAction;

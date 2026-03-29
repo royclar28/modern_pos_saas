@@ -264,10 +264,13 @@ export const PosPage = () => {
         setIsSyncingBCV(true);
         try {
             const token = localStorage.getItem('pos_token');
-            const apiUrl = `http://${window.location.hostname}:3333/api` || 'http://localhost:3333';
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001/api';
             await fetch(`${apiUrl}/settings/bcv/sync`, {
                 method: 'POST',
-                headers: { Authorization: `Bearer ${token}` }
+                headers: { 
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json'
+                }
             });
             refetchSettings();
             toast.success('Tasa BCV actualizada');

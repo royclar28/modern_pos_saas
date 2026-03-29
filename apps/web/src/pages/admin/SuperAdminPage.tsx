@@ -33,7 +33,7 @@ const toast = {
 
 export const SuperAdminPage = () => {
     const navigate = useNavigate();
-    const apiUrl = `http://${window.location.hostname}:3333/api`;
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001/api';
     const token = localStorage.getItem('pos_token');
 
     const [stores, setStores] = useState<Store[]>([]);
@@ -53,7 +53,10 @@ export const SuperAdminPage = () => {
         setLoading(true);
         try {
             const res = await fetch(`${apiUrl}/saas/stores?take=50`, {
-                headers: { Authorization: `Bearer ${token}` }
+                headers: { 
+                    Authorization: `Bearer ${token}`,
+                    Accept: 'application/json'
+                }
             });
             if (res.status === 403) {
                 toast.error('Acceso denegado. Solo SUPER_ADMIN.');
@@ -78,7 +81,11 @@ export const SuperAdminPage = () => {
         try {
             const res = await fetch(`${apiUrl}/saas/stores/${store.id}/status`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    Authorization: `Bearer ${token}`,
+                    Accept: 'application/json'
+                },
                 body: JSON.stringify({ isActive: !store.isActive })
             });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -98,7 +105,11 @@ export const SuperAdminPage = () => {
         try {
             const res = await fetch(`${apiUrl}/saas/stores`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    Authorization: `Bearer ${token}`,
+                    Accept: 'application/json'
+                },
                 body: JSON.stringify({ name: formName, rif: formRif, ownerEmail: formEmail })
             });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);

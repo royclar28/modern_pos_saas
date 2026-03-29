@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { flushSync } from 'react-dom';
+import { api } from '@/lib/api';
 
 // Exportamos el tipo para que otros componentes (como InventoryPage y el InvoiceReviewModal) lo puedan reutilizar
 export interface ScannedProduct {
@@ -22,42 +24,35 @@ export const InvoiceScannerModal = ({ onScanSuccess, onError }: InvoiceScannerPr
         const file = e.target.files?.[0];
         if (!file) return;
 
-        setIsScanning(true);
+        // Forzar renderizado inmediato del spinner antes de preparar la red
+        flushSync(() => {
+            setIsScanning(true);
+        });
 
         try {
-            // 1. Crear FormData
+            // 1. Crear FormData con la clave correcta esperada por Laravel
             const formData = new FormData();
-            formData.append('invoice', file);
+            formData.append('image', file);
 
-            // 2. Obtener Token
-            const token = localStorage.getItem('pos_token');
-            if (!token) {
-                throw new Error('No se encontró autenticación. Por favor inicia sesión.');
-            }
+            // 2. Usar el cliente centralizado API (resuelve bearer token, url y errores)
+            const responseData = await api.postForm('/inventory/scan-invoice', formData);
 
-            // URL del backend utilizando las variables de entorno de Vite
-            const apiUrl = `http://${window.location.hostname}:3333/api`;
+            // El backend devuelve: { status: 'ok', data: { supplier_name, items: [...] } }
+            const extractedItems = responseData?.data?.items || [];
 
-            // 3. Petición HTTP POST
-            const res = await fetch(`${apiUrl}/inventory/scan-invoice`, {
-                method: 'POST',
-                headers: { 
-                    Authorization: `Bearer ${token}` 
-                },
-                body: formData,
-            });
-
-            if (!res.ok) {
-                throw new Error(`Error HTTP: ${res.status}`);
-            }
-
-            const data = await res.json();
-
-            // 4. Manejar Respuesta Exitosamente
-            if (data.products && Array.isArray(data.products) && data.products.length > 0) {
-                onScanSuccess(data.products);
+            // 4. Manejar Respuesta Exitosamente (Mapeando a la interfaz esperada por el UI)
+            if (Array.isArray(extractedItems) && extractedItems.length > 0) {
+                const mappedProducts: ScannedProduct[] = extractedItems.map((item: any) => ({
+                    name: item.description || 'Producto sin nombre',
+                    sku: `AI-SCAN-${Math.floor(Math.random() * 10000)}`,
+                    costPrice: Number(item.unit_cost) || 0,
+                    unitPrice: (Number(item.unit_cost) || 0) * 1.3, // 30% default markup
+                    quantity: Number(item.quantity) || 1,
+                    category: 'Sin Categoría'
+                }));
+                onScanSuccess(mappedProducts);
             } else {
-                throw new Error('El backend no detectó productos en esta factura.');
+                throw new Error('La IA no logró extraer productos de esta imagen.');
             }
 
         } catch (err: any) {

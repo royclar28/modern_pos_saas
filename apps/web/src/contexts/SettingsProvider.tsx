@@ -100,9 +100,12 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setIsLoading(true);
         setError(null);
         try {
-            const apiUrl = `http://${window.location.hostname}:3333/api`;
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001/api';
             const res = await fetch(`${apiUrl}/settings`, {
-                headers: { Authorization: `Bearer ${token}` },
+                headers: { 
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json'
+                },
             });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data: StoreSettings = await res.json();
