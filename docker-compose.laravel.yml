@@ -1,0 +1,12 @@
+services:
+  laravel:
+    build:
+      context: ./apps/api-laravel
+      dockerfile: Dockerfile
+    container_name: merx_pos_backend
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./apps/api-laravel:/app
+    command: bash /app/entrypoint.sh
+    restart: unless-stopped
