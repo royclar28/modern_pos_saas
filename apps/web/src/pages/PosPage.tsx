@@ -6,11 +6,13 @@ import { useCart } from '../contexts/CartProvider';
 import { useSettingsContext as useSettings } from '../contexts/SettingsProvider';
 import { useAuth } from '../contexts/AuthProvider';
 import { useHighVisibility } from '../hooks/useHighVisibility';
+import { useCashShift } from '../hooks/useCashShift';
 import { ItemDocType } from '../db/schemas/item.schema';
 import { SaleDocType } from '../db/schemas/sale.schema';
 import { Receipt } from '../components/Receipt';
 import { CheckoutModal } from '../components/CheckoutModal';
 import { PaymentData } from '../components/CheckoutModal';
+import { ShiftManagerModal } from '../components/ShiftManagerModal';
 import { useBarcodeScanner } from '../hooks/useBarcodeScanner';
 
 // ─── Lightweight inline toast (zero deps) ─────────────────────────────────────
@@ -210,6 +212,7 @@ export const PosPage = () => {
     const { enableCreditSales, company, toggleDarkMode, darkMode } = useSettings();
     const { user } = useAuth();
     const { isHighVis } = useHighVisibility();
+    const { hasOpenShift, currentShift } = useCashShift();
     useSync();
 
     // Alias for readability in JSX
@@ -220,6 +223,7 @@ export const PosPage = () => {
     const [completedSale, setCompletedSale] = useState<SaleDocType | null>(null);
     const [isSyncingBCV, setIsSyncingBCV] = useState(false);
     const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+    const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
     const [mobileCartOpen, setMobileCartOpen] = useState(false);
     const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -335,6 +339,18 @@ export const PosPage = () => {
                         title="Actualizar Tasa BCV Manualmente"
                     >
                         Tasa BCV: Bs. {formatCurrency(exchangeRate)} <span className={`text-[10px] ${isSyncingBCV ? 'animate-spin' : ''}`}>🔄</span>
+                    </button>
+                    <button
+                        onClick={() => setIsShiftModalOpen(true)}
+                        className={`text-xs border px-3 py-1.5 rounded-lg font-bold cursor-pointer transition-all flex items-center gap-1.5 active:scale-95 shadow-sm ${
+                            hasOpenShift
+                                ? 'bg-emerald-900/50 border-emerald-700/80 hover:bg-emerald-800/50 text-emerald-200'
+                                : 'bg-red-900/50 border-red-700/80 hover:bg-red-800/50 text-red-200'
+                        }`}
+                        title={hasOpenShift ? 'Turno abierto — clic para Corte Z' : 'Sin turno — clic para abrir caja'}
+                    >
+                        <span className={`w-2 h-2 rounded-full ${hasOpenShift ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`} />
+                        {hasOpenShift ? `Caja ${currentShift?.terminalId || ''}` : '🔒 Abrir Caja'}
                     </button>
                     {!hv && <div className="h-4 w-px bg-slate-700" />}
                     <div className="flex items-center gap-2 bg-slate-800/50 px-3 py-1.5 rounded-lg border border-slate-700/50">
@@ -579,6 +595,11 @@ export const PosPage = () => {
             {completedSale && (
                 <SuccessModal sale={completedSale} onClose={() => setCompletedSale(null)} exchangeRate={exchangeRate} />
             )}
+
+            <ShiftManagerModal
+                isOpen={isShiftModalOpen}
+                onClose={() => setIsShiftModalOpen(false)}
+            />
 
             {/* Global Styles */}
             <style dangerouslySetInnerHTML={{__html: `

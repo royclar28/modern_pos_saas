@@ -63,7 +63,7 @@ export const generateId = (): string => uuidv4();
 
 // ─── Types for the atomic write ──────────────────────────────────────────────
 
-type LocalTableName = 'items' | 'sales' | 'customers';
+type LocalTableName = 'items' | 'sales' | 'customers' | 'shifts';
 
 /**
  * Options for a CREATE or UPDATE event.
@@ -71,7 +71,7 @@ type LocalTableName = 'items' | 'sales' | 'customers';
  */
 type UpsertEventOptions<T extends SyncEntityType> = {
   entity_type: T;
-  action: SyncAction.CREATE | SyncAction.UPDATE;
+  action: SyncAction.CREATE | SyncAction.UPDATE | SyncAction.OPEN;
   payload: SyncPayloadMap[T];
   tenant_id: string;
   localTable: LocalTableName;

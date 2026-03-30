@@ -1,5 +1,23 @@
 import React, { useState } from 'react';
-import { toast } from 'sonner';
+// Lightweight inline toast
+const toast = {
+    _show(msg: string, bg: string) {
+        const el = document.createElement('div');
+        el.textContent = msg;
+        Object.assign(el.style, {
+            position: 'fixed', top: '20px', right: '20px', zIndex: '9999',
+            padding: '12px 20px', borderRadius: '12px', color: '#fff',
+            background: bg, fontWeight: '700', fontSize: '14px',
+            boxShadow: '0 4px 20px rgba(0,0,0,.15)', opacity: '0',
+            transition: 'opacity .2s', fontFamily: 'system-ui, sans-serif',
+        });
+        document.body.appendChild(el);
+        requestAnimationFrame(() => (el.style.opacity = '1'));
+        setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 3000);
+    },
+    success(msg: string) { this._show('✅ ' + msg, '#16a34a'); },
+    error(msg: string) { this._show('❌ ' + msg, '#dc2626'); },
+};
 import { getOutboxDB } from '../../db/outbox';
 import { enqueueSyncEventBatch, generateId, type EnqueueOptions } from '../../db/enqueueSyncEvent';
 import { SyncEntityType, SyncAction } from '../../db/outbox.types';

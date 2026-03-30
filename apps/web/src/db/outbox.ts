@@ -13,12 +13,14 @@ import type { SyncQueueEvent } from './outbox.types';
 import type { ItemDocType } from './schemas/item.schema';
 import type { SaleDocType } from './schemas/sale.schema';
 import type { CustomerDocType } from './schemas/customer.schema';
+import type { CashShiftDocType } from './schemas/cashshift.schema';
 
 class PosOutboxDB extends Dexie {
   // ── READ tables (local cache) ──────────────────────────────────────────────
   items!: Table<ItemDocType, string>;
   sales!: Table<SaleDocType, string>;
   customers!: Table<CustomerDocType, string>;
+  shifts!: Table<CashShiftDocType, string>;
 
   // ── WRITE table (outbox / bandeja de salida) ───────────────────────────────
   sync_queue!: Table<SyncQueueEvent, number>;
@@ -27,12 +29,18 @@ class PosOutboxDB extends Dexie {
     super('pos_outbox_v1');
 
     this.version(1).stores({
-      // Read tables — indexed fields for quick lookups
       items: 'id, name, category, storeId, updatedAt',
       sales: 'id, saleTime, employeeId, storeId, customerId, paymentMethod, status',
       customers: 'id, firstName, lastName, storeId',
+      sync_queue: '++event_id, sync_status, entity_type, occurred_at',
+    });
 
-      // Outbox — indexed by status for the drain loop
+    // v2 — Add shifts table
+    this.version(2).stores({
+      items: 'id, name, category, storeId, updatedAt',
+      sales: 'id, saleTime, employeeId, storeId, customerId, paymentMethod, status',
+      customers: 'id, firstName, lastName, storeId',
+      shifts: 'id, userId, terminalId, storeId, status, openedAt',
       sync_queue: '++event_id, sync_status, entity_type, occurred_at',
     });
   }

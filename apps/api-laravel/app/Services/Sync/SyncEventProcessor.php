@@ -3,6 +3,7 @@
 namespace App\Services\Sync;
 
 use App\Exceptions\InsufficientStockException;
+use App\Models\CashShift;
 use App\Models\Customer;
 use App\Models\Item;
 use App\Models\ProcessedSyncEvent;
@@ -77,6 +78,10 @@ class SyncEventProcessor
                 // ── Sale Payments (Abonos / Fiados) ─────────────────
                 'SALE_PAYMENT:CREATE' => $this->handleSalePaymentCreate($event),
                 'SALE_PAYMENT:VOID'   => $this->handleSalePaymentVoid($event),
+
+                // ── Cash Shifts (Turnos de Caja) ─────────────────────
+                'SHIFT:OPEN'  => $this->handleShiftOpen($event),
+                'SHIFT:CLOSE' => $this->handleShiftClose($event),
 
                 // ── Ruta desconocida ────────────────────────────────
                 default => throw new \InvalidArgumentException(
@@ -390,5 +395,46 @@ class SyncEventProcessor
 
         // SoftDelete del abono
         $payment->delete();
+    }
+
+    // ── CASH SHIFTS (TURNOS DE CAJA) ────────────────────────────────
+
+    private function handleShiftOpen(array $event): void
+    {
+        $p = $event['payload'];
+
+        CashShift::create([
+            'id'            => $p['id'],
+            'tenant_id'     => $event['tenant_id'],
+            'user_id'       => $p['user_id'],
+            'terminal_id'   => $p['terminal_id'] ?? 'CAJA_01',
+            'opened_at'     => $p['opened_at'],
+            'starting_cash' => $p['starting_cash'],
+            'status'        => 'OPEN',
+        ]);
+
+        Log::info("[Sync] Turno abierto: {$p['id']} por usuario {$p['user_id']}");
+    }
+
+    private function handleShiftClose(array $event): void
+    {
+        $p = $event['payload'];
+
+        $shift = CashShift::where('id', $p['shift_id'])
+            ->lockForUpdate()
+            ->firstOrFail();
+
+        if (!$shift->isOpen()) {
+            Log::warning("[Sync] Turno {$p['shift_id']} ya estaba cerrado — skip");
+            return;
+        }
+
+        $shift->close(
+            actualCash: (float) $p['actual_cash'],
+            expectedCash: (float) $p['expected_cash'],
+            salesSummary: $p['sales_summary'] ?? null,
+        );
+
+        Log::info("[Sync] Turno cerrado: {$p['shift_id']} — Diferencia: {$shift->difference}");
     }
 }

@@ -5,6 +5,7 @@ export enum SyncEntityType {
   SALE = 'SALE',
   CUSTOMER = 'CUSTOMER',
   SALE_PAYMENT = 'SALE_PAYMENT',
+  SHIFT = 'SHIFT',
 }
 
 export enum SyncAction {
@@ -12,6 +13,8 @@ export enum SyncAction {
   UPDATE = 'UPDATE',
   DELETE = 'DELETE',
   ADJUST_STOCK = 'ADJUST_STOCK',
+  OPEN = 'OPEN',
+  CLOSE = 'CLOSE',
 }
 
 export enum SyncStatus {
@@ -79,6 +82,21 @@ export type SalePaymentPayload = {
   method: string;
 };
 
+export type ShiftOpenPayload = {
+  id: string;
+  user_id: string;
+  terminal_id: string;
+  opened_at: number;
+  starting_cash: number;
+};
+
+export type ShiftClosePayload = {
+  shift_id: string;
+  actual_cash: number;
+  expected_cash: number;
+  sales_summary?: Record<string, number>;
+};
+
 // ─── Mapa de payloads indexado por entity type ───────────────────────────────
 
 export type SyncPayloadMap = {
@@ -86,6 +104,7 @@ export type SyncPayloadMap = {
   [SyncEntityType.SALE]: SalePayload;
   [SyncEntityType.CUSTOMER]: CustomerPayload;
   [SyncEntityType.SALE_PAYMENT]: SalePaymentPayload;
+  [SyncEntityType.SHIFT]: ShiftOpenPayload | ShiftClosePayload;
 };
 
 // ─── Registro de la cola de sincronización ───────────────────────────────────
