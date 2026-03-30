@@ -24,43 +24,45 @@ class InvoiceVisionService
         $mimeType = $invoiceImage->getMimeType();
         $payload = "data:{$mimeType};base64,{$base64Image}";
 
-        $prompt = <<<PROMPT
-Eres un experto analizando facturas comerciales de proveedores.
-Analiza la imagen adjunta y extrae la siguiente información:
-1. Nombre del proveedor (supplier_name)
-2. Número de factura (invoice_number)
-3. Una lista de los artículos comprados (items). Para cada artículo extrae:
-   - Descripción o nombre del producto (description)
-   - Cantidad exacta (quantity, SOLO número entero o decimal)
-   - Costo unitario (unit_cost, SOLO número decimal. Extraer costo antes de impuestos si es claro).
+        $systemPrompt = <<<PROMPT
+Eres un asistente experto en lectura de facturas de proveedores para bodegas y abastos en Latinoamérica.
 
-TU RESPUESTA DEBE SER ÚNICAMENTE UN JSON VÁLIDO. Asegúrate de no incluir caracteres Markdown fuera del JSON.
-FORMATO ESTRICTO:
-{
-    "supplier_name": "Nombre CA",
-    "invoice_number": "0000123",
-    "items": [
-        {
-            "description": "Articulo de prueba",
-            "quantity": 10,
-            "unit_cost": 5.50
-        }
-    ]
-}
+INSTRUCCIONES ESTRICTAS:
+1. Analiza la imagen de la factura adjunta.
+2. Extrae TODOS los productos/ítems que aparezcan como líneas de la factura.
+3. Para cada producto identifica: nombre, cantidad, costo unitario.
+4. Si el código de barras es visible o está impreso en la factura, inclúyelo. Si no, pon null.
+5. Calcula un "suggestedPrice" (precio de venta sugerido) aplicando un margen de ganancia razonable de ~30-40% sobre el costo.
+6. Responde ÚNICAMENTE con un arreglo JSON válido. SIN texto adicional, SIN Markdown, SIN explicaciones.
+
+FORMATO DE RESPUESTA OBLIGATORIO (JSON puro):
+[
+  {
+    "name": "string (nombre del producto)",
+    "quantity": 10,
+    "unitCost": 5.50
+  }
+]
+
+Si la imagen NO es una factura o es ilegible, responde exactamente: []
 PROMPT;
 
         try {
             $response = Http::withToken($apiKey)
-                ->timeout(60) // Tiempo holgado por el procesamiento de visión
-                ->post('https://api.openai.com/v1/chat/completions', [
-                    'model' => 'gpt-4o', // Restablecido a OpenAI oficial (Groq descontinuó los modelos Vision)
+                ->timeout(60) 
+                ->post('https://api.groq.com/openai/v1/chat/completions', [
+                    'model' => 'meta-llama/llama-4-scout-17b-16e-instruct',
                     'messages' => [
+                        [
+                            'role' => 'system',
+                            'content' => $systemPrompt
+                        ],
                         [
                             'role' => 'user',
                             'content' => [
                                 [
                                     'type' => 'text',
-                                    'text' => $prompt
+                                    'text' => 'Analiza esta factura de proveedor y extrae todos los productos. Devuelve SOLO el arreglo JSON puro.'
                                 ],
                                 [
                                     'type' => 'image_url',
@@ -70,25 +72,61 @@ PROMPT;
                                 ]
                             ]
                         ]
-                    ],
-                    'response_format' => ['type' => 'json_object'],
-                    'temperature' => 0.0
+                    ], 
+                    'temperature' => 0.1,
+                    'max_tokens' => 4096
                 ]);
 
             if ($response->failed()) {
-                throw new Exception("Error conectando con OpenAI: " . $response->body());
+                throw new Exception("Error HTTP Groq: " . $response->body());
             }
         } catch (Exception $e) {
-            throw new Exception("Error conectando con OpenAI: " . $e->getMessage());
+            throw new Exception("Excepción al conectar con Groq: " . $e->getMessage());
         }
 
-        $content = $response->json('choices.0.message.content');
-        $data = json_decode($content, true);
+        $content = $response->json('choices.0.message.content') ?? '';
+        
+        // 1. Regex Robusto para extraer mágicamente el JSON Array, ignorando la charlatanería de Llama-4
+        if (preg_match('/\[[\s\S]*\]/', $content, $matches)) {
+            $jsonString = $matches[0];
+        } else {
+            // Plan B: Buscar un objeto en caso de que Llama se ponga terco
+            if (preg_match('/\{[\s\S]*\}/', $content, $matches)) {
+                $jsonString = $matches[0];
+            } else {
+                $jsonString = $content;
+            }
+        }
+
+        $parsed = json_decode($jsonString, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new Exception("La respuesta de la IA no pudo parsearse como JSON válido.");
+            throw new Exception("La respuesta de la IA no pudo parsearse como JSON válido. Raw: " . substr($content, 0, 100));
         }
 
-        return $data;
+        // Si es un array directo (como pide Node), lo empaquetamos
+        $items = [];
+        if (is_array($parsed) && isset($parsed['items'])) {
+            $items = $parsed['items'];
+        } elseif (is_array($parsed)) {
+            $items = $parsed; // ya es el arreglo de productos
+        }
+
+        // 2. Normalizar las keys de salida porque Llama puede devolver "nombre", "name", "description"...
+        $normalizedItems = [];
+        foreach ($items as $item) {
+            // Mapeo defensivo de cualquier variante que se le ocurra a Llama
+            $desc = $item['description'] ?? $item['name'] ?? $item['nombre'] ?? $item['producto'] ?? 'Producto detectado sin nombre';
+            $qty = $item['quantity'] ?? $item['cantidad'] ?? 1;
+            $cost = $item['unitCost'] ?? $item['unit_cost'] ?? $item['costo'] ?? $item['precio'] ?? 0;
+
+            $normalizedItems[] = [
+                'description' => $desc,
+                'quantity'    => $qty,
+                'unit_cost'   => $cost
+            ];
+        }
+
+        return ['items' => $normalizedItems];
     }
 }
