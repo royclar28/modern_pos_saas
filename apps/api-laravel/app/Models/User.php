@@ -64,9 +64,31 @@ class User extends Authenticatable
         return $this->role === 'SUPER_ADMIN';
     }
 
-    public function isStoreAdmin(): bool
+    public function isAdmin(): bool
     {
-        return $this->role === 'STORE_ADMIN';
+        return $this->role === 'ADMIN' || $this->role === 'SUPER_ADMIN';
+    }
+
+    public function isManager(): bool
+    {
+        return $this->role === 'MANAGER';
+    }
+
+    public function isCashier(): bool
+    {
+        return $this->role === 'CASHIER';
+    }
+
+    /**
+     * Check if user has at least the given role level.
+     * Hierarchy: SUPER_ADMIN > ADMIN > MANAGER > CASHIER
+     */
+    public function hasRoleLevel(string $minimumRole): bool
+    {
+        $hierarchy = ['CASHIER' => 0, 'MANAGER' => 1, 'ADMIN' => 2, 'SUPER_ADMIN' => 3];
+        $userLevel = $hierarchy[$this->role] ?? -1;
+        $requiredLevel = $hierarchy[strtoupper($minimumRole)] ?? 999;
+        return $userLevel >= $requiredLevel;
     }
 
     public function getFullNameAttribute(): string

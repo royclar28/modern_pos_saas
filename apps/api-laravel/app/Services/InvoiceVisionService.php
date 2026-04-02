@@ -14,15 +14,14 @@ class InvoiceVisionService
     public function extractInvoiceData(UploadedFile $invoiceImage): array
     {
         // Obtenemos del .env o de config. Por defecto, usa getenv para asegurar fallback.
-        $apiKey = config('services.openai.key') ?? env('OPENAI_API_KEY');
+        $apiKey = config('services.openai.key');
         
         if (!$apiKey) {
             throw new Exception("La clave OPENAI_API_KEY no está configurada en el servidor.");
         }
 
-        $base64Image = base64_encode(file_get_contents($invoiceImage->path()));
         $mimeType = $invoiceImage->getMimeType();
-        $payload = "data:{$mimeType};base64,{$base64Image}";
+        $base64String = "data:" . $mimeType . ";base64," . base64_encode(file_get_contents($invoiceImage->path()));
 
         $systemPrompt = <<<PROMPT
 Eres un asistente experto en lectura de facturas de proveedores para bodegas y abastos en Latinoamérica.
@@ -67,7 +66,7 @@ PROMPT;
                                 [
                                     'type' => 'image_url',
                                     'image_url' => [
-                                        'url' => "data:{$mimeType};base64,{$base64Image}"
+                                        'url' => $base64String
                                     ]
                                 ]
                             ]
@@ -81,7 +80,8 @@ PROMPT;
                 throw new Exception("Error HTTP Groq: " . $response->body());
             }
         } catch (Exception $e) {
-            throw new Exception("Excepción al conectar con Groq: " . $e->getMessage());
+            // Rethrow si ya era una Exception nuestra (ej. de fallos HTTP), o si es de cURL guardamos su mensaje original
+            throw new Exception($e->getMessage());
         }
 
         $content = $response->json('choices.0.message.content') ?? '';

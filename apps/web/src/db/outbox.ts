@@ -43,6 +43,15 @@ class PosOutboxDB extends Dexie {
       shifts: 'id, userId, terminalId, storeId, status, openedAt',
       sync_queue: '++event_id, sync_status, entity_type, occurred_at',
     });
+
+    // v3 — Add itemNumber index for invoice scan upsert
+    this.version(3).stores({
+      items: 'id, name, category, storeId, updatedAt, itemNumber',
+      sales: 'id, saleTime, employeeId, storeId, customerId, paymentMethod, status',
+      customers: 'id, firstName, lastName, storeId',
+      shifts: 'id, userId, terminalId, storeId, status, openedAt',
+      sync_queue: '++event_id, sync_status, entity_type, occurred_at',
+    });
   }
 }
 

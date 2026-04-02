@@ -24,8 +24,15 @@ export type SaleItemDocType = {
  *   'EFECTIVO_BS' — Change given in Bolívares cash
  *   'PAGO_MOVIL'  — Change sent via Pago Móvil
  */
-export type PaymentMethod = 'DIVISA' | 'EFECTIVO_BS' | 'PAGO_MOVIL' | 'PUNTO' | 'FIADO';
+export type PaymentMethod = 'DIVISA' | 'EFECTIVO_BS' | 'PAGO_MOVIL' | 'PUNTO' | 'FIADO' | 'MIXTO';
 export type ChangeMethod = 'DIVISA' | 'EFECTIVO_BS' | 'PAGO_MOVIL';
+
+export interface ArrayPayment {
+    method: PaymentMethod;
+    amountUsd: number;
+    amountBs: number;
+    reference?: string;
+}
 export type SaleStatus = 'PENDIENTE' | 'PAGADO';
 
 export type SaleDocType = {
@@ -44,12 +51,13 @@ export type SaleDocType = {
     items: SaleItemDocType[];
 
     // ── Payment fields ───────────────────────────────────────────
-    paymentMethod: string;       // 'DIVISA' | 'EFECTIVO_BS' | 'PAGO_MOVIL' | 'PUNTO'
+    paymentMethod: string;       // 'DIVISA' | 'EFECTIVO_BS' | 'PAGO_MOVIL' | 'PUNTO' | 'MIXTO'
     reference?: string;          // Reference number for Pago Móvil / Punto de Venta
     amountReceived?: number;     // How much the customer gave (in the payment currency)
     changeAmount?: number;       // Change given back to the customer (always in USD base)
     changeBs?: number;           // Change equivalent in Bs. (for cross-currency change)
     changeMethod?: string;       // 'DIVISA' | 'EFECTIVO_BS' | 'PAGO_MOVIL' — how was the change delivered
+    payments?: ArrayPayment[];   // Array of mixed partial payments
 
     // ── Credit (Fiado) fields ────────────────────────────────────
     status?: string;             // 'PENDIENTE' | 'PAGADO' — for Fiado tracking

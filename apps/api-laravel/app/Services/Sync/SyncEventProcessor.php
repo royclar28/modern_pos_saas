@@ -275,15 +275,15 @@ class SyncEventProcessor
             'tenant_id'            => $event['tenant_id'],
             'name'                 => $p['name'],
             'category'             => $p['category'],
-            'item_number'          => $p['item_number'] ?? null,
+            'item_number'          => $p['itemNumber'] ?? null,
             'description'          => $p['description'] ?? null,
-            'cost_price'           => $p['cost_price'],
-            'unit_price'           => $p['unit_price'],
+            'cost_price'           => $p['costPrice'] ?? 0,
+            'unit_price'           => $p['unitPrice'] ?? 0,
             'stock'                => $p['stock'] ?? 0,
-            'reorder_level'        => $p['reorder_level'] ?? 0,
-            'receiving_quantity'   => $p['receiving_quantity'] ?? 1,
-            'allow_alt_description'=> $p['allow_alt_description'] ?? false,
-            'is_serialized'        => $p['is_serialized'] ?? false,
+            'reorder_level'        => $p['reorderLevel'] ?? 0,
+            'receiving_quantity'   => $p['receivingQuantity'] ?? 1,
+            'allow_alt_description'=> $p['allowAltDescription'] ?? false,
+            'is_serialized'        => $p['isSerialized'] ?? false,
         ]);
     }
 
@@ -295,14 +295,14 @@ class SyncEventProcessor
         $item->update(array_filter([
             'name'                 => $p['name'] ?? null,
             'category'             => $p['category'] ?? null,
-            'item_number'          => $p['item_number'] ?? null,
+            'item_number'          => $p['itemNumber'] ?? null,
             'description'          => $p['description'] ?? null,
-            'cost_price'           => $p['cost_price'] ?? null,
-            'unit_price'           => $p['unit_price'] ?? null,
-            'reorder_level'        => $p['reorder_level'] ?? null,
-            'receiving_quantity'   => $p['receiving_quantity'] ?? null,
-            'allow_alt_description'=> $p['allow_alt_description'] ?? null,
-            'is_serialized'        => $p['is_serialized'] ?? null,
+            'cost_price'           => $p['costPrice'] ?? null,
+            'unit_price'           => $p['unitPrice'] ?? null,
+            'reorder_level'        => $p['reorderLevel'] ?? null,
+            'receiving_quantity'   => $p['receivingQuantity'] ?? null,
+            'allow_alt_description'=> $p['allowAltDescription'] ?? null,
+            'is_serialized'        => $p['isSerialized'] ?? null,
         ], fn ($v) => $v !== null));
     }
 

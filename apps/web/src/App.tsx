@@ -7,6 +7,8 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { RequireRole } from './components/RequireRole';
 import { ReloadPrompt } from './components/ReloadPrompt';
 import { LoginPage } from './pages/LoginPage';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import { ProductsPage } from './pages/ProductsPage';
 import { PosPage } from './pages/PosPage';
 import { InventoryPage } from './pages/admin/InventoryPage';
@@ -15,6 +17,13 @@ import { SettingsPage } from './pages/admin/SettingsPage';
 import { FiadosPage } from './pages/admin/FiadosPage';
 import { SuperAdminPage } from './pages/admin/SuperAdminPage';
 import { useSync } from './hooks/useSync';
+import { Toaster } from 'react-hot-toast';
+
+// ─── Role Helpers ─────────────────────────────────────────────────────────────
+/** Roles that can access admin features (inventory, reports, settings, fiados) */
+const ADMIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'MANAGER'];
+/** Roles that can access configuration/settings */
+const SETTINGS_ROLES = ['SUPER_ADMIN', 'ADMIN'];
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 const Dashboard = () => {
@@ -42,6 +51,10 @@ const Dashboard = () => {
         }
     };
 
+    const userRole = user?.role || 'CASHIER';
+    const canAccessAdmin = ADMIN_ROLES.includes(userRole);
+    const canAccessSettings = SETTINGS_ROLES.includes(userRole);
+
     return (
         <div className="min-h-screen w-full bg-slate-50 dark:bg-slate-900 transition-colors duration-300 flex items-center justify-center p-6 md:p-12 relative">
             <div className="w-full max-w-4xl">
@@ -49,7 +62,7 @@ const Dashboard = () => {
                     <div>
                         <h1 className="text-4xl font-black text-slate-800 dark:text-white tracking-tight">{company}</h1>
                         <p className="text-slate-500 dark:text-slate-400 mt-1 text-base">
-                            Bienvenido, <strong>{user?.username}</strong> · <span className="text-primary font-semibold">{user?.role}</span>
+                            Bienvenido, <strong>{user?.username}</strong> · <span className="text-primary font-semibold">{userRole}</span>
                         </p>
                     </div>
                     <div className="flex items-center gap-3">
@@ -72,6 +85,7 @@ const Dashboard = () => {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                    {/* POS — Visible para TODOS los roles */}
                     <Link
                         to="/pos"
                         className="group bg-primary hover:bg-primary-hover text-white rounded-2xl p-8 transition-all shadow-lg hover:-translate-y-0.5"
@@ -81,34 +95,44 @@ const Dashboard = () => {
                         <div className="opacity-80 text-sm mt-1">Abrir caja →</div>
                     </Link>
 
-                    <Link
-                        to="/admin/inventory"
-                        className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-primary text-slate-800 dark:text-white rounded-2xl p-8 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
-                    >
-                        <div className="text-5xl mb-3">📦</div>
-                        <div className="font-bold text-xl">Inventario</div>
-                        <div className="text-slate-400 dark:text-slate-400 text-sm mt-1">Ver catálogo →</div>
-                    </Link>
+                    {/* Inventario — ADMIN y MANAGER */}
+                    {canAccessAdmin && (
+                        <Link
+                            to="/admin/inventory"
+                            className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-primary text-slate-800 dark:text-white rounded-2xl p-8 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                        >
+                            <div className="text-5xl mb-3">📦</div>
+                            <div className="font-bold text-xl">Inventario</div>
+                            <div className="text-slate-400 dark:text-slate-400 text-sm mt-1">Ver catálogo →</div>
+                        </Link>
+                    )}
 
-                    <Link
-                        to="/admin/sales"
-                        className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-primary text-slate-800 dark:text-white rounded-2xl p-8 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
-                    >
-                        <div className="text-5xl mb-3">📊</div>
-                        <div className="font-bold text-xl">Reporte Z</div>
-                        <div className="text-slate-400 dark:text-slate-400 text-sm mt-1">Dashboard de ventas →</div>
-                    </Link>
+                    {/* Reporte Z — ADMIN y MANAGER */}
+                    {canAccessAdmin && (
+                        <Link
+                            to="/admin/sales"
+                            className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-primary text-slate-800 dark:text-white rounded-2xl p-8 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                        >
+                            <div className="text-5xl mb-3">📊</div>
+                            <div className="font-bold text-xl">Reporte Z</div>
+                            <div className="text-slate-400 dark:text-slate-400 text-sm mt-1">Dashboard de ventas →</div>
+                        </Link>
+                    )}
 
-                    <Link
-                        to="/admin/settings"
-                        className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-primary text-slate-800 dark:text-white rounded-2xl p-8 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
-                    >
-                        <div className="text-5xl mb-3">⚙️</div>
-                        <div className="font-bold text-xl">Configuración</div>
-                        <div className="text-slate-400 dark:text-slate-400 text-sm mt-1">IVA, tema, terminal →</div>
-                    </Link>
+                    {/* Configuración — Solo ADMIN */}
+                    {canAccessSettings && (
+                        <Link
+                            to="/admin/settings"
+                            className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-primary text-slate-800 dark:text-white rounded-2xl p-8 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                        >
+                            <div className="text-5xl mb-3">⚙️</div>
+                            <div className="font-bold text-xl">Configuración</div>
+                            <div className="text-slate-400 dark:text-slate-400 text-sm mt-1">IVA, tema, terminal →</div>
+                        </Link>
+                    )}
 
-                    {enableCreditSales && (
+                    {/* Fiados — ADMIN y MANAGER (si está habilitado) */}
+                    {enableCreditSales && canAccessAdmin && (
                         <Link
                             to="/admin/fiados"
                             className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-primary text-slate-800 dark:text-white rounded-2xl p-8 transition-all shadow-sm hover:-translate-y-0.5"
@@ -119,6 +143,7 @@ const Dashboard = () => {
                         </Link>
                     )}
 
+                    {/* Panel SaaS — Solo SUPER_ADMIN */}
                     {user?.role === 'SUPER_ADMIN' && (
                         <Link
                             to="/super-admin"
@@ -160,33 +185,39 @@ export const App = () => {
                     <CartProvider>
                         <Routes>
                             <Route path="/login" element={<LoginPage />} />
+                            <Route path="/forgot-password" element={<ForgotPassword />} />
+                            <Route path="/reset-password" element={<ResetPassword />} />
 
                             <Route element={<ProtectedRoute />}>
                                 <Route path="/" element={<Dashboard />} />
                                 <Route path="/products" element={<ProductsPage />} />
                                 <Route path="/pos" element={<PosPage />} />
 
-                                {/* Admin routes — CASHIER role cannot access */}
+                                {/* Admin routes — ADMIN & MANAGER */}
                                 <Route path="/admin/inventory" element={
-                                    <RequireRole allowed={['SUPER_ADMIN', 'STORE_ADMIN']}>
+                                    <RequireRole allowed={['SUPER_ADMIN', 'ADMIN', 'MANAGER']}>
                                         <InventoryPage />
                                     </RequireRole>
                                 } />
                                 <Route path="/admin/sales" element={
-                                    <RequireRole allowed={['SUPER_ADMIN', 'STORE_ADMIN']}>
+                                    <RequireRole allowed={['SUPER_ADMIN', 'ADMIN', 'MANAGER']}>
                                         <SalesDashboard />
                                     </RequireRole>
                                 } />
-                                <Route path="/admin/settings" element={
-                                    <RequireRole allowed={['SUPER_ADMIN', 'STORE_ADMIN']}>
-                                        <SettingsPage />
-                                    </RequireRole>
-                                } />
                                 <Route path="/admin/fiados" element={
-                                    <RequireRole allowed={['SUPER_ADMIN', 'STORE_ADMIN']}>
+                                    <RequireRole allowed={['SUPER_ADMIN', 'ADMIN', 'MANAGER']}>
                                         <FiadosPage />
                                     </RequireRole>
                                 } />
+
+                                {/* Settings — Solo ADMIN */}
+                                <Route path="/admin/settings" element={
+                                    <RequireRole allowed={['SUPER_ADMIN', 'ADMIN']}>
+                                        <SettingsPage />
+                                    </RequireRole>
+                                } />
+
+                                {/* Super Admin Panel — Solo SUPER_ADMIN */}
                                 <Route path="/super-admin" element={
                                     <RequireRole allowed={['SUPER_ADMIN']}>
                                         <SuperAdminPage />
@@ -200,6 +231,7 @@ export const App = () => {
                 </SettingsProvider>
             </AuthProvider>
             <ReloadPrompt />
+            <Toaster position="top-right" />
         </BrowserRouter>
     );
 };

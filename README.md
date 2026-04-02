@@ -119,12 +119,27 @@ Este sistema está construido sobre una filosofía **local-first, sync-second**.
 - [x] **Propagación Dinámica**: Los cambios de configuración se actualizan de forma global en todos los terminales simultáneamente.
 - [x] **Resiliencia Offline**: Los terminales usarán el último ajuste guardado o volverán a valores por defecto (16% IVA) de forma elegante si el servidor está caído al cobrar.
 
-### 🔐 Seguridad y Auth
-- [x] Autenticación JWT vía `@nestjs/jwt` + `passport-jwt`.
-- [x] Contraseñas encriptadas con **Argon2id** (algoritmo moderno, protegido contra hardware/memoria).
-- [x] Expiración de tokens de **8 horas** (alineado con un turno de cajero).
-- [x] Sistema basado en roles: `SUPER_ADMIN` · `ADMIN` · `MANAGER` · `EMPLOYEE`.
-- [x] Rutas protegidas en React usando el componente `ProtectedRoute`.
+### 🔐 Seguridad y Auth (RBAC)
+- [x] Autenticación vía **Laravel Sanctum** (tokens de API personales).
+- [x] Contraseñas encriptadas con **bcrypt** (hashing seguro nativo de Laravel).
+- [x] **Control de Acceso Basado en Roles (RBAC)** con middleware `RoleMiddleware`.
+- [x] Jerarquía de roles: `SUPER_ADMIN` > `ADMIN` > `MANAGER` > `CASHIER` (default).
+- [x] `SUPER_ADMIN` **bypasses** todas las restricciones de rol (acceso SaaS root).
+- [x] Rutas protegidas en React usando `<ProtectedRoute />` (auth) y `<RequireRole />` (RBAC).
+- [x] Dashboard y Navbar ocultan opciones según el rol del usuario (CASHIER solo ve POS).
+
+#### Matriz de Permisos por Rol
+
+| Recurso / Acción | CASHIER | MANAGER | ADMIN | SUPER_ADMIN |
+|---|:---:|:---:|:---:|:---:|
+| Punto de Venta (POS) | ✅ | ✅ | ✅ | ✅ |
+| Sincronización / Ventas | ✅ | ✅ | ✅ | ✅ |
+| Inventario (scan invoice) | ❌ | ✅ | ✅ | ✅ |
+| Reportes (Reporte Z) | ❌ | ✅ | ✅ | ✅ |
+| Fiados (créditos) | ❌ | ✅ | ✅ | ✅ |
+| Configuración (Settings) | ❌ | ❌ | ✅ | ✅ |
+| Crear Usuarios | ❌ | ❌ | ✅ | ✅ |
+| Panel SaaS (multi-tienda) | ❌ | ❌ | ❌ | ✅ |
 
 ### 🏗️ Infraestructura
 - [x] Monorepo **Turborepo** usando espacios de trabajo `pnpm workspaces`.
@@ -264,14 +279,16 @@ Estos usuarios se generan al volar en el `prisma/seed.ts` durante el primer arra
 
 ## 🗺️ Rutas Disponibles
 
-| Ruta | Módulo | Acceso |
+| Ruta | Módulo | Acceso (Roles) |
 |---|---|---|
-| `/login` | Auth | Público |
-| `/` | Inicio (Dashboard) | 🔒 Autenticado |
-| `/pos` | Terminal POS (Punto de Venta)| 🔒 Autenticado |
-| `/admin/inventory` | CRUD de Inventario | 🔒 Autenticado |
-| `/admin/sales` | Reporte Z Dashboard | 🔒 Autenticado |
-| `/admin/settings`| Multi-caja y Configuración| 🔒 Autenticado |
+| `/login` | Auth | 🌐 Público |
+| `/` | Inicio (Dashboard) | 🔒 Todos (auth) |
+| `/pos` | Terminal POS (Punto de Venta)| 🔒 Todos (auth) |
+| `/admin/inventory` | CRUD de Inventario | 🔒 ADMIN, MANAGER |
+| `/admin/sales` | Reporte Z Dashboard | 🔒 ADMIN, MANAGER |
+| `/admin/fiados` | Cuaderno de Fiados | 🔒 ADMIN, MANAGER |
+| `/admin/settings`| Multi-caja y Configuración| 🔒 Solo ADMIN |
+| `/super-admin` | Panel SaaS Multi-Tienda | 🔒 Solo SUPER_ADMIN |
 
 ### Puntos Finales de API (NestJS)
 
@@ -293,12 +310,14 @@ Los esquemas de PostgreSQL están manejados enteramente desde el código usando 
 
 | Modelo | Campos Clave | Notas |
 |---|---|---|
-| `Employee` | `username`, `password`, `role` | `Role` enum: SUPER_ADMIN, ADMIN, MANAGER, EMPLOYEE. Hashes Argon2id. |
-| `Customer` | `firstName`, `lastName`, `accountNumber` | Opcional, asociado posteriormente al recibo. |
-| `Item` | `name`, `category`, `costPrice`, `unitPrice` | Sincronizado a través de RxDB al frontend local. |
-| `Sale` | `saleTime`, `employeeId`, `terminalId` | El registro "Padre" de la transacción por caja (`terminalId`). |
-| `SaleItem` | `quantityPurchased`, `itemUnitPrice`, `discountPercent`| Los renglones asociados a la venta; se borran en cascada si cae la venta (Cascade). |
+| `User` | `username`, `password`, `role`, `tenant_id` | Roles: `SUPER_ADMIN`, `ADMIN`, `MANAGER`, `CASHIER` (default). Hashes bcrypt. |
+| `Customer` | `first_name`, `last_name`, `document_id` | Opcional, asociado posteriormente al recibo. |
+| `Item` | `name`, `category`, `cost_price`, `unit_price` | Sincronizado a través de Dexie/RxDB al frontend local. |
+| `Sale` | `sale_time`, `employee_id`, `terminal_id` | El registro "Padre" de la transacción por caja (`terminal_id`). |
+| `SaleItem` | `quantity_purchased`, `item_unit_price`, `discount_percent`| Los renglones asociados a la venta; se borran en cascada (Cascade). |
+| `SalePayment` | `sale_id`, `method`, `amount` | Pagos asociados a cada venta (efectivo, tarjeta, etc.). |
 | `StoreConfig` | `key`, `value` | Almacenamiento tipo llave-valor para ajustes sistémicos (IVA, zona horaria, moneda, etc.). |
+| `CashShift` | `user_id`, `opened_at`, `closed_at` | Control de apertura/cierre de caja por turno. |
 
 > Todos los modelos incluyen `updatedAt` (manejado por Prisma de forma automática) y `deletedAt` (Soft-delete o Borrado lógico) de manera que funcionen bajo el protocolo de delta-sincronización de **RxDB**.
 

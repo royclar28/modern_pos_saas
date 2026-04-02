@@ -223,6 +223,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             changeBs: paymentData.changeBs,
             changeMethod: paymentData.changeMethod,
             customerId: paymentData.customerId,
+            payments: paymentData.payments,
             status: paymentData.paymentMethod === 'FIADO' ? 'PENDIENTE' : undefined,
             updatedAt: now,
         };
@@ -255,6 +256,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 changeAmount: paymentData.changeAmount,
                 changeBs: paymentData.changeBs,
                 changeMethod: paymentData.changeMethod,
+                payments: paymentData.payments,
                 status: saleDoc.status,
             },
             tenant_id: tenantId,

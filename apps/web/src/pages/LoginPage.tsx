@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -107,7 +108,10 @@ export const LoginPage = () => {
                         </div>
 
                         <div className="space-y-2">
-                            <label htmlFor="password" className="block text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">Contraseña</label>
+                            <div className="flex items-center justify-between">
+                                <label htmlFor="password" className="block text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">Contraseña</label>
+                                <Link to="/forgot-password" className="text-sm font-medium text-primary hover:text-primary-hover dark:text-blue-400 dark:hover:text-blue-300 transition-colors">¿Olvidaste tu contraseña?</Link>
+                            </div>
                             <input
                                 id="password"
                                 type="password"

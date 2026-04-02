@@ -19,9 +19,7 @@ return [
 
     'allowed_methods' => ['*'],
 
-    // Aquí ponemos el puerto exacto del React frontend.
-    // Incluyo el :5174 ya que docker spawn mapeó a 5174 por puerto ocupado en tu entorno anterior.
-    'allowed_origins' => ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:5174', 'http://127.0.0.1:5174'],
+    'allowed_origins' => explode(',', env('CORS_ALLOWED_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174')),
 
     'allowed_origins_patterns' => [],
 
@@ -29,7 +27,8 @@ return [
 
     'exposed_headers' => [],
 
-    'max_age' => 0,
+    // Cache preflight responses for 1 hour (reduces OPTIONS requests in production)
+    'max_age' => 3600,
 
     // Fundamental para el login con Sanctum
     'supports_credentials' => true,

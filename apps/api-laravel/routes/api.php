@@ -12,36 +12,59 @@ Route::get('/login', function () {
     return response()->json(['message' => 'Unauthenticated.'], 401);
 })->name('login');
 
+Route::post('/forgot-password', [\App\Http\Controllers\Api\PasswordResetController::class, 'forgotPassword'])->name('password.email');
+Route::post('/reset-password', [\App\Http\Controllers\Api\PasswordResetController::class, 'resetPassword'])->name('password.store');
+
 Route::get('/settings/bcv', [SettingsController::class, 'getBcvRate']);
 
 // ── Rutas Protegidas (Requieren Token de Sanctum) ───────────────
 Route::middleware('auth:sanctum')->group(function () {
-    
-    // Obtener Settings
-    Route::get('/settings', [\App\Http\Controllers\Api\SettingsController::class, 'getSettings']);
-    Route::patch('/settings', [\App\Http\Controllers\Api\SettingsController::class, 'getSettings']); // Mock patch
-    
-    // SaaS routes
-    Route::get('/saas/stores', [\App\Http\Controllers\Api\SaasController::class, 'index']);
-    Route::post('/saas/stores', [\App\Http\Controllers\Api\SaasController::class, 'createStore']);
-    Route::patch('/saas/stores/{id}/status', [\App\Http\Controllers\Api\SaasController::class, 'toggleStatus']); // Mock para forzar el Sync del BCV y devolver ok
-    Route::post('/settings/bcv/sync', [SettingsController::class, 'getBcvRate']);
 
-    Route::get('/user', function (Request $request) {
-        return collect($request->user())->except(['password', 'remember_token']);
+    // ── Perfil del usuario autenticado ──────────────────────────
+    Route::get('/user', function (Illuminate\Http\Request $request) {
+        $u = $request->user();
+        return [
+            'id'        => $u->id,
+            'username'  => $u->username,
+            'name'      => $u->full_name,
+            'email'     => $u->email,
+            'role'      => $u->role,
+            'tenant_id' => $u->tenant_id,
+        ];
     });
 
-    // Sincronización Outbox (Drain Loop)
+    // ── Rutas abiertas a TODOS los roles autenticados ───────────
+    // Sincronización Outbox (Drain Loop) — Ventas (SyncController)
     Route::post('/sync/events', [SyncController::class, 'processBatch']);
-    
+
     // Hidratación Inicial para Offline mode
     Route::get('/items', [\App\Http\Controllers\Api\SyncReadController::class, 'getItems']);
     Route::get('/customers', [\App\Http\Controllers\Api\SyncReadController::class, 'getCustomers']);
     Route::get('/categories', [\App\Http\Controllers\Api\SyncReadController::class, 'getCategories']);
-    
-    // Obtener historial de facturas
+
+    // Obtener historial de facturas (todos pueden ver)
     Route::get('/sales', [SaleController::class, 'index']);
-    
-    // Escaneo de Facturas con IA
-    Route::post('/inventory/scan-invoice', [InventoryController::class, 'scanInvoice']);
+
+    // Obtener Settings (lectura — todos necesitan leerlo para el POS)
+    Route::get('/settings', [SettingsController::class, 'getSettings']);
+
+    // ── Rutas para ADMIN y MANAGER ──────────────────────────────
+    Route::middleware('role:ADMIN,MANAGER')->group(function () {
+        // Inventario
+        Route::post('/inventory/scan-invoice', [InventoryController::class, 'scanInvoice']);
+
+        // Sincronizar tasa BCV manualmente
+        Route::post('/settings/bcv/sync', [SettingsController::class, 'getBcvRate']);
+    });
+
+    // ── Rutas SOLO para ADMIN ───────────────────────────────────
+    Route::middleware('role:ADMIN')->group(function () {
+        // Configuración de la tienda (escritura)
+        Route::patch('/settings', [SettingsController::class, 'getSettings']); // Mock patch
+
+        // SaaS routes (gestión de tiendas)
+        Route::get('/saas/stores', [\App\Http\Controllers\Api\SaasController::class, 'index']);
+        Route::post('/saas/stores', [\App\Http\Controllers\Api\SaasController::class, 'createStore']);
+        Route::patch('/saas/stores/{id}/status', [\App\Http\Controllers\Api\SaasController::class, 'toggleStatus']);
+    });
 });
