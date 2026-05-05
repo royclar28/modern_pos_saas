@@ -41,9 +41,9 @@ export default function ResetPassword() {
           password_confirmation: passwordConfirmation,
         }),
       });
-      
+
       const responseData = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(responseData.message || 'Hubo un error al restablecer la contraseña.');
       }
