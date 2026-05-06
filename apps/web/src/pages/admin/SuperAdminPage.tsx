@@ -47,6 +47,7 @@ export const SuperAdminPage = () => {
     const [formName, setFormName] = useState('');
     const [formRif, setFormRif] = useState('');
     const [formEmail, setFormEmail] = useState('');
+    const [formOwnerName, setFormOwnerName] = useState('');
     const [creating, setCreating] = useState(false);
 
     const fetchStores = useCallback(async () => {
@@ -100,7 +101,7 @@ export const SuperAdminPage = () => {
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formName || !formEmail) return toast.error('Nombre y correo son obligatorios');
+        if (!formName || !formEmail || !formOwnerName) return toast.error('Nombre, correo y nombre del dueño son obligatorios');
         setCreating(true);
         try {
             const res = await fetch(`${apiUrl}/saas/stores`, {
@@ -110,7 +111,7 @@ export const SuperAdminPage = () => {
                     Authorization: `Bearer ${token}`,
                     Accept: 'application/json'
                 },
-                body: JSON.stringify({ name: formName, rif: formRif, ownerEmail: formEmail })
+                body: JSON.stringify({ name: formName, rif: formRif, ownerEmail: formEmail, ownerName: formOwnerName })
             });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
@@ -131,7 +132,7 @@ export const SuperAdminPage = () => {
 
     const handleCloseSuccess = () => {
         setSuccessModalData(null);
-        setFormName(''); setFormRif(''); setFormEmail('');
+        setFormName(''); setFormRif(''); setFormEmail(''); setFormOwnerName('');
         fetchStores();
     };
 
@@ -261,6 +262,10 @@ export const SuperAdminPage = () => {
                             <div className="space-y-1">
                                 <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Nombre del Negocio *</label>
                                 <input value={formName} onChange={e => setFormName(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none" placeholder="Ej: Bodegón El Dorado" />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Nombre del Dueño *</label>
+                                <input value={formOwnerName} onChange={e => setFormOwnerName(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none" placeholder="Ej: Juan Pérez" />
                             </div>
                             <div className="space-y-1">
                                 <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">RIF / Documento</label>
