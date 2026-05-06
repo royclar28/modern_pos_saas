@@ -317,7 +317,7 @@ export const PosPage = () => {
                         <Link to="/" className="text-sm text-slate-300 hover:text-white transition-colors">
                             ← Dashboard
                         </Link>
-                        {user?.role === 'SUPER_ADMIN' || user?.role === 'STORE_ADMIN' ? (
+                        {user?.role?.toUpperCase() === 'SUPER_ADMIN' || user?.role?.toUpperCase() === 'STORE_ADMIN' ? (
                             <Link to="/admin/settings" className="text-sm text-slate-300 hover:text-white transition-colors">
                                 Ajustes
                             </Link>

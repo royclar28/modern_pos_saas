@@ -51,7 +51,7 @@ const Dashboard = () => {
         }
     };
 
-    const userRole = user?.role || 'CASHIER';
+    const userRole = (user?.role || 'CASHIER').toUpperCase();
     const canAccessAdmin = ADMIN_ROLES.includes(userRole);
     const canAccessSettings = SETTINGS_ROLES.includes(userRole);
 
@@ -144,7 +144,7 @@ const Dashboard = () => {
                     )}
 
                     {/* Panel SaaS — Solo SUPER_ADMIN */}
-                    {user?.role === 'SUPER_ADMIN' && (
+                    {userRole === 'SUPER_ADMIN' && (
                         <Link
                             to="/super-admin"
                             className="group bg-gradient-to-br from-indigo-900 to-purple-900 text-white rounded-2xl p-8 transition-all shadow-lg shadow-indigo-200 hover:shadow-indigo-300 hover:-translate-y-0.5"

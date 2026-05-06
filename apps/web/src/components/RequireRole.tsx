@@ -34,7 +34,7 @@ export const RequireRole: React.FC<RequireRoleProps> = ({
         return <Navigate to="/login" replace />;
     }
 
-    if (!allowed.includes(user.role)) {
+    if (!user.role || !allowed.includes(user.role.toUpperCase())) {
         return <Navigate to={redirectTo} replace />;
     }
 
