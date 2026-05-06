@@ -60,7 +60,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // ── Rutas SOLO para ADMIN ───────────────────────────────────
     Route::middleware('role:ADMIN')->group(function () {
         // Configuración de la tienda (escritura)
-        Route::patch('/settings', [SettingsController::class, 'getSettings']); // Mock patch
+        Route::patch('/settings', [SettingsController::class, 'updateSettings']);
 
         // SaaS routes (gestión de tiendas)
         Route::get('/saas/stores', [\App\Http\Controllers\Api\SaasController::class, 'index']);

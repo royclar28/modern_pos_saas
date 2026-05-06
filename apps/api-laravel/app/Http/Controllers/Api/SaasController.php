@@ -41,14 +41,18 @@ class SaasController extends Controller
         $request->validate([
             'name'       => 'required|string|max:255',
             'ownerEmail' => 'required|email|unique:users,email',
-            'ownerName'  => 'required|string|max:255',
+            'ownerName'  => 'nullable|string|max:255',
             'plan'       => 'nullable|in:STANDARD,PRO,ENTERPRISE',
             'rif'        => 'nullable|string|max:20',
         ]);
 
+        // Si no viene ownerName (frontend viejo), derivar del email
+        $ownerName = $request->input('ownerName')
+            ?? ucfirst(explode('@', $request->input('ownerEmail'))[0]);
+
         $temporaryPassword = Str::password(12, symbols: false);
 
-        DB::transaction(function () use ($request, $temporaryPassword) {
+        DB::transaction(function () use ($request, $temporaryPassword, $ownerName) {
             // 1. Crear la tienda
             $store = Store::create([
                 'id'          => Str::uuid()->toString(),
@@ -60,7 +64,7 @@ class SaasController extends Controller
             ]);
 
             // 2. Crear el usuario administrador de la tienda
-            $nameParts = explode(' ', trim($request->input('ownerName')), 2);
+            $nameParts = explode(' ', trim($ownerName), 2);
             $user = User::create([
                 'tenant_id'  => $store->id,
                 'first_name' => $nameParts[0],
