@@ -20,6 +20,8 @@ Route::get('/settings/bcv', [SettingsController::class, 'getBcvRate']);
 // ── Rutas Protegidas (Requieren Token de Sanctum) ───────────────
 Route::middleware('auth:sanctum')->group(function () {
 
+    Route::patch('/auth/change-password', [AuthController::class, 'changePassword']);
+
     // ── Perfil del usuario autenticado ──────────────────────────
     Route::get('/user', function (Illuminate\Http\Request $request) {
         $u = $request->user();
