@@ -103,15 +103,20 @@ const Dashboard = () => {
     const trialEndsAt = (user as any)?.trial_ends_at ?? null;
 
     return (
-        <div className="min-h-screen w-full bg-slate-50 dark:bg-slate-900 transition-colors duration-300 flex items-center justify-center p-6 md:p-12 relative">
-            <div className="w-full max-w-4xl">
+        <div className="min-h-screen w-full bg-slate-50 dark:bg-slate-900 transition-colors duration-300 relative overflow-hidden">
+            {/* Background decoration */}
+            <div className="absolute top-0 left-0 w-full h-72 bg-gradient-to-br from-violet-600/5 via-indigo-500/5 to-transparent dark:from-violet-900/10 dark:via-indigo-900/10 pointer-events-none" />
+            <div className="absolute -top-32 -right-32 w-96 h-96 bg-violet-200/20 dark:bg-violet-900/10 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="relative w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-10">
                 {/* Banner de trial (visible solo durante el período de prueba) */}
                 <TrialBanner trialEndsAt={trialEndsAt} />
 
-                <div className="mb-8 flex items-end justify-between">
+                {/* Header */}
+                <div className="mb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
                     <div>
-                        <h1 className="text-4xl font-black text-slate-800 dark:text-white tracking-tight">{company}</h1>
-                        <p className="text-slate-500 dark:text-slate-400 mt-1 text-base">
+                        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-800 dark:text-white tracking-tight">{company}</h1>
+                        <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm sm:text-base">
                             Bienvenido, <strong>{user?.username}</strong> · <span className="text-primary font-semibold">{userRole}</span>
                         </p>
                     </div>
@@ -119,41 +124,58 @@ const Dashboard = () => {
                         {deferredPrompt && (
                             <button
                                 onClick={handleInstallClick}
-                                className="bg-primary hover:bg-primary-dark text-white font-bold py-2 px-4 rounded-xl shadow-md transition-colors"
+                                className="bg-primary hover:bg-primary-dark text-white font-bold py-2 px-4 rounded-xl shadow-md transition-colors text-sm"
                             >
                                 📱 Instalar App
                             </button>
                         )}
                         <button
                             onClick={toggleDarkMode}
-                            className="w-10 h-10 flex items-center justify-center rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 shadow-sm transition-colors text-xl"
+                            className="w-10 h-10 flex items-center justify-center rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 shadow-sm transition-colors text-xl border border-slate-200 dark:border-slate-700"
                             title="Alternar Modo Oscuro"
                         >
                             {darkMode ? '🌞' : '🌙'}
                         </button>
+                        <button
+                            onClick={logout}
+                            className="text-sm shadow-sm bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-red-500 transition-colors font-medium border border-slate-200 dark:border-slate-700 hover:border-red-200 px-4 py-2 rounded-xl hover:bg-red-50 dark:hover:bg-slate-700"
+                        >
+                            Cerrar sesión
+                        </button>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-                    {/* POS — Visible para TODOS los roles */}
-                    <Link
-                        to="/pos"
-                        className="group bg-primary hover:bg-primary-hover text-white rounded-2xl p-8 transition-all shadow-lg hover:-translate-y-0.5"
-                    >
-                        <div className="text-5xl mb-3">🛒</div>
-                        <div className="font-bold text-xl">Punto de Venta</div>
-                        <div className="opacity-80 text-sm mt-1">Abrir caja →</div>
-                    </Link>
+                {/* Hero POS Card — Prominent, full width */}
+                <Link
+                    to="/pos"
+                    className="group block bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-700 hover:via-purple-700 hover:to-indigo-700 text-white rounded-2xl p-6 sm:p-8 transition-all shadow-lg shadow-violet-200/50 dark:shadow-violet-900/30 hover:-translate-y-0.5 mb-5 relative overflow-hidden"
+                >
+                    <div className="absolute -right-8 -top-8 w-40 h-40 bg-white/5 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
+                    <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-white/5 rounded-full blur-xl" />
+                    <div className="relative flex items-center gap-4 sm:gap-6">
+                        <div className="text-4xl sm:text-5xl lg:text-6xl shrink-0">🛒</div>
+                        <div>
+                            <div className="font-black text-xl sm:text-2xl lg:text-3xl tracking-tight">Punto de Venta</div>
+                            <div className="opacity-80 text-sm sm:text-base mt-1">Abrir caja y comenzar a vender →</div>
+                        </div>
+                        <div className="ml-auto hidden sm:flex items-center gap-2 bg-white/10 px-4 py-2 rounded-xl backdrop-blur-sm border border-white/10">
+                            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                            <span className="text-xs font-bold opacity-80">Terminal Activa</span>
+                        </div>
+                    </div>
+                </Link>
 
+                {/* Module Cards Grid — 3 cols on desktop */}
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-6">
                     {/* Inventario — ADMIN y MANAGER */}
                     {canAccessAdmin && (
                         <Link
                             to="/admin/inventory"
-                            className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-primary text-slate-800 dark:text-white rounded-2xl p-8 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                            className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-violet-400 dark:hover:border-violet-500 text-slate-800 dark:text-white rounded-2xl p-5 sm:p-7 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
                         >
-                            <div className="text-5xl mb-3">📦</div>
-                            <div className="font-bold text-xl">Inventario</div>
-                            <div className="text-slate-400 dark:text-slate-400 text-sm mt-1">Ver catálogo →</div>
+                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">📦</div>
+                            <div className="font-bold text-base sm:text-lg lg:text-xl">Inventario</div>
+                            <div className="text-slate-400 dark:text-slate-400 text-xs sm:text-sm mt-1">Ver catálogo →</div>
                         </Link>
                     )}
 
@@ -161,11 +183,11 @@ const Dashboard = () => {
                     {canAccessAdmin && (
                         <Link
                             to="/admin/sales"
-                            className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-primary text-slate-800 dark:text-white rounded-2xl p-8 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                            className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-violet-400 dark:hover:border-violet-500 text-slate-800 dark:text-white rounded-2xl p-5 sm:p-7 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
                         >
-                            <div className="text-5xl mb-3">📊</div>
-                            <div className="font-bold text-xl">Reporte Z</div>
-                            <div className="text-slate-400 dark:text-slate-400 text-sm mt-1">Dashboard de ventas →</div>
+                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">📊</div>
+                            <div className="font-bold text-base sm:text-lg lg:text-xl">Reporte Z</div>
+                            <div className="text-slate-400 dark:text-slate-400 text-xs sm:text-sm mt-1">Dashboard de ventas →</div>
                         </Link>
                     )}
 
@@ -173,11 +195,11 @@ const Dashboard = () => {
                     {canAccessSettings && (
                         <Link
                             to="/admin/settings"
-                            className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-primary text-slate-800 dark:text-white rounded-2xl p-8 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                            className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-violet-400 dark:hover:border-violet-500 text-slate-800 dark:text-white rounded-2xl p-5 sm:p-7 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
                         >
-                            <div className="text-5xl mb-3">⚙️</div>
-                            <div className="font-bold text-xl">Configuración</div>
-                            <div className="text-slate-400 dark:text-slate-400 text-sm mt-1">IVA, tema, terminal →</div>
+                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">⚙️</div>
+                            <div className="font-bold text-base sm:text-lg lg:text-xl">Configuración</div>
+                            <div className="text-slate-400 dark:text-slate-400 text-xs sm:text-sm mt-1">IVA, tema, terminal →</div>
                         </Link>
                     )}
 
@@ -185,11 +207,11 @@ const Dashboard = () => {
                     {enableCreditSales && canAccessAdmin && (
                         <Link
                             to="/admin/fiados"
-                            className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-primary text-slate-800 dark:text-white rounded-2xl p-8 transition-all shadow-sm hover:-translate-y-0.5"
+                            className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-amber-400 text-slate-800 dark:text-white rounded-2xl p-5 sm:p-7 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
                         >
-                            <div className="text-5xl mb-3">📒</div>
-                            <div className="font-bold text-xl">Cuaderno de Fiados</div>
-                            <div className="text-primary text-sm mt-1 font-semibold">Gestionar créditos →</div>
+                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">📒</div>
+                            <div className="font-bold text-base sm:text-lg lg:text-xl">Cuaderno de Fiados</div>
+                            <div className="text-primary text-xs sm:text-sm mt-1 font-semibold">Gestionar créditos →</div>
                         </Link>
                     )}
 
@@ -198,40 +220,32 @@ const Dashboard = () => {
                         href="https://merx-pos.canny.io/sugerencias-merxpos"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-400 text-slate-800 dark:text-white rounded-2xl p-8 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                        className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-400 text-slate-800 dark:text-white rounded-2xl p-5 sm:p-7 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
                     >
-                        <div className="text-5xl mb-3">💡</div>
-                        <div className="font-bold text-xl">Sugerencias</div>
-                        <div className="text-slate-400 dark:text-slate-400 text-sm mt-1">Proponer mejoras →</div>
+                        <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">💡</div>
+                        <div className="font-bold text-base sm:text-lg lg:text-xl">Sugerencias</div>
+                        <div className="text-slate-400 dark:text-slate-400 text-xs sm:text-sm mt-1">Proponer mejoras →</div>
                     </a>
 
                     {/* Panel SaaS — Solo SUPER_ADMIN */}
                     {userRole === 'SUPER_ADMIN' && (
                         <Link
                             to="/super-admin"
-                            className="group bg-gradient-to-br from-indigo-900 to-purple-900 text-white rounded-2xl p-8 transition-all shadow-lg shadow-indigo-200 hover:shadow-indigo-300 hover:-translate-y-0.5"
+                            className="group bg-gradient-to-br from-indigo-900 to-purple-900 text-white rounded-2xl p-5 sm:p-7 transition-all shadow-lg shadow-indigo-200/50 dark:shadow-indigo-900/30 hover:shadow-indigo-300 hover:-translate-y-0.5"
                         >
-                            <div className="text-5xl mb-3">🔒</div>
-                            <div className="font-bold text-xl">Panel SaaS</div>
-                            <div className="text-indigo-200 text-sm mt-1">Gestionar tiendas →</div>
+                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">🔒</div>
+                            <div className="font-bold text-base sm:text-lg lg:text-xl">Panel SaaS</div>
+                            <div className="text-indigo-200 text-xs sm:text-sm mt-1">Gestionar tiendas →</div>
                         </Link>
                     )}
                 </div>
 
-                <div className="bg-primary-light dark:bg-slate-800 border border-primary dark:border-slate-700 rounded-xl p-4 text-sm text-primary dark:text-slate-300 flex items-center justify-between">
+                {/* Sync Status Bar */}
+                <div className="bg-primary-light dark:bg-slate-800 border border-primary/30 dark:border-slate-700 rounded-xl p-4 text-sm text-primary dark:text-slate-300 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
-                        Dexie Outbox Sync activo — datos en tiempo real
+                        <span className="text-xs sm:text-sm font-medium">Dexie Outbox Sync activo — datos en tiempo real</span>
                     </div>
-                </div>
-
-                <div className="absolute top-6 right-6 md:top-12 md:right-12">
-                    <button
-                        onClick={logout}
-                        className="text-sm shadow-sm bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-red-500 transition-colors font-medium border border-slate-200 dark:border-slate-700 hover:border-red-200 px-4 py-2 rounded-xl hover:bg-red-50 dark:hover:bg-slate-700"
-                    >
-                        Cerrar sesión
-                    </button>
                 </div>
             </div>
         </div>

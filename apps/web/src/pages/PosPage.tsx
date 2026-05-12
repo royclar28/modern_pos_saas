@@ -136,6 +136,9 @@ const CartRow = ({
     hv: boolean;
 }) => {
     const lineTotal = item.product.unitPrice * item.quantity * (1 - item.discount / 100);
+    // Detect touch device so we can prevent keyboard from popping up
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
     return (
         <div className={`flex items-center border-b border-slate-100 last:border-0 group ${
             hv ? 'gap-3 py-3' : 'gap-2 py-2'
@@ -158,27 +161,36 @@ const CartRow = ({
                 <button
                     onClick={() => onQtyChange(item.product.id, item.quantity - 1)}
                     className={`rounded hover:bg-white hover:shadow-sm text-slate-600 font-bold flex items-center justify-center transition-all ${
-                        hv ? 'w-10 h-10 text-2xl' : 'w-5 h-5 text-xs'
+                        hv ? 'w-10 h-10 text-2xl' : 'w-7 h-7 text-sm'
                     }`}
                 >−</button>
-                <input
-                    type="number"
-                    min="0.001"
-                    step="any"
-                    value={item.quantity}
-                    onChange={e => {
-                        const val = parseFloat(e.target.value);
-                        if (!isNaN(val) && val > 0) onQtyChange(item.product.id, val);
-                    }}
-                    onFocus={e => e.target.select()}
-                    className={`text-center font-bold text-slate-800 bg-transparent border-0 focus:outline-none focus:ring-1 focus:ring-violet-400 rounded ${
+                {isTouchDevice ? (
+                    /* On touch devices: show quantity as a tappable span, no keyboard */
+                    <span className={`text-center font-bold text-slate-800 select-none ${
                         hv ? 'w-16 text-xl' : 'w-10 text-xs'
-                    }`}
-                />
+                    }`}>
+                        {item.quantity}
+                    </span>
+                ) : (
+                    <input
+                        type="number"
+                        min="0.001"
+                        step="any"
+                        value={item.quantity}
+                        onChange={e => {
+                            const val = parseFloat(e.target.value);
+                            if (!isNaN(val) && val > 0) onQtyChange(item.product.id, val);
+                        }}
+                        onFocus={e => e.target.select()}
+                        className={`text-center font-bold text-slate-800 bg-transparent border-0 focus:outline-none focus:ring-1 focus:ring-violet-400 rounded ${
+                            hv ? 'w-16 text-xl' : 'w-10 text-xs'
+                        }`}
+                    />
+                )}
                 <button
                     onClick={() => onQtyChange(item.product.id, item.quantity + 1)}
                     className={`rounded hover:bg-white hover:shadow-sm text-slate-600 font-bold flex items-center justify-center transition-all ${
-                        hv ? 'w-10 h-10 text-2xl' : 'w-5 h-5 text-xs'
+                        hv ? 'w-10 h-10 text-2xl' : 'w-7 h-7 text-sm'
                     }`}
                 >+</button>
             </div>
@@ -195,7 +207,7 @@ const CartRow = ({
             <button
                 onClick={() => onRemove(item.product.id)}
                 className={`text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-all leading-none shrink-0 ${
-                    hv ? 'opacity-100 p-2.5 text-2xl' : 'opacity-0 group-hover:opacity-100 p-1.5 text-sm'
+                    hv ? 'opacity-100 p-2.5 text-2xl' : 'opacity-100 md:opacity-0 md:group-hover:opacity-100 p-1.5 text-sm'
                 }`}
                 title="Eliminar"
             >×</button>
