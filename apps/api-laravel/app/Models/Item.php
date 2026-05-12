@@ -27,18 +27,21 @@ class Item extends Model
         'receiving_quantity',
         'allow_alt_description',
         'is_serialized',
+        'sell_by',            // ← NUEVO
+        'unit_label',
     ];
 
     protected function casts(): array
     {
         return [
-            'cost_price'           => 'decimal:2',
-            'unit_price'           => 'decimal:2',
-            'stock'                => 'decimal:2',
-            'reorder_level'        => 'decimal:2',
-            'min_stock_alert'      => 'decimal:2',
-            'allow_alt_description'=> 'boolean',
-            'is_serialized'        => 'boolean',
+            'cost_price'            => 'decimal:2',
+            'unit_price'            => 'decimal:2',
+            'stock'                 => 'decimal:2',
+            'reorder_level'         => 'decimal:2',
+            'min_stock_alert'       => 'decimal:2',
+            'receiving_quantity'    => 'decimal:2',  // ← CORRECCIÓN DEL BUG
+            'allow_alt_description' => 'boolean',
+            'is_serialized'         => 'boolean',
         ];
     }
 

@@ -154,6 +154,8 @@ export const SmartInventoryReceive: React.FC = () => {
                         reorderLevel: 5,
                         allowAltDescription: false,
                         isSerialized: false,
+                        sellBy: 'unit',
+                        unitLabel: 'und',
                         updatedAt: Date.now()
                     };
 

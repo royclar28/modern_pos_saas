@@ -19,6 +19,7 @@ import { SettingsPage } from './pages/admin/SettingsPage';
 import { FiadosPage } from './pages/admin/FiadosPage';
 import { SuperAdminPage } from './pages/admin/SuperAdminPage';
 import { MasterDashboard } from './pages/admin/MasterDashboard';
+import { ShiftHistoryPage } from './pages/admin/ShiftHistoryPage';
 import { useSync } from './hooks/useSync';
 import { Toaster } from 'react-hot-toast';
 import { WhatsAppButton } from './components/WhatsAppButton';
@@ -180,10 +181,10 @@ const Dashboard = () => {
                         </Link>
                     )}
 
-                    {/* Reporte Z — ADMIN y MANAGER */}
+                    {/* Reporte Z / Historial de Caja — ADMIN y MANAGER */}
                     {canAccessAdmin && (
                         <Link
-                            to="/admin/sales"
+                            to="/admin/shifts"
                             className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-violet-400 dark:hover:border-violet-500 text-slate-800 dark:text-white rounded-2xl p-5 sm:p-7 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
                         >
                             <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">📊</div>
@@ -298,6 +299,13 @@ const AppInner = () => {
                         <Route path="/admin/fiados" element={
                             <RequireRole allowed={['SUPER_ADMIN', 'ADMIN', 'MANAGER']}>
                                 <FiadosPage />
+                            </RequireRole>
+                        } />
+
+                        {/* Historial de Caja — ADMIN y MANAGER */}
+                        <Route path="/admin/shifts" element={
+                            <RequireRole allowed={['SUPER_ADMIN', 'ADMIN', 'MANAGER']}>
+                                <ShiftHistoryPage />
                             </RequireRole>
                         } />
 

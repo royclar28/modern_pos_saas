@@ -36,6 +36,8 @@ export type ItemPayload = {
   unitPrice: number;
   reorderLevel: number;
   receivingQuantity: number;
+  sellBy?: 'unit' | 'weight';    // ← NUEVO
+  unitLabel?: string;       // ← NUEVO
 };
 
 export type SalePayload = {

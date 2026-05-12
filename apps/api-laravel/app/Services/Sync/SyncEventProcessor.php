@@ -307,6 +307,8 @@ class SyncEventProcessor
             'receiving_quantity'     => $p['receivingQuantity'] ?? 1,
             'allow_alt_description'=> $p['allowAltDescription'] ?? false,
             'is_serialized'        => $p['isSerialized'] ?? false,
+            'sell_by'              => $p['sellBy'] ?? 'unit',   // ← NUEVO
+            'unit_label'           => $p['unitLabel'] ?? 'und',
         ]);
     }
 
@@ -327,6 +329,8 @@ class SyncEventProcessor
             'receiving_quantity'   => $p['receivingQuantity'] ?? null,
             'allow_alt_description'=> $p['allowAltDescription'] ?? null,
             'is_serialized'        => $p['isSerialized'] ?? null,
+            'sell_by'              => $p['sellBy'] ?? null,     // ← NUEVO
+            'unit_label'           => $p['unitLabel'] ?? null,
         ], fn ($v) => $v !== null);
 
         // min_stock_alert puede ser null intencionalmente (borrar alerta),

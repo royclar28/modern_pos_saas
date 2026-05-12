@@ -15,5 +15,7 @@ export type ItemDocType = {
     receivingQuantity: number;
     allowAltDescription: boolean;
     isSerialized: boolean;
+    sellBy: 'unit' | 'weight';    // ← NUEVO
+    unitLabel?: string;       // ← NUEVO: ej. 'Kg', 'Mts', 'und', 'Lts'
     updatedAt: number; // Unix timestamp for delta sync checkpoint
 };

@@ -21,7 +21,9 @@ const itemSchema = z.object({
     costPrice: z.number().min(0, "Debe ser mayor o igual a 0"),
     unitPrice: z.number().min(0, "Debe ser mayor o igual a 0"),
     reorderLevel: z.number().min(0),
-    receivingQuantity: z.number().min(1),
+    receivingQuantity: z.number().min(0),  // ← ya no min(1), permite decimales
+    sellBy: z.enum(['unit', 'weight']),    // ← NUEVO
+    unitLabel: z.string().max(5).optional(),
 }).refine((data) => data.unitPrice >= data.costPrice, {
     message: "El precio de venta debe ser mayor o igual al costo",
     path: ["unitPrice"],
@@ -61,7 +63,7 @@ const ItemModal = ({
     onSave: (data: ItemFormData) => Promise<void>;
 }) => {
     const isEdit = !!item;
-    const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<ItemFormData>({
+    const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<ItemFormData>({
         resolver: zodResolver(itemSchema),
         defaultValues: item ? {
             id: item.id,
@@ -73,13 +75,18 @@ const ItemModal = ({
             unitPrice: item.unitPrice,
             reorderLevel: item.reorderLevel,
             receivingQuantity: item.receivingQuantity,
+            sellBy: item.sellBy || 'unit',     // ← NUEVO
+            unitLabel: item?.unitLabel || 'und',
         } : {
             costPrice: 0,
             unitPrice: 0,
             reorderLevel: 0,
             receivingQuantity: 1,
+            sellBy: 'unit' as const,           // ← NUEVO
+            unitLabel: 'und',
         }
     });
+    const watchSellBy = watch('sellBy');        // ← NUEVO
 
     return (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -113,6 +120,18 @@ const ItemModal = ({
                                 <input type="number" step="0.01" {...register('reorderLevel', { valueAsNumber: true })} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-violet-400 focus:outline-none" />
                             </div>
                             <div className="space-y-1">
+                                <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                    Stock Inicial (Qty)
+                                </label>
+                                <input
+                                    type="number"
+                                    step="any"                    // ← CORRECCIÓN: permitir decimales
+                                    min="0"
+                                    {...register('receivingQuantity', { valueAsNumber: true })}
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-violet-400 focus:outline-none"
+                                />
+                            </div>
+                            <div className="space-y-1">
                                 <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Costo *</label>
                                 <div className="relative">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">$</span>
@@ -131,6 +150,57 @@ const ItemModal = ({
                             <div className="space-y-1 md:col-span-2">
                                 <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Descripción</label>
                                 <textarea {...register('description')} rows={2} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-violet-400 focus:outline-none"></textarea>
+                            </div>
+
+                            {/* ── Sell By Selector ── */}
+                            <div className="space-y-1 md:col-span-2">
+                                <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                    Tipo de Venta
+                                </label>
+                                <div className="flex gap-4 mt-2">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            value="unit"
+                                            {...register('sellBy')}
+                                            className="accent-violet-600 w-4 h-4"
+                                        />
+                                        <span className="text-sm font-medium text-slate-700">
+                                            📦 Por Unidad
+                                        </span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            value="weight"
+                                            {...register('sellBy')}
+                                            className="accent-violet-600 w-4 h-4"
+                                        />
+                                        <span className="text-sm font-medium text-slate-700">
+                                            ⚖️ Por Peso / Granel
+                                        </span>
+                                    </label>
+                                </div>
+                                <p className="text-[10px] text-slate-400 mt-1">
+                                    {watchSellBy === 'weight'
+                                        ? 'Al vender se pedirá el peso exacto (Kg/g).'
+                                        : 'Se vende por pieza/unidad entera.'}
+                                </p>
+                            </div>
+                            {/* ── Unit Label ── */}
+                            <div className="space-y-1 md:col-span-2">
+                                <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                    Etiqueta de Unidad
+                                </label>
+                                <input
+                                    {...register('unitLabel')}
+                                    maxLength={5}
+                                    placeholder="und"
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-violet-400 focus:outline-none"
+                                />
+                                <p className="text-[10px] text-slate-400">
+                                    Ej: Kg, Mts, und, Lts — se muestra junto a la cantidad en el POS.
+                                </p>
                             </div>
                         </div>
                     </form>
@@ -376,6 +446,7 @@ async function upsertScannedProducts(products: ScannedProduct[], tenantId: strin
                     unitPrice: updatedItem.unitPrice,
                     reorderLevel: updatedItem.reorderLevel,
                     receivingQuantity: updatedItem.receivingQuantity,
+                    sellBy: existing.sellBy,
                 },
                 tenant_id: tenantId,
                 localTable: 'items',
@@ -400,6 +471,7 @@ async function upsertScannedProducts(products: ScannedProduct[], tenantId: strin
                 receivingQuantity: product.quantity,
                 allowAltDescription: false,
                 isSerialized: false,
+                sellBy: 'unit',
                 updatedAt: now,
             };
             await enqueueSyncEvent({
@@ -414,6 +486,7 @@ async function upsertScannedProducts(products: ScannedProduct[], tenantId: strin
                     unitPrice: newItem.unitPrice,
                     reorderLevel: newItem.reorderLevel,
                     receivingQuantity: newItem.receivingQuantity,
+                    sellBy: 'unit',
                 },
                 tenant_id: tenantId,
                 localTable: 'items',
@@ -468,6 +541,8 @@ export const InventoryPage = () => {
                     receivingQuantity: data.receivingQuantity ?? 1,
                     allowAltDescription: false,
                     isSerialized: false,
+                    sellBy: data.sellBy,        // ← NUEVO
+                    unitLabel: data.unitLabel || 'und',
                     updatedAt: now,
                 };
                 await enqueueSyncEvent({
@@ -482,6 +557,8 @@ export const InventoryPage = () => {
                         unitPrice: newItem.unitPrice,
                         reorderLevel: newItem.reorderLevel,
                         receivingQuantity: newItem.receivingQuantity,
+                        sellBy: data.sellBy,    // ← NUEVO
+                        unitLabel: data.unitLabel || 'und',
                     },
                     tenant_id: tenantId,
                     localTable: 'items',
@@ -499,6 +576,8 @@ export const InventoryPage = () => {
                     unitPrice: data.unitPrice,
                     reorderLevel: data.reorderLevel ?? 0,
                     receivingQuantity: data.receivingQuantity ?? 1,
+                    sellBy: data.sellBy,        // ← NUEVO
+                    unitLabel: data.unitLabel || 'und',
                     updatedAt: now,
                 };
                 await enqueueSyncEvent({
@@ -513,6 +592,8 @@ export const InventoryPage = () => {
                         unitPrice: updatedItem.unitPrice,
                         reorderLevel: updatedItem.reorderLevel,
                         receivingQuantity: updatedItem.receivingQuantity,
+                        sellBy: data.sellBy,    // ← NUEVO
+                        unitLabel: data.unitLabel || 'und',
                     },
                     tenant_id: tenantId,
                     localTable: 'items',

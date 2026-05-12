@@ -23,7 +23,7 @@ class SyncReadController extends Controller
             'description', 'cost_price', 'unit_price',
             'stock', 'reorder_level', 'min_stock_alert',
             'receiving_quantity', 'allow_alt_description',
-            'is_serialized', 'updated_at',
+            'is_serialized', 'sell_by', 'unit_label', 'updated_at', // ← agregado sell_by, unit_label
         ])->get();
         
         return response()->json($items);
@@ -51,6 +51,18 @@ class SyncReadController extends Controller
             ->where('category', '!=', '')
             ->pluck('category');
             
+        return response()->json($categories);
+    }
+
+    /**
+     * Devuelve las categorías del tenant actual (tabla categories).
+     */
+    public function getCategoriesTable(Request $request): JsonResponse
+    {
+        $categories = \App\Models\Category::select(['id', 'name', 'sort_order'])
+            ->orderBy('sort_order')
+            ->get();
+
         return response()->json($categories);
     }
 }

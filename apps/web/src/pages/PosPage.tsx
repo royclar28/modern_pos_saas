@@ -13,6 +13,7 @@ import { Receipt } from '../components/Receipt';
 import { CheckoutModal } from '../components/CheckoutModal';
 import { PaymentData } from '../components/CheckoutModal';
 import { ShiftManagerModal } from '../components/ShiftManagerModal';
+import { WeightInputModal } from '../components/WeightInputModal';
 import { useBarcodeScanner } from '../hooks/useBarcodeScanner';
 
 // ─── Lightweight inline toast (zero deps) ─────────────────────────────────────
@@ -63,7 +64,7 @@ const ProductCard = ({ item, onAdd, exchangeRate, hv }: { item: ItemDocType; onA
 
     return (
         <button
-            onClick={() => { if (!isOutOfStock) { onAdd(item); playBeep(); } }}
+            onClick={() => { if (!isOutOfStock) { onAdd(item); } }}
             disabled={isOutOfStock}
             className={`group text-left transition-all duration-150 flex flex-col relative overflow-hidden
                 ${isOutOfStock
@@ -169,7 +170,7 @@ const CartRow = ({
                     <span className={`text-center font-bold text-slate-800 select-none ${
                         hv ? 'w-16 text-xl' : 'w-10 text-xs'
                     }`}>
-                        {item.quantity}
+                        {item.quantity}{item.product.unitLabel && item.product.unitLabel !== 'und' ? ` ${item.product.unitLabel}` : ''}
                     </span>
                 ) : (
                     <input
@@ -194,7 +195,12 @@ const CartRow = ({
                     }`}
                 >+</button>
             </div>
-            <div className={`flex flex-col text-right px-1 ${hv ? 'w-24' : 'w-16'}`}>
+            {item.product.unitLabel && item.product.unitLabel !== 'und' && (
+                <span className={`font-bold text-slate-500 shrink-0 ${hv ? 'text-sm ml-1' : 'text-[10px] ml-0.5'}`}>
+                    {item.product.unitLabel}
+                </span>
+            )}
+        <div className={`flex flex-col text-right px-1 ${hv ? 'w-24' : 'w-16'}`}>
                 <span className={`font-black text-slate-800 ${hv ? 'text-xl' : 'text-xs'}`}>
                     ${formatCurrency(lineTotal)}
                 </span>
@@ -278,6 +284,7 @@ export const PosPage = () => {
     const [isSyncingBCV, setIsSyncingBCV] = useState(false);
     const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
     const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
+    const [weightModalItem, setWeightModalItem] = useState<ItemDocType | null>(null);
     const [mobileCartOpen, setMobileCartOpen] = useState(false);
     const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -291,6 +298,16 @@ export const PosPage = () => {
         );
     }, [items, search]);
 
+    // ── Handler para agregar al carrito (respeta sellBy) ───────────────────
+    const handleAddToCart = useCallback((item: ItemDocType) => {
+        if (item.sellBy === 'weight') {
+            setWeightModalItem(item);
+        } else {
+            addToCart(item);
+            playBeep();
+        }
+    }, [addToCart]);
+
     // Barcode Scanner Integration
     useBarcodeScanner(useCallback((barcode) => {
         if (isCheckoutModalOpen || completedSale) return;
@@ -299,9 +316,12 @@ export const PosPage = () => {
             i.id === barcode ||
             i.name.toLowerCase() === barcode.toLowerCase()
         );
-        if (item) { addToCart(item); playBeep(); }
-        else { toast.error(`Producto no encontrado: ${barcode}`); }
-    }, [items, addToCart, isCheckoutModalOpen, completedSale]));
+        if (item) {
+            handleAddToCart(item);   // ← usa el handler que abre modal si es weight
+        } else {
+            toast.error(`Producto no encontrado: ${barcode}`);
+        }
+    }, [items, handleAddToCart, isCheckoutModalOpen, completedSale]));
 
     const processCheckout = async (paymentData: PaymentData) => {
         if (cartItems.length === 0 || isProcessing) return;
@@ -470,7 +490,13 @@ export const PosPage = () => {
                                     : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6'
                             }`}>
                                 {filtered.map(item => (
-                                    <ProductCard key={item.id} item={item} onAdd={addToCart} exchangeRate={exchangeRate} hv={hv} />
+                                    <ProductCard
+                                        key={item.id}
+                                        item={item}
+                                        onAdd={handleAddToCart}
+                                        exchangeRate={exchangeRate}
+                                        hv={hv}
+                                    />
                                 ))}
                             </div>
                         )}
@@ -653,6 +679,18 @@ export const PosPage = () => {
             <ShiftManagerModal
                 isOpen={isShiftModalOpen}
                 onClose={() => setIsShiftModalOpen(false)}
+            />
+
+            {/* ── Weight Input Modal (productos a granel) ── */}
+            <WeightInputModal
+                item={weightModalItem!}
+                isOpen={weightModalItem !== null}
+                onConfirm={(item, weight) => {
+                    addToCart(item, weight);
+                    playBeep();
+                    setWeightModalItem(null);
+                }}
+                onClose={() => setWeightModalItem(null)}
             />
 
             {/* Global Styles */}

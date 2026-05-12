@@ -45,7 +45,7 @@ type CartState = {
 };
 
 type CartAction =
-    | { type: 'ADD'; product: ItemDocType }
+    | { type: 'ADD'; product: ItemDocType; quantity?: number }
     | { type: 'REMOVE'; productId: string }
     | { type: 'SET_QTY'; productId: string; quantity: number }
     | { type: 'SET_DISCOUNT'; productId: string; discount: number }
@@ -57,7 +57,7 @@ type CartContextValue = {
     taxRate: number;
     exchangeRate: number;
     terminalId: string;
-    addToCart: (product: ItemDocType) => void;
+    addToCart: (product: ItemDocType, weightOverride?: number) => void;
     removeFromCart: (productId: string) => void;
     setQuantity: (productId: string, qty: number) => void;
     setDiscount: (productId: string, discount: number) => void;
@@ -71,17 +71,18 @@ type CartContextValue = {
 const cartReducer = (state: CartState, action: CartAction): CartState => {
     switch (action.type) {
         case 'ADD': {
+            const qty = action.quantity ?? 1;
             const existing = state.items.find(i => i.product.id === action.product.id);
             if (existing) {
                 return {
                     items: state.items.map(i =>
                         i.product.id === action.product.id
-                            ? { ...i, quantity: i.quantity + 1 }
+                            ? { ...i, quantity: i.quantity + qty }
                             : i
                     ),
                 };
             }
-            return { items: [...state.items, { product: action.product, quantity: 1, discount: 0 }] };
+            return { items: [...state.items, { product: action.product, quantity: qty, discount: 0 }] };
         }
         case 'REMOVE':
             return { items: state.items.filter(i => i.product.id !== action.productId) };
@@ -158,8 +159,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         [state.items, taxRate]
     );
 
-    const addToCart = useCallback((product: ItemDocType) => {
-        dispatch({ type: 'ADD', product });
+    const addToCart = useCallback((product: ItemDocType, weightOverride?: number) => {
+        const qty = weightOverride !== undefined ? weightOverride : 1;
+        dispatch({ type: 'ADD', product, quantity: qty });
     }, []);
 
     const removeFromCart = useCallback((productId: string) => {

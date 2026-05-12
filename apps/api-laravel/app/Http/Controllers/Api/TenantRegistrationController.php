@@ -51,6 +51,23 @@ class TenantRegistrationController extends Controller
                 'status'        => 'active',
             ]);
 
+            // ── 1.1 Seed de categorías por defecto ───────────────────────
+            $defaultCategories = [
+                ['name' => 'Lácteos',   'sort_order' => 1],
+                ['name' => 'Bebidas',   'sort_order' => 2],
+                ['name' => 'Víveres',   'sort_order' => 3],
+                ['name' => 'Otros',     'sort_order' => 4],
+            ];
+
+            foreach ($defaultCategories as $cat) {
+                \App\Models\Category::create([
+                    'id'         => Str::uuid()->toString(),
+                    'tenant_id'  => $store->id,
+                    'name'       => $cat['name'],
+                    'sort_order' => $cat['sort_order'],
+                ]);
+            }
+
             // ── 2. Crear el usuario STORE_ADMIN ───────────────────────────
             $user = User::create([
                 'tenant_id'  => $store->id,

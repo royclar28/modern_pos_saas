@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\CashShiftController;
 use App\Http\Controllers\Api\SyncController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\SettingsController;
@@ -54,6 +55,7 @@ Route::middleware(['auth:sanctum', 'trial'])->group(function () {
     Route::get('/items', [\App\Http\Controllers\Api\SyncReadController::class, 'getItems']);
     Route::get('/customers', [\App\Http\Controllers\Api\SyncReadController::class, 'getCustomers']);
     Route::get('/categories', [\App\Http\Controllers\Api\SyncReadController::class, 'getCategories']);
+    Route::get('/categories/table', [\App\Http\Controllers\Api\SyncReadController::class, 'getCategoriesTable']);
 
     // Obtener historial de facturas (todos pueden ver)
     Route::get('/sales', [SaleController::class, 'index']);
@@ -71,6 +73,9 @@ Route::middleware(['auth:sanctum', 'trial'])->group(function () {
 
         // Sincronizar tasa BCV manualmente
         Route::post('/settings/bcv/sync', [SettingsController::class, 'getBcvRate']);
+
+        // ── Historial de Cierres de Caja ──────────────────────
+        Route::get('/cash-shifts', [CashShiftController::class, 'index']);
     });
 
     // ── Rutas SOLO para ADMIN ───────────────────────────────────
