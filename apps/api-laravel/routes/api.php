@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\InventoryController;
+use App\Http\Controllers\Api\DashboardController;
 
 // ── Rutas Públicas ──────────────────────────────────────────────
 Route::post('/login', [AuthController::class, 'login']);
@@ -49,6 +50,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Obtener Settings (lectura — todos necesitan leerlo para el POS)
     Route::get('/settings', [SettingsController::class, 'getSettings']);
+
+    // Dashboard — resumen financiero del día
+    Route::get('/dashboard/summary', [DashboardController::class, 'summary']);
 
     // ── Rutas para ADMIN y MANAGER ──────────────────────────────
     Route::middleware('role:ADMIN,MANAGER')->group(function () {

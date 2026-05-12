@@ -57,42 +57,73 @@ const playBeep = () => {
 };
 
 // ─── Product Card (Dual Mode) ─────────────────────────────────────────────────
-const ProductCard = ({ item, onAdd, exchangeRate, hv }: { item: ItemDocType; onAdd: (item: ItemDocType) => void; exchangeRate: number; hv: boolean }) => (
-    <button
-        onClick={() => { onAdd(item); playBeep(); }}
-        className={`group bg-white border border-slate-200 text-left hover:border-violet-500 hover:shadow-lg hover:shadow-violet-200/50 active:scale-95 transition-all duration-150 flex flex-col relative overflow-hidden ${
-            hv
-                ? 'rounded-2xl p-4 gap-2 min-h-[120px]'
-                : 'rounded-lg p-2.5 gap-1.5 h-24'
-        }`}
-    >
-        <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-violet-50 to-transparent -rotate-45 translate-x-8 -translate-y-8 rounded-full z-0 group-hover:scale-150 transition-transform duration-500" />
-        <div className="flex items-start justify-between gap-1 z-10">
-            <span className={`font-bold text-slate-700 leading-tight group-hover:text-violet-800 transition-colors ${
-                hv ? 'text-xl line-clamp-1' : 'text-xs line-clamp-2'
-            }`}>
-                {item.name}
-            </span>
-        </div>
-        <div className="mt-auto flex justify-between items-end z-10 w-full">
-            <div className="flex flex-col">
-                <span className={`font-black text-violet-700 ${hv ? 'text-3xl' : 'text-sm'}`}>
-                    ${formatCurrency(item.unitPrice)}
+const ProductCard = ({ item, onAdd, exchangeRate, hv }: { item: ItemDocType; onAdd: (item: ItemDocType) => void; exchangeRate: number; hv: boolean }) => {
+    const isOutOfStock = (item.stock ?? Infinity) <= 0;
+    const isLowStock   = !isOutOfStock && item.minStockAlert != null && (item.stock ?? Infinity) <= item.minStockAlert;
+
+    return (
+        <button
+            onClick={() => { if (!isOutOfStock) { onAdd(item); playBeep(); } }}
+            disabled={isOutOfStock}
+            className={`group text-left transition-all duration-150 flex flex-col relative overflow-hidden
+                ${isOutOfStock
+                    ? 'bg-red-50 border border-red-200 opacity-60 cursor-not-allowed'
+                    : isLowStock
+                        ? 'bg-white border border-amber-400 hover:border-amber-500 hover:shadow-lg hover:shadow-amber-100/50 active:scale-95'
+                        : 'bg-white border border-slate-200 hover:border-violet-500 hover:shadow-lg hover:shadow-violet-200/50 active:scale-95'
+                }
+                ${hv ? 'rounded-2xl p-4 gap-2 min-h-[120px]' : 'rounded-lg p-2.5 gap-1.5 h-24'}
+            `}
+        >
+            {/* Fondo decorativo */}
+            <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-violet-50 to-transparent -rotate-45 translate-x-8 -translate-y-8 rounded-full z-0 group-hover:scale-150 transition-transform duration-500" />
+
+            {/* Badge de estado de stock */}
+            {isOutOfStock && (
+                <span className="absolute top-1.5 right-1.5 bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded z-10 uppercase tracking-wide">
+                    Sin Stock
                 </span>
+            )}
+            {isLowStock && (
+                <span className="absolute top-1.5 right-1.5 bg-amber-400 text-amber-900 text-[9px] font-black px-1.5 py-0.5 rounded z-10 uppercase tracking-wide">
+                    ⚠ Bajo
+                </span>
+            )}
+
+            <div className="flex items-start justify-between gap-1 z-10">
+                <span className={`font-bold text-slate-700 leading-tight group-hover:text-violet-800 transition-colors ${
+                    hv ? 'text-xl line-clamp-1' : 'text-xs line-clamp-2'
+                }`}>
+                    {item.name}
+                </span>
+            </div>
+            <div className="mt-auto flex justify-between items-end z-10 w-full">
+                <div className="flex flex-col">
+                    <span className={`font-black text-violet-700 ${hv ? 'text-3xl' : 'text-sm'}`}>
+                        ${formatCurrency(item.unitPrice)}
+                    </span>
+                    {hv && (
+                        <span className={`text-xs font-semibold mt-0.5 ${
+                            isLowStock ? 'text-amber-600' : isOutOfStock ? 'text-red-500' : 'text-slate-400'
+                        }`}>
+                            Stock: {item.stock ?? '—'}
+                        </span>
+                    )}
+                    {!hv && (
+                        <span className="text-[10px] text-slate-400 font-medium leading-none">
+                            Bs. {formatCurrency(item.unitPrice * exchangeRate)}
+                        </span>
+                    )}
+                </div>
                 {!hv && (
-                    <span className="text-[10px] text-slate-400 font-medium leading-none">
-                        Bs. {formatCurrency(item.unitPrice * exchangeRate)}
+                    <span className="text-[9px] font-bold tracking-wider uppercase text-slate-500 bg-slate-100 rounded px-1.5 py-0.5 truncate max-w-[60px]">
+                        {item.category}
                     </span>
                 )}
             </div>
-            {!hv && (
-                <span className="text-[9px] font-bold tracking-wider uppercase text-slate-500 bg-slate-100 rounded px-1.5 py-0.5 truncate max-w-[60px]">
-                    {item.category}
-                </span>
-            )}
-        </div>
-    </button>
-);
+        </button>
+    );
+};
 
 // ─── Cart Row (Dual Mode) ─────────────────────────────────────────────────────
 const CartRow = ({
@@ -130,9 +161,20 @@ const CartRow = ({
                         hv ? 'w-10 h-10 text-2xl' : 'w-5 h-5 text-xs'
                     }`}
                 >−</button>
-                <span className={`text-center font-bold text-slate-800 ${hv ? 'w-10 text-xl' : 'w-6 text-xs'}`}>
-                    {item.quantity}
-                </span>
+                <input
+                    type="number"
+                    min="0.001"
+                    step="any"
+                    value={item.quantity}
+                    onChange={e => {
+                        const val = parseFloat(e.target.value);
+                        if (!isNaN(val) && val > 0) onQtyChange(item.product.id, val);
+                    }}
+                    onFocus={e => e.target.select()}
+                    className={`text-center font-bold text-slate-800 bg-transparent border-0 focus:outline-none focus:ring-1 focus:ring-violet-400 rounded ${
+                        hv ? 'w-16 text-xl' : 'w-10 text-xs'
+                    }`}
+                />
                 <button
                     onClick={() => onQtyChange(item.product.id, item.quantity + 1)}
                     className={`rounded hover:bg-white hover:shadow-sm text-slate-600 font-bold flex items-center justify-center transition-all ${

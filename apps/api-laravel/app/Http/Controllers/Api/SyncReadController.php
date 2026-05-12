@@ -18,7 +18,13 @@ class SyncReadController extends Controller
         // El TenantScope asegura que solo se traigan los ítems del usuario
         // Traemos todos los items (podría paginarse en un futuro, pero para POS
         // offline es común traer todo o en chunks).
-        $items = Item::all();
+        $items = Item::select([
+            'id', 'name', 'category', 'item_number',
+            'description', 'cost_price', 'unit_price',
+            'stock', 'reorder_level', 'min_stock_alert',
+            'receiving_quantity', 'allow_alt_description',
+            'is_serialized', 'updated_at',
+        ])->get();
         
         return response()->json($items);
     }

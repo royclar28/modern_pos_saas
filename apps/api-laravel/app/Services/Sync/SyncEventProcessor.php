@@ -206,6 +206,28 @@ class SyncEventProcessor
     {
         $p = $event['payload'];
 
+        // ── Pre-validación de stock (defensa en profundidad) ─────────────────
+        // El ITEM:ADJUST_STOCK volverá a validar atómicamente, pero esta
+        // pre-validación aborta la venta entera antes de crear cabecera.
+        if (!empty($p['items'])) {
+            foreach ($p['items'] as $lineItem) {
+                $item = Item::where('id', $lineItem['item_id'])
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$item) continue;
+
+                $qty = (float) ($lineItem['quantity_purchased'] ?? $lineItem['quantity'] ?? 0);
+                if ((float) $item->stock < $qty) {
+                    throw new InsufficientStockException(
+                        item: $item,
+                        requested: $qty,
+                        available: (float) $item->stock,
+                    );
+                }
+            }
+        }
+
         // Crear la cabecera de la venta
         $sale = Sale::create([
             'id'              => $p['id'],
@@ -280,8 +302,9 @@ class SyncEventProcessor
             'cost_price'           => $p['costPrice'] ?? 0,
             'unit_price'           => $p['unitPrice'] ?? 0,
             'stock'                => $p['stock'] ?? 0,
-            'reorder_level'        => $p['reorderLevel'] ?? 0,
-            'receiving_quantity'   => $p['receivingQuantity'] ?? 1,
+            'reorder_level'         => $p['reorderLevel'] ?? 0,
+            'min_stock_alert'        => $p['minStockAlert'] ?? null,
+            'receiving_quantity'     => $p['receivingQuantity'] ?? 1,
             'allow_alt_description'=> $p['allowAltDescription'] ?? false,
             'is_serialized'        => $p['isSerialized'] ?? false,
         ]);
@@ -292,7 +315,8 @@ class SyncEventProcessor
         $p = $event['payload'];
         $item = Item::findOrFail($event['entity_id']);
 
-        $item->update(array_filter([
+        // Construir array de campos a actualizar
+        $fields = array_filter([
             'name'                 => $p['name'] ?? null,
             'category'             => $p['category'] ?? null,
             'item_number'          => $p['itemNumber'] ?? null,
@@ -303,7 +327,15 @@ class SyncEventProcessor
             'receiving_quantity'   => $p['receivingQuantity'] ?? null,
             'allow_alt_description'=> $p['allowAltDescription'] ?? null,
             'is_serialized'        => $p['isSerialized'] ?? null,
-        ], fn ($v) => $v !== null));
+        ], fn ($v) => $v !== null);
+
+        // min_stock_alert puede ser null intencionalmente (borrar alerta),
+        // por eso no va dentro del array_filter
+        if (array_key_exists('minStockAlert', $p)) {
+            $fields['min_stock_alert'] = $p['minStockAlert'];
+        }
+
+        $item->update($fields);
     }
 
     private function handleItemDelete(array $event): void

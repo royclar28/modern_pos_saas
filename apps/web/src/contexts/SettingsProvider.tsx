@@ -30,7 +30,7 @@ export type ParsedSettings = {
 };
 
 const DEFAULTS: StoreSettings = {
-    default_tax_rate: '16',
+    default_tax_rate: '0',
     currency_symbol: '$',
     exchange_rate: '1',
     company: 'Mi Negocio',
@@ -140,7 +140,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     const value: ParsedSettings = {
         raw,
-        taxRate: Math.max(0, Number(raw.default_tax_rate) || 16),
+        taxRate: Math.max(0, Number(raw.default_tax_rate) || 0),
         exchangeRate: Math.max(1, Number(raw.exchange_rate) || 1),
         currencySymbol: raw.currency_symbol || '$',
         company: raw.company || 'Mi Negocio',

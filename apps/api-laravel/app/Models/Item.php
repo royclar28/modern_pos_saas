@@ -23,6 +23,7 @@ class Item extends Model
         'unit_price',
         'stock',
         'reorder_level',
+        'min_stock_alert',
         'receiving_quantity',
         'allow_alt_description',
         'is_serialized',
@@ -35,6 +36,7 @@ class Item extends Model
             'unit_price'           => 'decimal:2',
             'stock'                => 'decimal:2',
             'reorder_level'        => 'decimal:2',
+            'min_stock_alert'      => 'decimal:2',
             'allow_alt_description'=> 'boolean',
             'is_serialized'        => 'boolean',
         ];

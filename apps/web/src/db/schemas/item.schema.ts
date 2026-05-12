@@ -9,6 +9,8 @@ export type ItemDocType = {
     description?: string;
     costPrice: number;
     unitPrice: number;
+    stock: number;           // Stock actual (para validación visual y alertas)
+    minStockAlert?: number;  // Umbral de alerta de stock mínimo (null = sin alerta)
     reorderLevel: number;
     receivingQuantity: number;
     allowAltDescription: boolean;

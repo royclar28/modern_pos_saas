@@ -15,7 +15,7 @@ class SettingsController extends Controller
      * Used when a tenant hasn't set a particular key yet.
      */
     private const DEFAULTS = [
-        'default_tax_rate'    => '16',
+        'default_tax_rate'    => '0',
         'currency_symbol'     => '$',
         'company'             => 'Mi Negocio',
         'timezone'            => 'America/Caracas',
