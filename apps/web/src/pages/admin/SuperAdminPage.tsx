@@ -150,8 +150,15 @@ export const SuperAdminPage = () => {
             <header className="bg-gradient-to-r from-indigo-900 to-purple-900 text-white px-4 sm:px-6 py-4 flex items-center justify-between shadow-md shrink-0">
                 <div className="flex items-center gap-4 sm:gap-6">
                     <h1 className="text-lg sm:text-xl font-bold tracking-tight">🔒 Panel Super Admin</h1>
-                    <nav className="hidden sm:flex gap-4">
+                    <nav className="hidden sm:flex gap-4 items-center">
                         <Link to="/" className="text-sm text-indigo-200 hover:text-white transition-colors">← Dashboard</Link>
+                        <span className="text-indigo-700">|</span>
+                        <Link
+                            to="/master-dashboard"
+                            className="text-sm font-bold text-indigo-200 hover:text-white transition-colors flex items-center gap-1.5 bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg"
+                        >
+                            📡 Centro de Comando
+                        </Link>
                     </nav>
                 </div>
                 <span className="text-xs text-indigo-300 font-mono hidden sm:inline">SaaS Management Console</span>

@@ -148,7 +148,8 @@ export const SmartInventoryReceive: React.FC = () => {
                         name: item.description,
                         category: 'Pendiente Categorizar',
                         costPrice: item.unit_cost,
-                        unitPrice: item.unit_cost * 1.3, // Example 30% margin default
+                        unitPrice: item.unit_cost * 1.3,
+                        stock: item.quantity,
                         receivingQuantity: item.quantity,
                         reorderLevel: 5,
                         allowAltDescription: false,

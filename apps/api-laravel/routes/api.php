@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\TenantRegistrationController;
+use App\Http\Controllers\Api\SaasMetricsController;
 
 // ── Rutas Públicas ──────────────────────────────────────────────
 Route::post('/login', [AuthController::class, 'login']);
@@ -81,5 +82,12 @@ Route::middleware(['auth:sanctum', 'trial'])->group(function () {
         Route::get('/saas/stores', [\App\Http\Controllers\Api\SaasController::class, 'index']);
         Route::post('/saas/stores', [\App\Http\Controllers\Api\SaasController::class, 'createStore']);
         Route::patch('/saas/stores/{id}/status', [\App\Http\Controllers\Api\SaasController::class, 'toggleStatus']);
+    });
+
+    // ── Rutas EXCLUSIVAS para SUPER_ADMIN (Master Dashboard) ──────
+    // role:SUPER_ADMIN es el único nivel que NO hace bypass; requiere
+    // explícitamente el rol. Ningún ADMIN de tienda puede acceder.
+    Route::middleware('role:SUPER_ADMIN')->group(function () {
+        Route::get('/saas/metrics', [SaasMetricsController::class, 'metrics']);
     });
 });

@@ -18,6 +18,7 @@ import { SalesDashboard } from './pages/admin/SalesDashboard';
 import { SettingsPage } from './pages/admin/SettingsPage';
 import { FiadosPage } from './pages/admin/FiadosPage';
 import { SuperAdminPage } from './pages/admin/SuperAdminPage';
+import { MasterDashboard } from './pages/admin/MasterDashboard';
 import { useSync } from './hooks/useSync';
 import { Toaster } from 'react-hot-toast';
 import { WhatsAppButton } from './components/WhatsAppButton';
@@ -210,7 +211,7 @@ const Dashboard = () => {
                             className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-amber-400 text-slate-800 dark:text-white rounded-2xl p-5 sm:p-7 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
                         >
                             <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">📒</div>
-                            <div className="font-bold text-base sm:text-lg lg:text-xl">Cuaderno de Fiados</div>
+                            <div className="font-bold text-base sm:text-lg lg:text-xl">Créditos y Cuentas</div>
                             <div className="text-primary text-xs sm:text-sm mt-1 font-semibold">Gestionar créditos →</div>
                         </Link>
                     )}
@@ -236,6 +237,19 @@ const Dashboard = () => {
                             <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">🔒</div>
                             <div className="font-bold text-base sm:text-lg lg:text-xl">Panel SaaS</div>
                             <div className="text-indigo-200 text-xs sm:text-sm mt-1">Gestionar tiendas →</div>
+                        </Link>
+                    )}
+
+                    {/* Centro de Comando — Solo SUPER_ADMIN */}
+                    {userRole === 'SUPER_ADMIN' && (
+                        <Link
+                            to="/master-dashboard"
+                            className="group relative overflow-hidden bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 hover:border-violet-500 text-white rounded-2xl p-5 sm:p-7 transition-all shadow-lg hover:shadow-violet-900/30 hover:-translate-y-0.5"
+                        >
+                            <div className="absolute -right-4 -top-4 w-20 h-20 bg-violet-500/10 rounded-full blur-xl group-hover:bg-violet-500/20 transition-colors" />
+                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">📡</div>
+                            <div className="font-bold text-base sm:text-lg lg:text-xl">Centro de Comando</div>
+                            <div className="text-slate-400 text-xs sm:text-sm mt-1">Métricas del negocio →</div>
                         </Link>
                     )}
                 </div>
@@ -298,6 +312,13 @@ const AppInner = () => {
                         <Route path="/super-admin" element={
                             <RequireRole allowed={['SUPER_ADMIN']}>
                                 <SuperAdminPage />
+                            </RequireRole>
+                        } />
+
+                        {/* Centro de Comando (Master Dashboard) — Solo SUPER_ADMIN */}
+                        <Route path="/master-dashboard" element={
+                            <RequireRole allowed={['SUPER_ADMIN']}>
+                                <MasterDashboard />
                             </RequireRole>
                         } />
                     </Route>
