@@ -7,13 +7,20 @@
  */
 
 import { useState } from 'react';
-import { useAuth } from '../contexts/AuthProvider';
 
 const WHATSAPP_NUMBER = '584124714797'; // 04124714797 → formato internacional sin +
 const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=Hola%20Soporte%20MerxPOS%2C%20necesito%20ayuda%3A`;
 
+/**
+ * Lee si hay sesión activa directamente desde localStorage.
+ * Evita depender del AuthProvider (no lanza error si está fuera del árbol).
+ */
+const useIsAuthenticated = () => {
+    return !!localStorage.getItem('pos_token');
+};
+
 export const WhatsAppButton = () => {
-    const { isAuthenticated } = useAuth();
+    const isAuthenticated = useIsAuthenticated();
     const [hovered, setHovered] = useState(false);
 
     if (!isAuthenticated) return null;
