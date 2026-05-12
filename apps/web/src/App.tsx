@@ -243,53 +243,58 @@ const AppInner = () => {
     const { user } = useAuth();
     const { company } = useSettingsContext();
     return (
-        <TrialExpiredGuard storeName={company}>
-            <Routes>
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/register" element={<RegisterPage />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
+        <>
+            <TrialExpiredGuard storeName={company}>
+                <Routes>
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/register" element={<RegisterPage />} />
+                    <Route path="/forgot-password" element={<ForgotPassword />} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
 
-                <Route element={<ProtectedRoute />}>
-                    <Route path="/" element={<Dashboard />} />
-                    <Route path="/products" element={<ProductsPage />} />
-                    <Route path="/pos" element={<PosPage />} />
+                    <Route element={<ProtectedRoute />}>
+                        <Route path="/" element={<Dashboard />} />
+                        <Route path="/products" element={<ProductsPage />} />
+                        <Route path="/pos" element={<PosPage />} />
 
-                    {/* Admin routes — ADMIN & MANAGER */}
-                    <Route path="/admin/inventory" element={
-                        <RequireRole allowed={['SUPER_ADMIN', 'ADMIN', 'MANAGER']}>
-                            <InventoryPage />
-                        </RequireRole>
-                    } />
-                    <Route path="/admin/sales" element={
-                        <RequireRole allowed={['SUPER_ADMIN', 'ADMIN', 'MANAGER']}>
-                            <SalesDashboard />
-                        </RequireRole>
-                    } />
-                    <Route path="/admin/fiados" element={
-                        <RequireRole allowed={['SUPER_ADMIN', 'ADMIN', 'MANAGER']}>
-                            <FiadosPage />
-                        </RequireRole>
-                    } />
+                        {/* Admin routes — ADMIN & MANAGER */}
+                        <Route path="/admin/inventory" element={
+                            <RequireRole allowed={['SUPER_ADMIN', 'ADMIN', 'MANAGER']}>
+                                <InventoryPage />
+                            </RequireRole>
+                        } />
+                        <Route path="/admin/sales" element={
+                            <RequireRole allowed={['SUPER_ADMIN', 'ADMIN', 'MANAGER']}>
+                                <SalesDashboard />
+                            </RequireRole>
+                        } />
+                        <Route path="/admin/fiados" element={
+                            <RequireRole allowed={['SUPER_ADMIN', 'ADMIN', 'MANAGER']}>
+                                <FiadosPage />
+                            </RequireRole>
+                        } />
 
-                    {/* Settings — Solo ADMIN */}
-                    <Route path="/admin/settings" element={
-                        <RequireRole allowed={['SUPER_ADMIN', 'ADMIN']}>
-                            <SettingsPage />
-                        </RequireRole>
-                    } />
+                        {/* Settings — Solo ADMIN */}
+                        <Route path="/admin/settings" element={
+                            <RequireRole allowed={['SUPER_ADMIN', 'ADMIN']}>
+                                <SettingsPage />
+                            </RequireRole>
+                        } />
 
-                    {/* Super Admin Panel — Solo SUPER_ADMIN */}
-                    <Route path="/super-admin" element={
-                        <RequireRole allowed={['SUPER_ADMIN']}>
-                            <SuperAdminPage />
-                        </RequireRole>
-                    } />
-                </Route>
+                        {/* Super Admin Panel — Solo SUPER_ADMIN */}
+                        <Route path="/super-admin" element={
+                            <RequireRole allowed={['SUPER_ADMIN']}>
+                                <SuperAdminPage />
+                            </RequireRole>
+                        } />
+                    </Route>
 
-                <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-        </TrialExpiredGuard>
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+            </TrialExpiredGuard>
+
+            {/* Botón flotante WhatsApp — dentro de AuthProvider, accede a isAuthenticated */}
+            <WhatsAppButton />
+        </>
     );
 };
 
@@ -303,7 +308,6 @@ export const App = () => {
                     </CartProvider>
                 </SettingsProvider>
             </AuthProvider>
-            <WhatsAppButton />
             <ReloadPrompt />
             <Toaster position="top-right" />
         </BrowserRouter>
