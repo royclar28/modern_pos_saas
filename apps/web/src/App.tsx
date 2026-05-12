@@ -20,6 +20,7 @@ import { FiadosPage } from './pages/admin/FiadosPage';
 import { SuperAdminPage } from './pages/admin/SuperAdminPage';
 import { useSync } from './hooks/useSync';
 import { Toaster } from 'react-hot-toast';
+import { WhatsAppButton } from './components/WhatsAppButton';
 
 // ─── Role Helpers ─────────────────────────────────────────────────────────────
 /** Roles that can access admin features (inventory, reports, settings, fiados) */
@@ -192,6 +193,18 @@ const Dashboard = () => {
                         </Link>
                     )}
 
+                    {/* Sugerencias — visible para TODOS los roles */}
+                    <a
+                        href="https://merx-pos.canny.io/sugerencias-merxpos"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-400 text-slate-800 dark:text-white rounded-2xl p-8 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                    >
+                        <div className="text-5xl mb-3">💡</div>
+                        <div className="font-bold text-xl">Sugerencias</div>
+                        <div className="text-slate-400 dark:text-slate-400 text-sm mt-1">Proponer mejoras →</div>
+                    </a>
+
                     {/* Panel SaaS — Solo SUPER_ADMIN */}
                     {userRole === 'SUPER_ADMIN' && (
                         <Link
@@ -290,6 +303,7 @@ export const App = () => {
                     </CartProvider>
                 </SettingsProvider>
             </AuthProvider>
+            <WhatsAppButton />
             <ReloadPrompt />
             <Toaster position="top-right" />
         </BrowserRouter>
