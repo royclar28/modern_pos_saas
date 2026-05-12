@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 /**
  * Store — Entidad raíz del multi-tenant.
@@ -23,13 +24,30 @@ class Store extends Model
         'plan',
         'rif',
         'owner_email',
+        'trial_ends_at',
+        'status',
     ];
 
     protected function casts(): array
     {
         return [
-            'is_active' => 'boolean',
+            'is_active'     => 'boolean',
+            'trial_ends_at' => 'datetime',
         ];
+    }
+
+    // ─── Trial Helpers ────────────────────────────────────
+
+    /** True si el store tiene un trial activo (no expirado). */
+    public function isOnTrial(): bool
+    {
+        return $this->trial_ends_at !== null && Carbon::now()->lessThan($this->trial_ends_at);
+    }
+
+    /** True si el trial existió y ya expiró. */
+    public function trialHasExpired(): bool
+    {
+        return $this->trial_ends_at !== null && Carbon::now()->greaterThan($this->trial_ends_at);
     }
 
     // ─── Relations ──────────────────────────────────────────────

@@ -145,9 +145,20 @@ export const LoginPage = () => {
                     </form>
                 </div>
 
-                <p className="text-xs text-slate-400 dark:text-slate-500 mt-8 font-medium">
-                    Powered by <span className="font-bold text-primary">Merx POS</span> · SaaS Multi-Tenant
-                </p>
+                <div className="mt-8 text-center space-y-2">
+                    <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">
+                        ¿No tienes cuenta?{' '}
+                        <Link
+                            to="/register"
+                            className="font-bold text-primary hover:text-primary-hover transition-colors"
+                        >
+                            Regístrate gratis — 30 días de prueba
+                        </Link>
+                    </p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">
+                        Powered by <span className="font-bold text-primary">Merx POS</span> · SaaS Multi-Tenant
+                    </p>
+                </div>
             </div>
         </div>
     );

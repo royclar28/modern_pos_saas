@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\TenantRegistrationController;
 
 // ── Rutas Públicas ──────────────────────────────────────────────
 Route::post('/login', [AuthController::class, 'login']);
@@ -13,26 +14,34 @@ Route::get('/login', function () {
     return response()->json(['message' => 'Unauthenticated.'], 401);
 })->name('login');
 
+// Registro de nuevos tenants (prueba gratuita de 30 días)
+Route::post('/register', [TenantRegistrationController::class, 'register']);
+
 Route::post('/forgot-password', [\App\Http\Controllers\Api\PasswordResetController::class, 'forgotPassword'])->name('password.email');
 Route::post('/reset-password', [\App\Http\Controllers\Api\PasswordResetController::class, 'resetPassword'])->name('password.store');
 
 Route::get('/settings/bcv', [SettingsController::class, 'getBcvRate']);
 
-// ── Rutas Protegidas (Requieren Token de Sanctum) ───────────────
-Route::middleware('auth:sanctum')->group(function () {
+// ── Rutas Protegidas (Requieren Token de Sanctum) ─────────────────
+// El middleware 'trial' bloquea el acceso si el trial expiró (HTTP 402)
+Route::middleware(['auth:sanctum', 'trial'])->group(function () {
 
     Route::patch('/auth/change-password', [AuthController::class, 'changePassword']);
 
     // ── Perfil del usuario autenticado ──────────────────────────
     Route::get('/user', function (Illuminate\Http\Request $request) {
-        $u = $request->user();
+        $u     = $request->user();
+        $store = $u->store;
         return [
-            'id'        => $u->id,
-            'username'  => $u->username,
-            'name'      => $u->full_name,
-            'email'     => $u->email,
-            'role'      => $u->role,
-            'tenant_id' => $u->tenant_id,
+            'id'             => $u->id,
+            'username'       => $u->username,
+            'name'           => $u->full_name,
+            'email'          => $u->email,
+            'role'           => $u->role,
+            'tenant_id'      => $u->tenant_id,
+            // Trial info (null cuando el plan es pagado/sin trial)
+            'trial_ends_at'  => $store?->trial_ends_at?->toISOString(),
+            'store_status'   => $store?->status,
         ];
     });
 

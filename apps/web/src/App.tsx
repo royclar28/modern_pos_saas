@@ -6,9 +6,11 @@ import { CartProvider } from './contexts/CartProvider';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { RequireRole } from './components/RequireRole';
 import { ReloadPrompt } from './components/ReloadPrompt';
+import { TrialExpiredGuard } from './components/TrialExpiredGuard';
 import { LoginPage } from './pages/LoginPage';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import { RegisterPage } from './pages/RegisterPage';
 import { ProductsPage } from './pages/ProductsPage';
 import { PosPage } from './pages/PosPage';
 import { InventoryPage } from './pages/admin/InventoryPage';
@@ -24,6 +26,49 @@ import { Toaster } from 'react-hot-toast';
 const ADMIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'MANAGER'];
 /** Roles that can access configuration/settings */
 const SETTINGS_ROLES = ['SUPER_ADMIN', 'ADMIN'];
+
+// ─── Trial Banner ───────────────────────────────────────────────────
+const TrialBanner = ({ trialEndsAt }: { trialEndsAt?: string | null }) => {
+    if (!trialEndsAt) return null;
+
+    const now        = new Date();
+    const endsAt     = new Date(trialEndsAt);
+    const msLeft     = endsAt.getTime() - now.getTime();
+    const daysLeft   = Math.max(0, Math.ceil(msLeft / (1000 * 60 * 60 * 24)));
+    const isUrgent   = daysLeft <= 7;
+    const whatsapp   = import.meta.env.VITE_SUPPORT_WHATSAPP || '584241234567';
+    const msg        = encodeURIComponent(`Hola! Quiero renovar mi suscripción al POS. Me quedan ${daysLeft} días de prueba.`);
+
+    return (
+        <div className={`rounded-xl px-4 py-3 mb-4 flex items-center justify-between gap-3 text-sm font-semibold border ${
+            isUrgent
+                ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300'
+                : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300'
+        }`}>
+            <div className="flex items-center gap-2">
+                <span>{isUrgent ? '⚠️' : '⏳'}</span>
+                <span>
+                    {isUrgent
+                        ? `¡Solo te quedan ${daysLeft} días de prueba!`
+                        : `Prueba gratuita: ${daysLeft} días restantes`
+                    }
+                </span>
+            </div>
+            <a
+                href={`https://wa.me/${whatsapp}?text=${msg}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`shrink-0 font-black text-xs px-3 py-1.5 rounded-lg transition-colors ${
+                    isUrgent
+                        ? 'bg-red-600 hover:bg-red-700 text-white'
+                        : 'bg-amber-500 hover:bg-amber-600 text-white'
+                }`}
+            >
+                Renovar →
+            </a>
+        </div>
+    );
+};
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 const Dashboard = () => {
@@ -54,10 +99,14 @@ const Dashboard = () => {
     const userRole = (user?.role || 'CASHIER').toUpperCase();
     const canAccessAdmin = ADMIN_ROLES.includes(userRole);
     const canAccessSettings = SETTINGS_ROLES.includes(userRole);
+    const trialEndsAt = (user as any)?.trial_ends_at ?? null;
 
     return (
         <div className="min-h-screen w-full bg-slate-50 dark:bg-slate-900 transition-colors duration-300 flex items-center justify-center p-6 md:p-12 relative">
             <div className="w-full max-w-4xl">
+                {/* Banner de trial (visible solo durante el período de prueba) */}
+                <TrialBanner trialEndsAt={trialEndsAt} />
+
                 <div className="mb-8 flex items-end justify-between">
                     <div>
                         <h1 className="text-4xl font-black text-slate-800 dark:text-white tracking-tight">{company}</h1>
@@ -177,56 +226,67 @@ const Dashboard = () => {
 };
 
 // ─── App ──────────────────────────────────────────────────────────────────────
+const AppInner = () => {
+    const { user } = useAuth();
+    const { company } = useSettingsContext();
+    return (
+        <TrialExpiredGuard storeName={company}>
+            <Routes>
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+
+                <Route element={<ProtectedRoute />}>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/products" element={<ProductsPage />} />
+                    <Route path="/pos" element={<PosPage />} />
+
+                    {/* Admin routes — ADMIN & MANAGER */}
+                    <Route path="/admin/inventory" element={
+                        <RequireRole allowed={['SUPER_ADMIN', 'ADMIN', 'MANAGER']}>
+                            <InventoryPage />
+                        </RequireRole>
+                    } />
+                    <Route path="/admin/sales" element={
+                        <RequireRole allowed={['SUPER_ADMIN', 'ADMIN', 'MANAGER']}>
+                            <SalesDashboard />
+                        </RequireRole>
+                    } />
+                    <Route path="/admin/fiados" element={
+                        <RequireRole allowed={['SUPER_ADMIN', 'ADMIN', 'MANAGER']}>
+                            <FiadosPage />
+                        </RequireRole>
+                    } />
+
+                    {/* Settings — Solo ADMIN */}
+                    <Route path="/admin/settings" element={
+                        <RequireRole allowed={['SUPER_ADMIN', 'ADMIN']}>
+                            <SettingsPage />
+                        </RequireRole>
+                    } />
+
+                    {/* Super Admin Panel — Solo SUPER_ADMIN */}
+                    <Route path="/super-admin" element={
+                        <RequireRole allowed={['SUPER_ADMIN']}>
+                            <SuperAdminPage />
+                        </RequireRole>
+                    } />
+                </Route>
+
+                <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+        </TrialExpiredGuard>
+    );
+};
+
 export const App = () => {
     return (
         <BrowserRouter>
             <AuthProvider>
                 <SettingsProvider>
                     <CartProvider>
-                        <Routes>
-                            <Route path="/login" element={<LoginPage />} />
-                            <Route path="/forgot-password" element={<ForgotPassword />} />
-                            <Route path="/reset-password" element={<ResetPassword />} />
-
-                            <Route element={<ProtectedRoute />}>
-                                <Route path="/" element={<Dashboard />} />
-                                <Route path="/products" element={<ProductsPage />} />
-                                <Route path="/pos" element={<PosPage />} />
-
-                                {/* Admin routes — ADMIN & MANAGER */}
-                                <Route path="/admin/inventory" element={
-                                    <RequireRole allowed={['SUPER_ADMIN', 'ADMIN', 'MANAGER']}>
-                                        <InventoryPage />
-                                    </RequireRole>
-                                } />
-                                <Route path="/admin/sales" element={
-                                    <RequireRole allowed={['SUPER_ADMIN', 'ADMIN', 'MANAGER']}>
-                                        <SalesDashboard />
-                                    </RequireRole>
-                                } />
-                                <Route path="/admin/fiados" element={
-                                    <RequireRole allowed={['SUPER_ADMIN', 'ADMIN', 'MANAGER']}>
-                                        <FiadosPage />
-                                    </RequireRole>
-                                } />
-
-                                {/* Settings — Solo ADMIN */}
-                                <Route path="/admin/settings" element={
-                                    <RequireRole allowed={['SUPER_ADMIN', 'ADMIN']}>
-                                        <SettingsPage />
-                                    </RequireRole>
-                                } />
-
-                                {/* Super Admin Panel — Solo SUPER_ADMIN */}
-                                <Route path="/super-admin" element={
-                                    <RequireRole allowed={['SUPER_ADMIN']}>
-                                        <SuperAdminPage />
-                                    </RequireRole>
-                                } />
-                            </Route>
-
-                            <Route path="*" element={<Navigate to="/" replace />} />
-                        </Routes>
+                        <AppInner />
                     </CartProvider>
                 </SettingsProvider>
             </AuthProvider>
