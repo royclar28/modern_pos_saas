@@ -1,5 +1,5 @@
 # ETAPA 1: Construcción (Compilar React a estático)
-FROM node:20-slim AS builder
+FROM node:22-slim AS builder
 
 RUN npm install -g pnpm@latest
 WORKDIR /app
