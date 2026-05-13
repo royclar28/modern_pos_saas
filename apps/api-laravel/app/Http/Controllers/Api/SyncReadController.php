@@ -19,11 +19,11 @@ class SyncReadController extends Controller
         // Traemos todos los items (podría paginarse en un futuro, pero para POS
         // offline es común traer todo o en chunks).
         $items = Item::select([
-            'id', 'name', 'category', 'item_number',
+            'id', 'tenant_id', 'name', 'category', 'item_number',
             'description', 'cost_price', 'unit_price',
             'stock', 'reorder_level', 'min_stock_alert',
             'receiving_quantity', 'allow_alt_description',
-            'is_serialized', 'sell_by', 'unit_label', 'updated_at', // ← agregado sell_by, unit_label
+            'is_serialized', 'sell_by', 'unit_label', 'created_at', 'updated_at',
         ])->get();
         
         return response()->json($items);

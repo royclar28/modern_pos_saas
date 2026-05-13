@@ -46,9 +46,9 @@ export function useInitialSync() {
                     minStockAlert: item.min_stock_alert !== null ? Number(item.min_stock_alert ?? item.minStockAlert) : undefined,
                     allowAltDescription: Boolean(item.allow_alt_description ?? item.allowAltDescription ?? false),
                     isSerialized: Boolean(item.is_serialized ?? item.isSerialized ?? false),
-                    storeId: item.store_id ?? item.storeId,
-                    createdAt: new Date(item.created_at ?? item.createdAt).getTime(),
-                    updatedAt: new Date(item.updated_at ?? item.updatedAt).getTime()
+                    storeId: item.tenant_id ?? item.store_id ?? item.storeId ?? 'default',
+                    createdAt: item.created_at ? new Date(item.created_at).getTime() : Date.now(),
+                    updatedAt: item.updated_at ? new Date(item.updated_at).getTime() : Date.now()
                 }));
                 // Bulk put reemplaza conflictos por PK
                 await db.items.bulkPut(mappedItems);
