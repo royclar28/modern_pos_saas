@@ -23,10 +23,13 @@ export function useInitialSync() {
         setProgress({ steps: 0, total: 3 });
         
         try {
+            console.log('[useInitialSync] Iniciando hidratación. Obteniendo /items...');
             const db = getOutboxDB();
 
             // 1. Descargar Ítems
             const items = await api.get('/items');
+            console.log(`[useInitialSync] /items respondió. ¿Es array? ${Array.isArray(items)}. Longitud: ${Array.isArray(items) ? items.length : 'N/A'}`, items);
+            
             if (Array.isArray(items) && items.length > 0) {
                 // Map properties from snake_case to camelCase
                 const mappedItems = items.map((item: any) => ({
@@ -50,8 +53,16 @@ export function useInitialSync() {
                     createdAt: item.created_at ? new Date(item.created_at).getTime() : Date.now(),
                     updatedAt: item.updated_at ? new Date(item.updated_at).getTime() : Date.now()
                 }));
-                // Bulk put reemplaza conflictos por PK
-                await db.items.bulkPut(mappedItems);
+                console.log(`[useInitialSync] Mapeo completado. Primer item de muestra:`, mappedItems[0]);
+                
+                try {
+                    // Bulk put reemplaza conflictos por PK
+                    await db.items.bulkPut(mappedItems);
+                    console.log(`[useInitialSync] bulkPut exitoso en Dexie.`);
+                } catch (dexieErr) {
+                    console.error('[useInitialSync] Dexie rechazó el bulkPut:', dexieErr);
+                    throw dexieErr;
+                }
             }
             setProgress(p => ({ ...p, steps: 1 }));
 
