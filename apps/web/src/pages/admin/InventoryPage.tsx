@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useItems } from '../../hooks/useItems';
+import { useInitialSync } from '../../hooks/useInitialSync';
 import { getOutboxDB } from '../../db/outbox';
 import { enqueueSyncEvent, generateId } from '../../db/enqueueSyncEvent';
 import { SyncEntityType, SyncAction } from '../../db/outbox.types';
@@ -512,6 +513,7 @@ async function upsertScannedProducts(products: ScannedProduct[], tenantId: strin
 // ─── Main Inventory Page ──────────────────────────────────────────────────────
 export const InventoryPage = () => {
     const { items, isLoading } = useItems();
+    const { hydrateLocalDB, isHydrating } = useInitialSync();
     const { user } = useAuth();
     const tenantId = user?.storeId || 'default-store';
 
@@ -687,6 +689,18 @@ export const InventoryPage = () => {
                             />
                         </div>
                         <div className="flex items-center gap-3">
+                            <button
+                                onClick={hydrateLocalDB}
+                                disabled={isHydrating}
+                                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all border ${
+                                    isHydrating 
+                                    ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                                    : 'bg-white text-slate-700 border-slate-200 hover:border-violet-400 hover:text-violet-600 shadow-sm'
+                                } flex items-center gap-2`}
+                            >
+                                <span className={isHydrating ? "animate-spin" : ""}>🔄</span>
+                                {isHydrating ? 'Sincronizando...' : 'Forzar Sincronización'}
+                            </button>
                             {/* Scanner Button */}
                             <InvoiceScannerModal 
                                 onScanSuccess={(products) => setScannedProducts(products)}
