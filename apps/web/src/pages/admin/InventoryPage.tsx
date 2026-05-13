@@ -12,18 +12,27 @@ import { Link } from 'react-router-dom';
 import { InvoiceScannerModal, ScannedProduct } from '../../components/InvoiceScannerModal';
 
 // ─── Zod Schema for Validation ──────────────────────────────────────────────
+const parseNumberVal = (val: unknown) => {
+    if (typeof val === 'string') {
+        const str = val.replace(',', '.');
+        if (str.trim() === '') return 0;
+        return parseFloat(str);
+    }
+    return Number(val) || 0;
+};
+
 const itemSchema = z.object({
     id: z.string().optional(),
     name: z.string().min(2, "El nombre es obligatorio"),
     category: z.string().min(2, "La categoría es obligatoria"),
     itemNumber: z.string().optional(),
     description: z.string().optional(),
-    costPrice: z.number().min(0, "Debe ser mayor o igual a 0"),
-    unitPrice: z.number().min(0, "Debe ser mayor o igual a 0"),
-    reorderLevel: z.number().min(0),
-    receivingQuantity: z.number().min(0),  // ← ya no min(1), permite decimales
+    costPrice: z.preprocess(parseNumberVal, z.number({ invalid_type_error: "Costo inválido" }).min(0, "Debe ser mayor o igual a 0")),
+    unitPrice: z.preprocess(parseNumberVal, z.number({ invalid_type_error: "Precio inválido" }).min(0, "Debe ser mayor o igual a 0")),
+    reorderLevel: z.preprocess(parseNumberVal, z.number({ invalid_type_error: "Nivel de alerta inválido" }).min(0, "Debe ser mayor o igual a 0")),
+    receivingQuantity: z.preprocess(parseNumberVal, z.number({ invalid_type_error: "Cantidad inválida" }).min(0, "Debe ser mayor o igual a 0")),
     sellBy: z.enum(['unit', 'weight']),    // ← NUEVO
-    unitLabel: z.string().max(5).optional(),
+    unitLabel: z.string().max(5, "Máximo 5 caracteres").optional(),
 }).refine((data) => data.unitPrice >= data.costPrice, {
     message: "El precio de venta debe ser mayor o igual al costo",
     path: ["unitPrice"],
@@ -117,25 +126,26 @@ const ItemModal = ({
                             </div>
                             <div className="space-y-1">
                                 <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Stock Mín. (Alerta)</label>
-                                <input type="number" step="0.01" {...register('reorderLevel', { valueAsNumber: true })} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-violet-400 focus:outline-none" />
+                                <input type="text" placeholder="0.00" {...register('reorderLevel', { onChange: e => e.target.value = e.target.value.replace(',', '.') })} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-violet-400 focus:outline-none" />
+                                {errors.reorderLevel && <p className="text-xs text-red-500">{errors.reorderLevel.message}</p>}
                             </div>
                             <div className="space-y-1">
                                 <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                                    Stock Inicial (Qty)
+                                    Stock Inicial (Cantidad)
                                 </label>
                                 <input
-                                    type="number"
-                                    step="any"                    // ← CORRECCIÓN: permitir decimales
-                                    min="0"
-                                    {...register('receivingQuantity', { valueAsNumber: true })}
+                                    type="text"
+                                    placeholder="0.00"
+                                    {...register('receivingQuantity', { onChange: e => e.target.value = e.target.value.replace(',', '.') })}
                                     className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-violet-400 focus:outline-none"
                                 />
+                                {errors.receivingQuantity && <p className="text-xs text-red-500">{errors.receivingQuantity.message}</p>}
                             </div>
                             <div className="space-y-1">
                                 <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Costo *</label>
                                 <div className="relative">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">$</span>
-                                    <input type="number" step="0.01" {...register('costPrice', { valueAsNumber: true })} className="w-full pl-8 pr-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-violet-400 focus:outline-none" />
+                                    <input type="text" placeholder="0.00" {...register('costPrice', { onChange: e => e.target.value = e.target.value.replace(',', '.') })} className="w-full pl-8 pr-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-violet-400 focus:outline-none" />
                                 </div>
                                 {errors.costPrice && <p className="text-xs text-red-500">{errors.costPrice.message}</p>}
                             </div>
@@ -143,7 +153,7 @@ const ItemModal = ({
                                 <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Precio Venta *</label>
                                 <div className="relative">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">$</span>
-                                    <input type="number" step="0.01" {...register('unitPrice', { valueAsNumber: true })} className="w-full pl-8 pr-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-violet-400 focus:outline-none" />
+                                    <input type="text" placeholder="0.00" {...register('unitPrice', { onChange: e => e.target.value = e.target.value.replace(',', '.') })} className="w-full pl-8 pr-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-violet-400 focus:outline-none" />
                                 </div>
                                 {errors.unitPrice && <p className="text-xs text-red-500">{errors.unitPrice.message}</p>}
                             </div>

@@ -587,26 +587,24 @@ export const PosPage = () => {
                         hv ? 'px-6 py-6 gap-4' : 'px-5 py-4 gap-3'
                     }`}>
                         {!hv && (
-                            <div className="space-y-1.5">
-                                <div className="flex justify-between text-xs font-semibold text-slate-500 dark:text-slate-400">
+                            <div className="space-y-2">
+                                <div className="flex justify-between items-center text-xs font-semibold text-slate-500 dark:text-slate-400">
                                     <span>Subtotal</span>
-                                    <span>${formatCurrency(totals.subtotal)}</span>
+                                    <input type="text" readOnly disabled value={`$${formatCurrency(totals.subtotal)}`} className="w-24 bg-transparent border border-slate-200 dark:border-slate-600 rounded-md text-right px-2 py-1 cursor-not-allowed font-mono text-slate-700 dark:text-slate-300" />
                                 </div>
-                                <div className="flex justify-between text-xs font-semibold text-slate-500 dark:text-slate-400">
+                                <div className="flex justify-between items-center text-xs font-semibold text-slate-500 dark:text-slate-400">
                                     <span>IVA ({totals.taxPercent}%)</span>
-                                    <span>${formatCurrency(totals.taxAmount)}</span>
+                                    <input type="text" readOnly disabled value={`$${formatCurrency(totals.taxAmount)}`} className="w-24 bg-transparent border border-slate-200 dark:border-slate-600 rounded-md text-right px-2 py-1 cursor-not-allowed font-mono text-slate-700 dark:text-slate-300" />
                                 </div>
                             </div>
                         )}
 
                         <div className={`flex justify-between items-end ${
-                            hv ? '' : 'border-t border-slate-300 dark:border-slate-600 pt-2 mt-2'
+                            hv ? '' : 'border-t border-slate-300 dark:border-slate-600 pt-3 mt-3'
                         }`}>
-                            <span className={`font-bold text-slate-700 dark:text-slate-300 tracking-tight ${hv ? 'text-2xl' : 'text-sm'}`}>TOTAL</span>
-                            <div className="text-right flex flex-col">
-                                <span className={`font-black text-violet-700 leading-none ${hv ? 'text-5xl' : 'text-2xl'}`}>
-                                    ${formatCurrency(totals.total)}
-                                </span>
+                            <span className={`font-bold text-slate-700 dark:text-slate-300 tracking-tight ${hv ? 'text-2xl mb-2' : 'text-sm mb-1'}`}>TOTAL</span>
+                            <div className="text-right flex flex-col items-end">
+                                <input type="text" readOnly disabled value={`$${formatCurrency(totals.total)}`} className={`bg-transparent border border-slate-200 dark:border-slate-600 rounded-lg text-right font-black text-violet-700 cursor-not-allowed w-40 ${hv ? 'text-5xl py-2 w-56' : 'text-2xl py-1 w-36'}`} />
                                 <span className={`font-bold text-slate-500 dark:text-slate-400 ${hv ? 'text-xl mt-1' : 'text-xs mt-1'}`}>
                                     Bs. {formatCurrency(totals.total * exchangeRate)}
                                 </span>

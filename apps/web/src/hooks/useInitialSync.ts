@@ -28,8 +28,22 @@ export function useInitialSync() {
             // 1. Descargar Ítems
             const items = await api.get('/items');
             if (Array.isArray(items) && items.length > 0) {
+                // Map properties from snake_case to camelCase
+                const mappedItems = items.map((item: any) => ({
+                    ...item,
+                    sellBy: item.sell_by ?? item.sellBy ?? 'unit',
+                    unitLabel: item.unit_label ?? item.unitLabel ?? 'und',
+                    receivingQuantity: item.receiving_quantity ?? item.stock ?? item.receivingQuantity ?? 0,
+                    itemNumber: item.item_number ?? item.itemNumber,
+                    costPrice: item.cost_price ?? item.costPrice ?? 0,
+                    unitPrice: item.unit_price ?? item.unitPrice ?? 0,
+                    reorderLevel: item.reorder_level ?? item.reorderLevel ?? 0,
+                    storeId: item.store_id ?? item.storeId,
+                    createdAt: item.created_at ?? item.createdAt,
+                    updatedAt: item.updated_at ?? item.updatedAt
+                }));
                 // Bulk put reemplaza conflictos por PK
-                await db.items.bulkPut(items);
+                await db.items.bulkPut(mappedItems);
             }
             setProgress(p => ({ ...p, steps: 1 }));
 

@@ -134,9 +134,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     const tenantId = user?.storeId || 'default-store';
     
     // Arrays of partial payments
+    const [isSplitPayment, setIsSplitPayment] = useState(false);
     const [payments, setPayments] = useState<ArrayPayment[]>([]);
 
-    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('DIVISA');
+    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('PUNTO');
     const [amountReceived, setAmountReceived] = useState<string>('');
     const [reference, setReference] = useState<string>('');
     const [changeMethod, setChangeMethod] = useState<ChangeMethod>('DIVISA');
@@ -153,8 +154,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
     useEffect(() => {
         if (isOpen) {
+            setIsSplitPayment(false);
             setPayments([]);
-            setPaymentMethod('DIVISA');
+            setPaymentMethod('PUNTO');
             setAmountReceived('');
             setReference('');
             setChangeMethod('DIVISA');
@@ -248,7 +250,43 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     };
 
     const handleConfirm = () => {
-        if (!isReadyToProcess || isProcessing) return;
+        if (isProcessing) return;
+
+        if (isFiado) {
+            if (!selectedCustomer) return;
+            onConfirm({
+                paymentMethod: 'FIADO',
+                customerId: selectedCustomer.id,
+                amountReceived: 0,
+                changeAmount: 0,
+                changeBs: 0,
+            });
+            return;
+        }
+
+        if (!isSplitPayment) {
+            if ((paymentMethod === 'PAGO_MOVIL' || paymentMethod === 'PUNTO') && paymentMethod === 'PAGO_MOVIL' && !reference.trim()) {
+                alert('Referencia es requerida para Pago Móvil');
+                return;
+            }
+            const payload: PaymentData = {
+                paymentMethod: paymentMethod,
+                payments: [{
+                    method: paymentMethod,
+                    amountUsd: total,
+                    amountBs: total * exchangeRate,
+                    reference: reference || undefined
+                }],
+                amountReceived: parseFloat(total.toFixed(2)),
+                changeAmount: 0,
+                changeBs: 0,
+            };
+            if (reference) payload.reference = reference;
+            onConfirm(payload);
+            return;
+        }
+
+        if (!isReadyToProcess) return;
 
         if (isFiado) {
             onConfirm({
@@ -292,42 +330,46 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
                     <div className="space-y-4">
                         <div className="flex justify-between items-end border-b border-slate-200 pb-3">
-                            <span className="text-sm font-bold text-slate-500 uppercase">Total a Pagar</span>
-                            <div className="text-right">
-                                <span className="text-3xl font-black text-slate-800">${total.toFixed(2)}</span>
+                            <span className="text-sm font-bold text-slate-500 uppercase mt-2">Total a Pagar</span>
+                            <div className="text-right flex flex-col items-end">
+                                <input type="text" readOnly disabled value={`$${total.toFixed(2)}`} className="text-3xl font-black text-slate-800 text-right bg-transparent border-none focus:ring-0 w-32 cursor-not-allowed" />
                                 <p className="text-sm font-bold text-slate-500">Bs. {totalBs.toFixed(2)}</p>
                             </div>
                         </div>
 
-                        <div className="flex justify-between items-end border-b border-slate-200 pb-3">
-                            <span className="text-sm font-bold text-emerald-600 uppercase">Total Pagado</span>
-                            <div className="text-right">
-                                <span className="text-2xl font-black text-emerald-600">${totalPaidUsd.toFixed(2)}</span>
-                                <p className="text-sm font-bold text-emerald-500">Bs. {totalPaidBs.toFixed(2)}</p>
-                            </div>
-                        </div>
+                        {isSplitPayment && (
+                            <>
+                                <div className="flex justify-between items-end border-b border-slate-200 pb-3 mt-3">
+                                    <span className="text-sm font-bold text-emerald-600 uppercase">Total Pagado</span>
+                                    <div className="text-right">
+                                        <span className="text-2xl font-black text-emerald-600">${totalPaidUsd.toFixed(2)}</span>
+                                        <p className="text-sm font-bold text-emerald-500">Bs. {totalPaidBs.toFixed(2)}</p>
+                                    </div>
+                                </div>
 
-                        {remainingUsd > 0 ? (
-                            <div className="flex justify-between items-end bg-red-50 p-3 rounded-xl border border-red-200">
-                                <span className="text-sm font-bold text-red-600 uppercase">Falta por Cobrar</span>
-                                <div className="text-right">
-                                    <span className="text-2xl font-black text-red-600">${remainingUsd.toFixed(2)}</span>
-                                    <p className="text-sm font-bold text-red-500">Bs. {remainingBs.toFixed(2)}</p>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="flex justify-between items-end bg-amber-50 p-3 rounded-xl border border-amber-200">
-                                <span className="text-sm font-bold text-amber-600 uppercase">Vuelto a Entregar</span>
-                                <div className="text-right">
-                                    <span className="text-2xl font-black text-amber-600">${changeUsd.toFixed(2)}</span>
-                                    <p className="text-sm font-bold text-amber-500">Bs. {changeBsCalc.toFixed(2)}</p>
-                                </div>
-                            </div>
+                                {remainingUsd > 0 ? (
+                                    <div className="flex justify-between items-end bg-red-50 p-3 rounded-xl border border-red-200 mt-3">
+                                        <span className="text-sm font-bold text-red-600 uppercase">Falta por Cobrar</span>
+                                        <div className="text-right">
+                                            <span className="text-2xl font-black text-red-600">${remainingUsd.toFixed(2)}</span>
+                                            <p className="text-sm font-bold text-red-500">Bs. {remainingBs.toFixed(2)}</p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex justify-between items-end bg-amber-50 p-3 rounded-xl border border-amber-200 mt-3">
+                                        <span className="text-sm font-bold text-amber-600 uppercase">Vuelto a Entregar</span>
+                                        <div className="text-right">
+                                            <span className="text-2xl font-black text-amber-600">${changeUsd.toFixed(2)}</span>
+                                            <p className="text-sm font-bold text-amber-500">Bs. {changeBsCalc.toFixed(2)}</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
 
                     {/* Vuelto Options */}
-                    {changeUsd > 0.01 && !isFiado && (
+                    {isSplitPayment && changeUsd > 0.01 && !isFiado && (
                         <div className="mt-4 animate-in slide-in-from-top-2">
                             <p className="text-xs font-bold text-amber-800 mb-2">Dar vuelto en:</p>
                             <div className="grid grid-cols-3 gap-2">
@@ -349,7 +391,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     )}
 
                     {/* Array of Payments Added */}
-                    {payments.length > 0 && (
+                    {isSplitPayment && payments.length > 0 && (
                         <div className="mt-6 flex-1 overflow-y-auto scroller">
                             <h3 className="text-xs font-bold text-slate-400 uppercase mb-2">Pagos Añadidos</h3>
                             <div className="space-y-2">
@@ -380,9 +422,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                         >Cancelar [Esc]</button>
                         <button
                             onClick={handleConfirm}
-                            disabled={!isReadyToProcess || isProcessing}
+                            disabled={(isSplitPayment && !isReadyToProcess) || isProcessing || (isFiado && !selectedCustomer)}
                             className={`flex-[1.5] py-3.5 rounded-2xl font-black text-sm transition-all shadow-lg flex items-center justify-center gap-2 ${
-                                isReadyToProcess && !isProcessing
+                                ((!isSplitPayment && (!isFiado || selectedCustomer)) || (isSplitPayment && isReadyToProcess)) && !isProcessing
                                     ? isFiado
                                         ? 'bg-amber-500 text-white hover:bg-amber-600 shadow-amber-200 border-2 border-amber-600'
                                         : 'bg-violet-600 text-white hover:bg-violet-700 shadow-violet-200 border-2 border-violet-700'
@@ -425,7 +467,34 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     </div>
 
                     {!isFiado && (
-                        <div className="flex-1">
+                        <div className="flex-1 flex flex-col">
+                            {!isSplitPayment && (
+                                <button
+                                    onClick={() => setIsSplitPayment(true)}
+                                    className="w-full py-3 mb-6 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl transition-all shadow-inner border border-slate-200"
+                                >🔗 Dividir Pago / Fraccionado</button>
+                            )}
+
+                            {(paymentMethod === 'PAGO_MOVIL' || paymentMethod === 'PUNTO') && (
+                                <div className="mb-4">
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">
+                                        Referencia o Lote (Opcional en Punto)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={reference}
+                                        onChange={(e) => setReference(e.target.value)}
+                                        className="w-full px-4 py-3 text-lg font-bold text-slate-900 border-2 border-slate-200 rounded-xl focus:border-violet-500 focus:ring-2 focus:ring-violet-200 transition-all font-mono tracking-wider"
+                                        placeholder="Ej: 0424XXXXXXXX"
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') isSplitPayment ? handleAddPaymentClick() : handleConfirm();
+                                        }}
+                                    />
+                                </div>
+                            )}
+
+                            {isSplitPayment && (
+                                <>
                             <div className="mb-4">
                                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">
                                     Monto a Añadir ({paymentMethod === 'DIVISA' ? '$' : 'Bs.'})
@@ -464,24 +533,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                                 </div>
                             )}
 
-                            {(paymentMethod === 'PAGO_MOVIL' || paymentMethod === 'PUNTO') && (
-                                <div className="mb-4">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">
-                                        Referencia o Lote (Opcional en Punto)
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={reference}
-                                        onChange={(e) => setReference(e.target.value)}
-                                        className="w-full px-4 py-3 text-lg font-bold text-slate-900 border-2 border-slate-200 rounded-2xl focus:border-violet-500 focus:ring-2 focus:ring-violet-200 transition-all font-mono tracking-wider"
-                                        placeholder="Ej: 0424XXXXXXXX"
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter') handleAddPaymentClick();
-                                        }}
-                                    />
-                                </div>
-                            )}
-
                             <button
                                 onClick={handleAddPaymentClick}
                                 disabled={!amountReceived || parseFloat(amountReceived) <= 0}
@@ -496,6 +547,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                                         Llenar con monto restante ({paymentMethod === 'DIVISA' ? `$${remainingUsd.toFixed(2)}` : `Bs. ${remainingBs.toFixed(2)}`})
                                     </button>
                                 </div>
+                            )}
+                                </>
                             )}
                         </div>
                     )}

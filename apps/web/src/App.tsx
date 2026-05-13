@@ -181,15 +181,27 @@ const Dashboard = () => {
                         </Link>
                     )}
 
+                    {/* Dashboard General (Ventas) — ADMIN y MANAGER */}
+                    {canAccessAdmin && (
+                        <Link
+                            to="/admin/sales"
+                            className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-violet-400 dark:hover:border-violet-500 text-slate-800 dark:text-white rounded-2xl p-5 sm:p-7 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                        >
+                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">📊</div>
+                            <div className="font-bold text-base sm:text-lg lg:text-xl">Dashboard General</div>
+                            <div className="text-slate-400 dark:text-slate-400 text-xs sm:text-sm mt-1">Estadísticas de ventas →</div>
+                        </Link>
+                    )}
+
                     {/* Reporte Z / Historial de Caja — ADMIN y MANAGER */}
                     {canAccessAdmin && (
                         <Link
                             to="/admin/shifts"
                             className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-violet-400 dark:hover:border-violet-500 text-slate-800 dark:text-white rounded-2xl p-5 sm:p-7 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
                         >
-                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">📊</div>
-                            <div className="font-bold text-base sm:text-lg lg:text-xl">Reporte Z</div>
-                            <div className="text-slate-400 dark:text-slate-400 text-xs sm:text-sm mt-1">Dashboard de ventas →</div>
+                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">🔐</div>
+                            <div className="font-bold text-base sm:text-lg lg:text-xl">Historial de Cajas (Z)</div>
+                            <div className="text-slate-400 dark:text-slate-400 text-xs sm:text-sm mt-1">Reportes y cortes →</div>
                         </Link>
                     )}
 
