@@ -21,6 +21,8 @@ import { SuperAdminPage } from './pages/admin/SuperAdminPage';
 import { MasterDashboard } from './pages/admin/MasterDashboard';
 import { ShiftHistoryPage } from './pages/admin/ShiftHistoryPage';
 import { useSync } from './hooks/useSync';
+import { useInitialSync } from './hooks/useInitialSync';
+import { useItems } from './hooks/useItems';
 import { Toaster } from 'react-hot-toast';
 import { WhatsAppButton } from './components/WhatsAppButton';
 
@@ -78,6 +80,20 @@ const Dashboard = () => {
     const { user, logout } = useAuth();
     const { enableCreditSales, company, toggleDarkMode, darkMode } = useSettingsContext();
     useSync();
+    const { items, isLoading } = useItems();
+    const { hydrateLocalDB, isHydrating } = useInitialSync();
+
+    useEffect(() => {
+        // Auto-hydrate if DB is empty and not already hydrating
+        if (!isLoading && items.length === 0 && !isHydrating) {
+            const hasHydrated = localStorage.getItem(`hydrated_${user?.id}`);
+            if (!hasHydrated) {
+                hydrateLocalDB().then(() => {
+                    if (user?.id) localStorage.setItem(`hydrated_${user.id}`, 'true');
+                });
+            }
+        }
+    }, [items.length, isLoading, isHydrating, user?.id, hydrateLocalDB]);
 
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
