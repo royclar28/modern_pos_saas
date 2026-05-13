@@ -31,16 +31,24 @@ export function useInitialSync() {
                 // Map properties from snake_case to camelCase
                 const mappedItems = items.map((item: any) => ({
                     ...item,
+                    id: item.id,
+                    name: item.name,
+                    category: item.category,
+                    description: item.description,
                     sellBy: item.sell_by ?? item.sellBy ?? 'unit',
                     unitLabel: item.unit_label ?? item.unitLabel ?? 'und',
-                    receivingQuantity: item.receiving_quantity ?? item.stock ?? item.receivingQuantity ?? 0,
+                    receivingQuantity: Number(item.receiving_quantity ?? item.receivingQuantity ?? 1),
+                    stock: Number(item.stock ?? 0),
                     itemNumber: item.item_number ?? item.itemNumber,
-                    costPrice: item.cost_price ?? item.costPrice ?? 0,
-                    unitPrice: item.unit_price ?? item.unitPrice ?? 0,
-                    reorderLevel: item.reorder_level ?? item.reorderLevel ?? 0,
+                    costPrice: Number(item.cost_price ?? item.costPrice ?? 0),
+                    unitPrice: Number(item.unit_price ?? item.unitPrice ?? 0),
+                    reorderLevel: Number(item.reorder_level ?? item.reorderLevel ?? 0),
+                    minStockAlert: item.min_stock_alert !== null ? Number(item.min_stock_alert ?? item.minStockAlert) : undefined,
+                    allowAltDescription: Boolean(item.allow_alt_description ?? item.allowAltDescription ?? false),
+                    isSerialized: Boolean(item.is_serialized ?? item.isSerialized ?? false),
                     storeId: item.store_id ?? item.storeId,
-                    createdAt: item.created_at ?? item.createdAt,
-                    updatedAt: item.updated_at ?? item.updatedAt
+                    createdAt: new Date(item.created_at ?? item.createdAt).getTime(),
+                    updatedAt: new Date(item.updated_at ?? item.updatedAt).getTime()
                 }));
                 // Bulk put reemplaza conflictos por PK
                 await db.items.bulkPut(mappedItems);

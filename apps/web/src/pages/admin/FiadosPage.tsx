@@ -222,7 +222,7 @@ export const FiadosPage = () => {
                 <div className="flex items-center gap-6">
                     <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
                         <span>📒</span>
-                        <span>Cuaderno de Fiados</span>
+                        <span>Cuentas por Cobrar</span>
                     </h1>
                     <nav className="hidden sm:flex gap-4">
                         <Link to="/" className="text-sm text-slate-300 hover:text-white transition-colors">
@@ -276,7 +276,7 @@ export const FiadosPage = () => {
                         <div className="flex items-center justify-center py-20">
                             <div className="text-center">
                                 <div className="w-10 h-10 border-4 border-amber-200 border-t-amber-600 rounded-full animate-spin mx-auto mb-4" />
-                                <p className="text-sm font-bold text-slate-500 dark:text-slate-400 animate-pulse">Cargando cuaderno de fiados...</p>
+                                <p className="text-sm font-bold text-slate-500 dark:text-slate-400 animate-pulse">Cargando cuentas por cobrar...</p>
                             </div>
                         </div>
                     ) : debts.length === 0 ? (
@@ -284,7 +284,7 @@ export const FiadosPage = () => {
                             <span className="text-7xl block mb-4 grayscale opacity-50">📒</span>
                             <h2 className="text-2xl font-black text-slate-700 dark:text-white">Sin Ventas a Crédito</h2>
                             <p className="text-slate-400 mt-2 max-w-sm mx-auto">
-                                No hay ventas registradas con el método "Fiado". Para empezar, realiza una venta a crédito desde el POS.
+                                No hay ventas registradas con el método "Crédito". Para empezar, realiza una venta a crédito desde el POS.
                             </p>
                         </div>
                     ) : (
@@ -398,7 +398,7 @@ export const FiadosPage = () => {
                                                                 const label = getOverdueLabel(days);
                                                                 return (
                                                                     <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${label.color}`}>
-                                                                        ⏰ {days > 0 ? `${days} días en mora` : 'Fiado de hoy'}
+                                                                        ⏰ {days > 0 ? `${days} días en mora` : 'Crédito de hoy'}
                                                                     </span>
                                                                 );
                                                             })()}

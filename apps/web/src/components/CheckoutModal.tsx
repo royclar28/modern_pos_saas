@@ -34,7 +34,7 @@ const BASE_TABS: { key: PaymentMethod; label: string; icon: string }[] = [
     { key: 'PUNTO',       label: 'Punto',         icon: '💳' },
 ];
 
-const FIADO_TAB = { key: 'FIADO' as PaymentMethod, label: 'Fiado', icon: '📒' };
+const FIADO_TAB = { key: 'FIADO' as PaymentMethod, label: 'Crédito', icon: '📒' };
 
 const CHANGE_OPTIONS: { key: ChangeMethod; label: string }[] = [
     { key: 'DIVISA',      label: 'Divisa (Efectivo $)' },
@@ -431,7 +431,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                                     : 'bg-slate-200 text-slate-400 shadow-none border-2 border-slate-200 cursor-not-allowed'
                             }`}
                         >
-                            {isProcessing ? 'Procesando...' : isFiado ? '📒 Guardar Fiado' : '✅ Cobrar Ticket'}
+                            {isProcessing ? 'Procesando...' : isFiado ? '📒 Procesar Crédito' : '✅ Cobrar Ticket'}
                         </button>
                     </div>
                 </div>

@@ -220,7 +220,7 @@ const Dashboard = () => {
                     {/* Fiados — ADMIN y MANAGER (si está habilitado) */}
                     {enableCreditSales && canAccessAdmin && (
                         <Link
-                            to="/admin/fiados"
+                            to="/admin/creditos"
                             className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-amber-400 text-slate-800 dark:text-white rounded-2xl p-5 sm:p-7 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
                         >
                             <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">📒</div>
@@ -308,7 +308,7 @@ const AppInner = () => {
                                 <SalesDashboard />
                             </RequireRole>
                         } />
-                        <Route path="/admin/fiados" element={
+                        <Route path="/admin/creditos" element={
                             <RequireRole allowed={['SUPER_ADMIN', 'ADMIN', 'MANAGER']}>
                                 <FiadosPage />
                             </RequireRole>

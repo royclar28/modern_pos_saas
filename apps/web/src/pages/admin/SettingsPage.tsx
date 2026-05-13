@@ -549,11 +549,11 @@ export const SettingsPage = () => {
                             <div className="flex items-center justify-between">
                                 <div className="flex-1">
                                     <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                                        <span className="text-lg">📒</span> Permitir Ventas a Crédito (Fiado)
+                                        <span className="text-lg">📒</span> Permitir Ventas a Crédito
                                     </h3>
                                     <p className="text-xs text-slate-400 mt-1 leading-relaxed max-w-md">
                                         Habilita la opción de vender a crédito en el punto de venta.
-                                        Al activarlo, aparecerá una pestaña "Fiado" en el modal de cobro
+                                        Al activarlo, aparecerá una pestaña "Crédito" en el modal de cobro
                                         y se habilitará el cuaderno digital de deudas.
                                     </p>
                                 </div>
@@ -602,7 +602,7 @@ export const SettingsPage = () => {
                             {globalForm.enable_credit_sales === 'true' && (
                                 <div className="mt-3 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-xl px-4 py-3 text-sm text-emerald-800 dark:text-emerald-300 font-medium flex items-center gap-2">
                                     <span className="text-lg">✅</span>
-                                    <span>Ventas a Crédito <strong>HABILITADAS</strong>. La pestaña "Fiado" aparecerá en el modal de cobro.</span>
+                                    <span>Ventas a Crédito <strong>HABILITADAS</strong>. La pestaña "Crédito" aparecerá en el modal de cobro.</span>
                                 </div>
                             )}
                         </div>
