@@ -11,6 +11,7 @@ import { LoginPage } from './pages/LoginPage';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import { RegisterPage } from './pages/RegisterPage';
+import { LandingPage } from './pages/public/LandingPage';
 import { ProductsPage } from './pages/ProductsPage';
 import { PosPage } from './pages/PosPage';
 import { InventoryPage } from './pages/admin/InventoryPage';
@@ -307,9 +308,10 @@ const AppInner = () => {
                     <Route path="/register" element={<RegisterPage />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
+                    <Route path="/" element={<LandingPage />} />
 
                     <Route element={<ProtectedRoute />}>
-                        <Route path="/" element={<Dashboard />} />
+                        <Route path="/dashboard" element={<Dashboard />} />
                         <Route path="/products" element={<ProductsPage />} />
                         <Route path="/pos" element={<PosPage />} />
 
