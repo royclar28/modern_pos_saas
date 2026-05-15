@@ -37,7 +37,7 @@ export const LandingPage: React.FC = () => {
                         <span className="text-violet-600 dark:text-violet-400">sin depender del internet.</span>
                     </h1>
                     <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-400 mb-10 max-w-3xl mx-auto font-medium">
-                        Rápido, seguro y 100% offline. El punto de venta ideal para negocios modernos que no pueden permitirse detenerse.
+                        Rápido, seguro y 100% offline. Para tu negocio sin interrupciones.
                     </p>
                     <div className="flex flex-col sm:flex-row justify-center gap-4">
                         {isAuthenticated ? (
@@ -87,7 +87,10 @@ export const LandingPage: React.FC = () => {
                         
                         <div className="relative z-10 flex flex-col md:flex-row items-center gap-10">
                             <div className="flex-1">
-                                <h2 className="text-3xl md:text-4xl font-black mb-4">Tus clientes también podrán ver tu inventario online</h2>
+                                <h2 className="text-3xl md:text-4xl font-black mb-4 flex items-center gap-3 flex-wrap">
+                                    Tus clientes también podrán ver tu catálogo de productos online
+                                    <span className="text-sm px-2 py-1 bg-violet-600 text-white rounded-lg font-bold shadow-sm whitespace-nowrap">🚀 Próximamente</span>
+                                </h2>
                                 <p className="text-slate-300 text-lg mb-6">
                                     Con nuestra Vitrina Digital integrada, tu catálogo se publica automáticamente. Recibe pedidos por WhatsApp y aumenta tus ventas.
                                 </p>
@@ -121,22 +124,25 @@ export const LandingPage: React.FC = () => {
                 <section className="py-16 max-w-5xl mx-auto text-center mb-10">
                     <h2 className="text-3xl font-black mb-10">Disponible en todos tus dispositivos</h2>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <a href="#" className="flex flex-col items-center justify-center p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-violet-500 transition-colors group">
-                            <MonitorSmartphone className="w-12 h-12 mb-3 text-slate-400 group-hover:text-violet-600 transition-colors" />
-                            <span className="font-bold">Windows (.exe)</span>
-                        </a>
-                        <a href="#" className="flex flex-col items-center justify-center p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-violet-500 transition-colors group">
-                            <Terminal className="w-12 h-12 mb-3 text-slate-400 group-hover:text-violet-600 transition-colors" />
-                            <span className="font-bold">Linux (.deb)</span>
-                        </a>
-                        <a href="#" className="flex flex-col items-center justify-center p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-violet-500 transition-colors group">
-                            <Smartphone className="w-12 h-12 mb-3 text-slate-400 group-hover:text-violet-600 transition-colors" />
-                            <span className="font-bold">Android (APK)</span>
-                        </a>
-                        <a href="#" className="flex flex-col items-center justify-center p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-violet-500 transition-colors group">
+                        <div className="flex flex-col items-center justify-center p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 opacity-50 cursor-not-allowed">
+                            <MonitorSmartphone className="w-12 h-12 mb-3 text-slate-400" />
+                            <span className="font-bold text-center">Windows (.exe)</span>
+                            <span className="text-xs text-slate-500 mt-2 font-semibold">⏳ Próximamente</span>
+                        </div>
+                        <div className="flex flex-col items-center justify-center p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 opacity-50 cursor-not-allowed">
+                            <Terminal className="w-12 h-12 mb-3 text-slate-400" />
+                            <span className="font-bold text-center">Linux (.deb)</span>
+                            <span className="text-xs text-slate-500 mt-2 font-semibold">⏳ Próximamente</span>
+                        </div>
+                        <div className="flex flex-col items-center justify-center p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 opacity-50 cursor-not-allowed">
+                            <Smartphone className="w-12 h-12 mb-3 text-slate-400" />
+                            <span className="font-bold text-center">Android (APK)</span>
+                            <span className="text-xs text-slate-500 mt-2 font-semibold">⏳ Próximamente</span>
+                        </div>
+                        <Link to={isAuthenticated ? "/dashboard" : "/login"} className="flex flex-col items-center justify-center p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-violet-500 transition-colors group">
                             <Globe className="w-12 h-12 mb-3 text-slate-400 group-hover:text-violet-600 transition-colors" />
-                            <span className="font-bold">Navegador Web</span>
-                        </a>
+                            <span className="font-bold text-center">Usar Versión Web</span>
+                        </Link>
                     </div>
                 </section>
             </main>
