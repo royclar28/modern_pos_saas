@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthProvider';
-
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001/api';
 
 // ─── Inline toast sin dependencias ───────────────────────────────────────────
@@ -21,9 +19,7 @@ const showToast = (msg: string, type: 'success' | 'error') => {
     setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 4000);
 };
 
-// ─── Componente ───────────────────────────────────────────────────────────────
 export const RegisterPage = () => {
-    const { login } = useAuth();
     const navigate = useNavigate();
 
     const [form, setForm] = useState({
@@ -84,14 +80,9 @@ export const RegisterPage = () => {
                 return;
             }
 
-            // Éxito — iniciar sesión automático
-            showToast('¡Bienvenido! Tu período de prueba de 30 días ha comenzado 🎉', 'success');
-            login(data.token, {
-                username: data.user.username,
-                role:     data.user.role,
-                sub:      data.user.id,
-                storeId:  data.user.tenant_id,
-            });
+            // Éxito — redirigir al login
+            showToast('Registro exitoso. Se le ha enviado su contraseña por correo 📧', 'success');
+            navigate('/login');
         } catch (err) {
             showToast('Error de conexión. Intenta de nuevo.', 'error');
         } finally {
