@@ -40,7 +40,7 @@ class SaasController extends Controller
     {
         $request->validate([
             'name'       => 'required|string|max:255',
-            'ownerEmail' => 'required|email|unique:users,email',
+            'ownerEmail' => ['required', 'email', \Illuminate\Validation\Rule::unique('users', 'email')->whereNull('deleted_at')],
             'ownerName'  => 'nullable|string|max:255',
             'plan'       => 'nullable|in:STANDARD,PRO,ENTERPRISE',
             'rif'        => 'nullable|string|max:20',

@@ -99,10 +99,10 @@ export const RegisterPage = () => {
         }
     };
 
-    const InputField = ({ label, id, type = 'text', placeholder, error }: {
+    const renderInputField = ({ label, id, type = 'text', placeholder, error }: {
         label: string; id: keyof typeof form; type?: string; placeholder?: string; error?: string;
     }) => (
-        <div>
+        <div key={id}>
             <label htmlFor={id} className="block text-sm font-semibold text-slate-300 mb-1.5">
                 {label}
             </label>
@@ -148,49 +148,49 @@ export const RegisterPage = () => {
                       className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 shadow-2xl space-y-5">
 
                     {/* Nombre de la tienda */}
-                    <InputField
-                        label="Nombre de tu negocio"
-                        id="store_name"
-                        placeholder="Ej: Quesera La Familia"
-                        error={errors.store_name}
-                    />
+                    {renderInputField({
+                        label: "Nombre de tu negocio",
+                        id: "store_name",
+                        placeholder: "Ej: Quesera La Familia",
+                        error: errors.store_name
+                    })}
 
                     {/* Nombre y apellido */}
                     <div className="grid grid-cols-2 gap-4">
-                        <InputField label="Nombre" id="first_name" placeholder="María" error={errors.first_name} />
-                        <InputField label="Apellido" id="last_name" placeholder="García" error={errors.last_name} />
+                        {renderInputField({ label: "Nombre", id: "first_name", placeholder: "María", error: errors.first_name })}
+                        {renderInputField({ label: "Apellido", id: "last_name", placeholder: "García", error: errors.last_name })}
                     </div>
 
                     {/* Usuario y Email */}
-                    <InputField
-                        label="Nombre de usuario"
-                        id="username"
-                        placeholder="maria_garcia"
-                        error={errors.username}
-                    />
-                    <InputField
-                        label="Correo electrónico"
-                        id="email"
-                        type="email"
-                        placeholder="maria@ejemplo.com"
-                        error={errors.email}
-                    />
+                    {renderInputField({
+                        label: "Nombre de usuario",
+                        id: "username",
+                        placeholder: "maria_garcia",
+                        error: errors.username
+                    })}
+                    {renderInputField({
+                        label: "Correo electrónico",
+                        id: "email",
+                        type: "email",
+                        placeholder: "maria@ejemplo.com",
+                        error: errors.email
+                    })}
 
                     {/* Contraseñas */}
-                    <InputField
-                        label="Contraseña"
-                        id="password"
-                        type="password"
-                        placeholder="Mínimo 8 caracteres"
-                        error={errors.password}
-                    />
-                    <InputField
-                        label="Confirmar contraseña"
-                        id="password_confirmation"
-                        type="password"
-                        placeholder="Repite tu contraseña"
-                        error={errors.password_confirmation}
-                    />
+                    {renderInputField({
+                        label: "Contraseña",
+                        id: "password",
+                        type: "password",
+                        placeholder: "Mínimo 8 caracteres",
+                        error: errors.password
+                    })}
+                    {renderInputField({
+                        label: "Confirmar contraseña",
+                        id: "password_confirmation",
+                        type: "password",
+                        placeholder: "Repite tu contraseña",
+                        error: errors.password_confirmation
+                    })}
 
                     {/* Términos */}
                     <p className="text-xs text-slate-500 text-center leading-relaxed">

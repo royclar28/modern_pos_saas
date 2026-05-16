@@ -31,8 +31,8 @@ class TenantRegistrationController extends Controller
     {
         $request->validate([
             'store_name' => 'required|string|max:255',
-            'username'   => 'required|string|max:50|alpha_dash|unique:users,username',
-            'email'      => 'required|email|max:255|unique:users,email',
+            'username'   => ['required', 'string', 'max:50', 'alpha_dash', \Illuminate\Validation\Rule::unique('users', 'username')->whereNull('deleted_at')],
+            'email'      => ['required', 'email', 'max:255', \Illuminate\Validation\Rule::unique('users', 'email')->whereNull('deleted_at')],
             'password'   => 'required|string|min:8|confirmed',
             'first_name' => 'required|string|max:100',
             'last_name'  => 'nullable|string|max:100',
