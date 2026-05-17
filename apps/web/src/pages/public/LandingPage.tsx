@@ -124,11 +124,16 @@ export const LandingPage: React.FC = () => {
                 <section className="py-16 max-w-5xl mx-auto text-center mb-10">
                     <h2 className="text-3xl font-black mb-10">Disponible en todos tus dispositivos</h2>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="flex flex-col items-center justify-center p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 opacity-50 cursor-not-allowed">
-                            <MonitorSmartphone className="w-12 h-12 mb-3 text-slate-400" />
-                            <span className="font-bold text-center">Windows (.exe)</span>
-                            <span className="text-xs text-slate-500 mt-2 font-semibold">⏳ Próximamente</span>
-                        </div>
+                        <a 
+                            href="https://github.com/royclar28/modern_pos_saas/releases/latest/download/MerxPOS-Installer.msi" 
+                            download 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="flex flex-col items-center justify-center p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-violet-500 hover:shadow-lg hover:-translate-y-1 transition-all group"
+                        >
+                            <MonitorSmartphone className="w-12 h-12 mb-3 text-slate-400 group-hover:text-violet-600 transition-colors" />
+                            <span className="font-bold text-center">Windows (.msi)</span>
+                        </a>
                         <div className="flex flex-col items-center justify-center p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 opacity-50 cursor-not-allowed">
                             <Terminal className="w-12 h-12 mb-3 text-slate-400" />
                             <span className="font-bold text-center">Linux (.deb)</span>
