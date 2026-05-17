@@ -388,7 +388,7 @@ export const PosPage = () => {
                         <span className="text-primary mr-2">●</span>{company || 'POS Terminal'}
                     </h1>
                     <nav className="hidden sm:flex gap-4">
-                        <Link to="/" className="text-sm text-slate-300 hover:text-white transition-colors">
+                        <Link to="/dashboard" className="text-sm text-slate-300 hover:text-white transition-colors">
                             ← Dashboard
                         </Link>
                         {user?.role?.toUpperCase() === 'SUPER_ADMIN' || user?.role?.toUpperCase() === 'STORE_ADMIN' ? (
