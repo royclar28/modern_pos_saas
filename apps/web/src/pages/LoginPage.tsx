@@ -59,7 +59,12 @@ export const LoginPage = () => {
             });
 
         } catch (err: any) {
-            setError(err.message || 'Error al iniciar sesión');
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001/api';
+            if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
+                setError(`Failed to fetch from ${apiUrl}/login. Verifica tu conexión o CORS.`);
+            } else {
+                setError(err.message || 'Error al iniciar sesión');
+            }
         }
     };
 

@@ -32,7 +32,7 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VITE_API_URL: https://merxpos.com/api
+          VITE_API_URL: https://api.merxpos.com/api
         with:
           projectPath: apps/web
 
