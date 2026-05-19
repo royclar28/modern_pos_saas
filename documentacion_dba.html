@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Documentación de Arquitectura de Base de Datos - MerxPOS</title>
+    <style>
+        /* Estilos básicos optimizados para que Excel los interprete correctamente */
+        table { 
+            border-collapse: collapse; 
+            width: 100%; 
+            font-family: Arial, sans-serif; 
+        }
+        th, td { 
+            border: 1px solid #000000; 
+            padding: 10px; 
+            text-align: left; 
+            vertical-align: top; 
+        }
+        th { 
+            background-color: #D9E1F2; 
+            font-weight: bold; 
+            font-size: 14px; 
+        }
+        td { 
+            font-size: 13px; 
+        }
+        p {
+            margin: 5px 0;
+        }
+        ul {
+            margin-top: 5px;
+            margin-bottom: 5px;
+            padding-left: 20px;
+        }
+        .title-row { 
+            background-color: #4472C4; 
+            color: #FFFFFF; 
+            font-weight: bold; 
+            font-size: 16px; 
+            text-align: center; 
+        }
+        .section-row { 
+            background-color: #B4C6E7; 
+            font-weight: bold; 
+            text-align: center;
+        }
+        .sub-header {
+            background-color: #FCE4D6;
+            font-weight: bold;
+        }
+        .sub-header-2 {
+            background-color: #E2EFDA;
+            font-weight: bold;
+        }
+        .sub-header-3 {
+            background-color: #FFF2CC;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <table>
+        <tr>
+            <th colspan="3" class="title-row">MERXPOS - DOCUMENTACIÓN DE ARQUITECTURA Y BASE DE DATOS (REPORTE DBA)</th>
+        </tr>
+        <tr>
+            <td colspan="3">Este documento explica la estructura de las tablas principales del sistema, el diseño de la función "Multicaja" y las justificaciones arquitectónicas para el enfoque Offline-First. Puede ser importado o abierto directamente desde Excel.</td>
+        </tr>
+        
+        <!-- SECCIÓN 1: EXPLICACIÓN DE TABLAS -->
+        <tr>
+            <th colspan="3" class="section-row">1. ESTRUCTURA DE TABLAS PRINCIPALES Y LÓGICA MULTICAJA</th>
+        </tr>
+        <tr>
+            <th style="width: 20%;">Tabla</th>
+            <th style="width: 30%;">Función en el Sistema</th>
+            <th style="width: 50%;">¿Por qué se diseñó así? (Justificación Arquitectónica)</th>
+        </tr>
+        <tr>
+            <td><strong>stores / tenants</strong></td>
+            <td>Gestión Multi-inquilino (SaaS). Aísla y agrupa la información de cada negocio.</td>
+            <td>Permite escalar el software como servicio. Cada registro representa un negocio independiente (ej. una ferretería o charcutería) garantizando el aislamiento de los datos y simplificando el onboarding.</td>
+        </tr>
+        <tr>
+            <td><strong>cash_registers (Multicaja)</strong></td>
+            <td>Gestiona los múltiples puntos de cobro (físicos o lógicos) dentro de una misma tienda.</td>
+            <td><strong>Lógica Offline-First y Anticolisión:</strong> Para que un negocio funcione sin internet, cada caja necesita operar de forma independiente. Esta tabla permite que la aplicación local (Dexie.js) asigne ventas a una "caja específica". Al recuperar internet, la caja sincroniza sus ventas en lote. Esto evita problemas de concurrencia y conflictos en las Primary Keys de transacciones, ya que cada bloque de datos llega con el identificador de su origen de venta.</td>
+        </tr>
+        <tr>
+            <td><strong>users / roles</strong></td>
+            <td>Control de acceso y autenticación (SuperAdmin, Dueño, Cajero).</td>
+            <td>Se separa el acceso del negocio para que un mismo dueño pueda gestionar varias tiendas (o cajas), y para limitar qué operaciones (ej. anular facturas) puede realizar el usuario local en una <i>cash_register</i> específica.</td>
+        </tr>
+        <tr>
+            <td><strong>sales / transactions</strong></td>
+            <td>Almacena el registro histórico de ventas consolidadas que han sido sincronizadas al backend.</td>
+            <td>Optimizado para recibir inserciones asíncronas masivas (<i>bulk sync</i>). Las transacciones nacen offline en IndexedDB y viajan con marcas de tiempo (timestamps) locales, permitiendo al servidor de Laravel resolver conflictos de auditoría.</td>
+        </tr>
+        <tr>
+            <td><strong>products</strong></td>
+            <td>Catálogo unificado del inventario del negocio.</td>
+            <td>Se ha utilizado un modelo de <strong>desnormalización táctica</strong> (explicado en la Sección 2) para asegurar que el motor de la base de datos local en el navegador pueda renderizar el catálogo inmediatamente sin penalización de rendimiento.</td>
+        </tr>
+
+        <!-- SECCIÓN 2: JUSTIFICACIÓN DE PESOS Y UNIDADES -->
+        <tr>
+            <th colspan="3" class="section-row">2. JUSTIFICACIÓN ARQUITECTÓNICA: DESNORMALIZACIÓN TÁCTICA DE UNIDADES Y PESOS</th>
+        </tr>
+        <tr>
+            <td colspan="3">
+                <p>En el diseño de bases de datos relacionales tradicionales (3NF), la práctica estándar dicta la creación de tablas maestras independientes para las "Unidades de Medida" (ej. <code>units_table</code>: kg, gr, lts, und) y sus conversiones. Sin embargo, en el contexto de un sistema de Punto de Venta (POS) Offline-First dirigido a microempresas (queseras, charcuterías, ferreterías), esta estructura relacional estricta introduce vectores de fallo inaceptables y degrada el rendimiento del cliente.</p>
+                <p>Por ello, MerxPOS adopta un enfoque de <strong>Desnormalización Táctica</strong>, integrando la lógica de pesaje y unidades directamente en la entidad del producto. A continuación, se expone el porqué de esta decisión y la mecánica de su implementación.</p>
+            </td>
+        </tr>
+
+        <tr>
+            <th colspan="3" class="sub-header">¿Por qué NO crear una tabla relacional para Pesos y Unidades?</th>
+        </tr>
+        <tr>
+            <td colspan="3">
+                <ul>
+                    <li><strong>La Penalización de los JOINs en IndexedDB:</strong> En el entorno local del navegador (Dexie.js), las bases de datos NoSQL no manejan las relaciones (JOINs) con la misma eficiencia que PostgreSQL en el servidor. Si para renderizar el catálogo de 5,000 productos la caja registradora debe cruzar la tabla <code>products</code> con una tabla <code>units</code>, se duplica el esfuerzo computacional en el hilo principal de JavaScript, provocando latencia y congelamiento en equipos de hardware básico (el fenómeno de <i>jank</i>).</li>
+                    <li><strong>Riesgo de Sincronización Fragmentada (Registros Huérfanos):</strong> En conexiones a internet intermitentes, sincronizar múltiples tablas relacionales es peligroso. Si un producto nuevo se sincroniza en la caja local, pero la tabla de "Unidades" falla en la descarga, el sistema intentará vender un producto referenciando un ID de unidad (<code>unit_id: 4</code>) que no existe localmente, colapsando la pantalla de facturación de la charcutería.</li>
+                    <li><strong>Fricción Operativa para el Microempresario:</strong> El dueño de una bodega no piensa en matrices de conversión volumétrica. Solo necesita saber que el queso se vende por kilos y el refresco por unidades. Obligarlo a configurar una "Tabla de Unidades" durante su onboarding viola la regla de fricción cero.</li>
+                </ul>
+            </td>
+        </tr>
+
+        <tr>
+            <th colspan="3" class="sub-header-2">¿Cómo lo manejamos? (La Solución)</th>
+        </tr>
+        <tr>
+            <td colspan="3">
+                <p>En lugar de delegar la información a tablas externas, el sistema aplana (desnormaliza) las propiedades de medición directamente como columnas dentro de la tabla principal de <code>products</code>. La estructura se maneja de la siguiente manera:</p>
+                <ul>
+                    <li><strong>Atributos Embebidos en el Producto:</strong> La tabla <code>products</code> incluye campos directos como <code>sale_unit</code> (VARCHAR: 'kg', 'und', 'mts') y un booleano <code>is_fractional</code> (TRUE/FALSE). Esto convierte a la fila del producto en una "Fuente Única de Verdad" (Single Source of Truth). Cuando Dexie.js lee el producto localmente, ya tiene todo lo que necesita para mostrar en pantalla sin hacer consultas adicionales.</li>
+                    <li><strong>Manejo de Fracciones en la Facturación:</strong> Si un producto está marcado como <code>is_fractional = true</code> (ej. Queso Amarillo), el frontend en React cambia la interfaz del punto de venta. En lugar de sumar "+1" al presionar el producto, despliega un teclado numérico (o conecta con la balanza) permitiendo la entrada de valores decimales (ej. 0.250 gramos).</li>
+                    <li><strong>Inventario Basado en la Unidad Mínima:</strong> Para evitar complejidades matemáticas en la sincronización, el stock siempre se descuenta en base a la unidad declarada. Si el comerciante ingresa una horma de queso de 5.5 kg, el sistema registra stock: 5.5. Al vender 250 gramos, el sistema envía un delta de deducción de -0.25 al backend (Laravel), ejecutando la resta directamente sobre la columna de stock mediante campos de tipo DECIMAL(10,3) para garantizar precisión milimétrica y evitar los bugs de coma flotante típicos de JavaScript.</li>
+                </ul>
+            </td>
+        </tr>
+
+        <tr>
+            <th colspan="3" class="sub-header-3">Conclusión para el DBA</th>
+        </tr>
+        <tr>
+            <td colspan="3">
+                <p>Esta arquitectura sacrifica levemente el espacio en disco en el servidor (al repetir el texto 'kg' en múltiples filas en lugar de usar un <code>unit_id</code>) a cambio de garantizar velocidad de lectura extrema en la caja registradora offline y eliminar la posibilidad de errores de integridad referencial durante las caídas de internet. En sistemas de misión crítica de cara al cliente, la velocidad de cobro siempre tiene prioridad sobre la normalización estricta.</p>
+            </td>
+        </tr>
+
+    </table>
+
+</body>
+</html>

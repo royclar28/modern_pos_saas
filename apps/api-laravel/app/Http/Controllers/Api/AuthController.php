@@ -44,6 +44,7 @@ class AuthController extends Controller
                 'email'      => $user->email,
                 'tenant_id'  => $user->tenant_id,
                 'role'       => $user->role,
+                'trial_ends_at' => $user->store && $user->store->trial_ends_at ? $user->store->trial_ends_at->toIso8601String() : null,
             ]
         ]);
     }

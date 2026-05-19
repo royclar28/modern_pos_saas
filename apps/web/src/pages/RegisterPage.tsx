@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001/api';
+const API_URL = import.meta.env.VITE_API_URL;
+if (!API_URL) console.error("CRÍTICO: VITE_API_URL no está definida en el entorno. Fallback a producción activo.");
+const ENDPOINT_BASE = API_URL || 'https://merxpos.com/api';
 
 // ─── Inline toast sin dependencias ───────────────────────────────────────────
 const showToast = (msg: string, type: 'success' | 'error') => {
@@ -58,7 +60,7 @@ export const RegisterPage = () => {
 
         setLoading(true);
         try {
-            const res = await fetch(`${API_URL}/register`, {
+            const res = await fetch(`${ENDPOINT_BASE}/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
                 body: JSON.stringify(form),
@@ -81,7 +83,7 @@ export const RegisterPage = () => {
             }
 
             // Éxito — redirigir al login
-            showToast('Registro exitoso. Se le ha enviado su contraseña por correo 📧', 'success');
+            showToast('Registro exitoso. Hemos enviado tus credenciales de acceso a tu correo electrónico.', 'success');
             navigate('/login');
         } catch (err) {
             showToast('Error de conexión. Intenta de nuevo.', 'error');

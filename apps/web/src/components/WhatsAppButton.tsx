@@ -2,7 +2,7 @@
  * WhatsAppButton.tsx
  *
  * Botón flotante de soporte rápido por WhatsApp.
- * Solo visible cuando el usuario está autenticado.
+ * Visible en LandingPage y App (excepto POS).
  * Oculto en la página del POS (/pos) para no bloquear el FAB del carrito.
  * En móviles: más pequeño y posicionado más arriba.
  */
@@ -10,16 +10,8 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
-const WHATSAPP_NUMBER = '584124714797'; // 04124714797 → formato internacional sin +
-const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=Hola%20Soporte%20MerxPOS%2C%20necesito%20ayuda%3A`;
-
-/**
- * Lee si hay sesión activa directamente desde localStorage.
- * Evita depender del AuthProvider (no lanza error si está fuera del árbol).
- */
-const useIsAuthenticated = () => {
-    return !!localStorage.getItem('pos_token');
-};
+const WHATSAPP_NUMBER = '04124714797'; // Cambia esto por tu número real
+const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=Hola,%20necesito%20ayuda%20con%20MerxPOS.`;
 
 /** Detect if viewport is mobile-sized */
 const useIsMobile = () => {
@@ -34,13 +26,9 @@ const useIsMobile = () => {
 };
 
 export const WhatsAppButton = () => {
-    const isAuthenticated = useIsAuthenticated();
     const location = useLocation();
     const isMobile = useIsMobile();
     const [hovered, setHovered] = useState(false);
-
-    // Don't show if not authenticated
-    if (!isAuthenticated) return null;
 
     // Hide completely on the POS page (mobile & desktop) to avoid blocking the cart FAB
     if (location.pathname === '/pos') return null;

@@ -5,7 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Store;
 use App\Models\User;
-use App\Notifications\WelcomeUserNotification;
+use App\Mail\TenantCredentialsMail;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -79,33 +80,15 @@ class TenantRegistrationController extends Controller
                 'role'       => 'ADMIN',
             ]);
 
-            // ── 3. Correo de bienvenida (incluye fecha de expiración) ─────
-            // Reutilizamos WelcomeUserNotification pero pasamos la password
-            // real para que el usuario ya sepa sus credenciales.
-            $user->notify(new WelcomeUserNotification($request->password));
+            // ── 3. Correo de bienvenida con credenciales ─────
+            Mail::to($user->email)->send(new TenantCredentialsMail($user, $request->password));
 
             return $user;
         });
 
-        // ── 4. Emitir token de acceso inmediato ───────────────────────────
-        $token = $user->createToken('pos-v1')->plainTextToken;
-
         return response()->json([
-            'status'  => 'ok',
-            'message' => '¡Registro exitoso! Tu período de prueba de 30 días ha comenzado.',
-            'token'   => $token,
-            'user'    => [
-                'id'        => $user->id,
-                'username'  => $user->username,
-                'name'      => $user->full_name,
-                'email'     => $user->email,
-                'tenant_id' => $user->tenant_id,
-                'role'      => $user->role,
-            ],
-            'trial' => [
-                'ends_at'     => $user->store->trial_ends_at->toISOString(),
-                'days_left'   => 30,
-            ],
+            'status'  => 'success',
+            'message' => 'Tenant creado exitosamente. Credenciales enviadas por correo.',
         ], 201);
     }
 }

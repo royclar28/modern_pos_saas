@@ -6,6 +6,7 @@ interface User {
     role: string;
     sub: number;
     storeId: string;
+    trial_ends_at?: string | null;
 }
 
 interface AuthContextType {

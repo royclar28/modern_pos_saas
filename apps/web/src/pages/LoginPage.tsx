@@ -4,6 +4,24 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '../contexts/AuthProvider';
+import { syncInitialData } from '../services/syncService';
+
+// ─── Inline toast ───────────────────────────────────────────
+const showToast = (msg: string, type: 'success' | 'error') => {
+    const el = document.createElement('div');
+    el.textContent = (type === 'success' ? '✅ ' : '❌ ') + msg;
+    Object.assign(el.style, {
+        position: 'fixed', top: '20px', right: '20px', zIndex: '9999',
+        padding: '12px 20px', borderRadius: '12px', color: '#fff',
+        background: type === 'success' ? '#16a34a' : '#dc2626',
+        fontWeight: '700', fontSize: '14px',
+        boxShadow: '0 4px 20px rgba(0,0,0,.2)',
+        opacity: '0', transition: 'opacity .2s',
+    });
+    document.body.appendChild(el);
+    requestAnimationFrame(() => (el.style.opacity = '1'));
+    setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 4000);
+};
 
 // Esquema de validación usando Zod
 const loginSchema = z.object({
@@ -17,6 +35,7 @@ export const LoginPage = () => {
     const { login } = useAuth();
     const [error, setError] = useState<string | null>(null);
     const [storeName, setStoreName] = useState('Merx POS');
+    const [isSyncing, setIsSyncing] = useState(false);
 
     // Fetch store branding before login (public-facing)
     useEffect(() => {
@@ -34,9 +53,16 @@ export const LoginPage = () => {
 
     const onSubmit = async (data: LoginFormValues) => {
         setError(null);
+        
+        // 1. Corrección de la API URL
+        const apiUrl = import.meta.env.VITE_API_URL;
+        if (!apiUrl) {
+            console.error("CRÍTICO: VITE_API_URL no está definida en el entorno. Se usará la URL de producción como fallback para debug.");
+        }
+        const endpointUrl = `${apiUrl || 'https://merxpos.com/api'}/login`;
+
         try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001/api';
-            const response = await fetch(`${apiUrl}/login`, {
+            const response = await fetch(endpointUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -51,20 +77,41 @@ export const LoginPage = () => {
 
             const result = await response.json();
 
+            // ── Sincronización Inicial Offline-First ──
+            setIsSyncing(true);
+            try {
+                await syncInitialData(apiUrl, result.token);
+                showToast('Datos sincronizados correctamente.', 'success');
+            } catch (syncErr) {
+                console.error(syncErr);
+                showToast('Error sincronizando datos, operando sin catálogo local inicial.', 'error');
+            }
+
+            // Llamar a login redirigirá al dashboard
             login(result.token, {
                 username: result.user.username || data.username,
                 role: result.user.role || 'SUPER_ADMIN',
                 sub: result.user.id || 0,
                 storeId: result.user.tenant_id || '',
+                trial_ends_at: result.user.trial_ends_at || null,
             });
 
         } catch (err: any) {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001/api';
+            // 2. Instrumentación del Catch en Login
+            const errorMsg = err?.message || 'Mensaje no disponible';
+            const errorName = err?.name || 'Error desconocido';
+            const errorCause = err?.cause ? JSON.stringify(err.cause) : 'Ninguna (undefined)';
+            const axiosInfo = err?.response ? ` | Axios Status: ${err.response.status} | Axios Data: ${JSON.stringify(err.response.data)}` : '';
+            
+            const alertMessage = `Error de red crítico. URL intentada: ${endpointUrl}. Detalle: [${errorName}] ${errorMsg}${axiosInfo}. Causa: ${errorCause}`;
+            alert(alertMessage);
+            
             if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
-                setError(`Failed to fetch from ${apiUrl}/login. Verifica tu conexión o CORS.`);
+                setError(`Error de red. Revisa el alert() para el stack trace de Tauri.`);
             } else {
                 setError(err.message || 'Error al iniciar sesión');
             }
+            setIsSyncing(false);
         }
     };
 
@@ -133,16 +180,16 @@ export const LoginPage = () => {
                         <div className="pt-2">
                             <button 
                                 type="submit" 
-                                disabled={isSubmitting}
+                                disabled={isSubmitting || isSyncing}
                                 className="w-full bg-primary hover:bg-primary-hover text-white font-bold text-lg p-4 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.15)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.25)] active:scale-[0.98] disabled:opacity-70 disabled:active:scale-100 hover:-translate-y-1 transition-all flex justify-center items-center gap-3"
                             >
-                                {isSubmitting ? (
+                                {(isSubmitting || isSyncing) ? (
                                     <>
                                         <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
                                         </svg>
-                                        Iniciando sesión...
+                                        {isSyncing ? 'Sincronizando base de datos local...' : 'Iniciando sesión...'}
                                     </>
                                 ) : 'Iniciar Sesión'}
                             </button>
