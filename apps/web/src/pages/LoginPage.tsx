@@ -4,7 +4,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '../contexts/AuthProvider';
-import { syncInitialData } from '../services/syncService';
 
 // ─── Inline toast ───────────────────────────────────────────
 const showToast = (msg: string, type: 'success' | 'error') => {
@@ -35,7 +34,6 @@ export const LoginPage = () => {
     const { login } = useAuth();
     const [error, setError] = useState<string | null>(null);
     const [storeName, setStoreName] = useState('Merx POS');
-    const [isSyncing, setIsSyncing] = useState(false);
 
     // Fetch store branding before login (public-facing)
     useEffect(() => {
@@ -78,16 +76,6 @@ export const LoginPage = () => {
 
             const result = await response.json();
 
-            // ── Sincronización Inicial Offline-First ──
-            setIsSyncing(true);
-            try {
-                await syncInitialData(apiUrl, result.token);
-                showToast('Datos sincronizados correctamente.', 'success');
-            } catch (syncErr) {
-                console.error(syncErr);
-                showToast('Error sincronizando datos, operando sin catálogo local inicial.', 'error');
-            }
-
             // Llamar a login redirigirá al dashboard
             login(result.token, {
                 username: result.user.username || data.username,
@@ -112,7 +100,6 @@ export const LoginPage = () => {
             } else {
                 setError(err.message || 'Error al iniciar sesión');
             }
-            setIsSyncing(false);
         }
     };
 
@@ -181,16 +168,16 @@ export const LoginPage = () => {
                         <div className="pt-2">
                             <button 
                                 type="submit" 
-                                disabled={isSubmitting || isSyncing}
+                                disabled={isSubmitting}
                                 className="w-full bg-primary hover:bg-primary-hover text-white font-bold text-lg p-4 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.15)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.25)] active:scale-[0.98] disabled:opacity-70 disabled:active:scale-100 hover:-translate-y-1 transition-all flex justify-center items-center gap-3"
                             >
-                                {(isSubmitting || isSyncing) ? (
+                                {isSubmitting ? (
                                     <>
                                         <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
                                         </svg>
-                                        {isSyncing ? 'Sincronizando base de datos local...' : 'Iniciando sesión...'}
+                                        Iniciando sesión...
                                     </>
                                 ) : 'Iniciar Sesión'}
                             </button>
