@@ -55,11 +55,12 @@ export const LoginPage = () => {
         setError(null);
         
         // 1. Corrección de la API URL
-        const apiUrl = import.meta.env.VITE_API_URL;
-        if (!apiUrl) {
+        const envApiUrl = import.meta.env.VITE_API_URL;
+        const apiUrl = envApiUrl || 'https://api.merxpos.com/api';
+        if (!envApiUrl) {
             console.error("CRÍTICO: VITE_API_URL no está definida en el entorno. Se usará la URL de producción como fallback para debug.");
         }
-        const endpointUrl = `${apiUrl || 'https://merxpos.com/api'}/login`;
+        const endpointUrl = `${apiUrl}/login`;
 
         try {
             const response = await fetch(endpointUrl, {

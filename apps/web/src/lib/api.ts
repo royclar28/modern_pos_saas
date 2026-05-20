@@ -18,7 +18,8 @@
 // ─── Base URL Resolution ─────────────────────────────────────────────────────
 
 function getBaseUrl(): string {
-    let url = import.meta.env.VITE_API_URL || 'http://localhost:8001/api';
+    const isDev = import.meta.env.DEV;
+    let url = import.meta.env.VITE_API_URL || (isDev ? 'http://localhost:8001/api' : 'https://api.merxpos.com/api');
     // If accessing from another device on the LAN, swap localhost for the actual hostname
     if (window.location.hostname !== 'localhost' && url.includes('localhost')) {
         url = url.replace('localhost', window.location.hostname);
