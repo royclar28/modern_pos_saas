@@ -71,7 +71,10 @@ export const LoginPage = () => {
             });
 
             if (!response.ok) {
-                throw new Error('Credenciales inválidas');
+                if (response.status === 401 || response.status === 422) {
+                    throw new Error('Credenciales inválidas');
+                }
+                throw new Error(`Error del servidor (${response.status})`);
             }
 
             const result = await response.json();
@@ -86,16 +89,14 @@ export const LoginPage = () => {
             });
 
         } catch (err: any) {
-            // 2. Instrumentación del Catch en Login
-            const errorMsg = err?.message || 'Mensaje no disponible';
-            const errorName = err?.name || 'Error desconocido';
-            const errorCause = err?.cause ? JSON.stringify(err.cause) : 'Ninguna (undefined)';
-            const axiosInfo = err?.response ? ` | Axios Status: ${err.response.status} | Axios Data: ${JSON.stringify(err.response.data)}` : '';
-            
-            const alertMessage = `Error de red crítico. URL intentada: ${endpointUrl}. Detalle: [${errorName}] ${errorMsg}${axiosInfo}. Causa: ${errorCause}`;
-            alert(alertMessage);
-            
-            if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
+            if (err.name === 'TypeError' || err.message === 'Failed to fetch') {
+                // 2. Instrumentación del Catch en Login para errores de red reales
+                const errorMsg = err?.message || 'Mensaje no disponible';
+                const errorName = err?.name || 'Error desconocido';
+                const errorCause = err?.cause ? JSON.stringify(err.cause) : 'Ninguna (undefined)';
+                
+                const alertMessage = `Error de red crítico. URL intentada: ${endpointUrl}. Detalle: [${errorName}] ${errorMsg}. Causa: ${errorCause}`;
+                alert(alertMessage);
                 setError(`Error de red. Revisa el alert() para el stack trace de Tauri.`);
             } else {
                 setError(err.message || 'Error al iniciar sesión');
