@@ -9,7 +9,6 @@
         "preview": "vite preview"
     },
     "devDependencies": {
-        "prisma": "^5.22.0",
         "turbo": "latest",
         "typescript": "latest"
     }

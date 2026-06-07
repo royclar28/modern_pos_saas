@@ -262,13 +262,9 @@ modern_pos_saas/
 │           └── lib/
 │               └── api.ts                # HTTP client centralizado
 │
-├── packages/
-│   └── shared/                    # Tipos TypeScript compartidos
-│
 ├── docker-compose.yml             # PostgreSQL + Web (Frontend)
 ├── docker-compose.laravel.yml     # Laravel Backend (API)
 ├── Dockerfile.dev                 # Imagen dev para el Frontend
-├── ecosystem.config.js            # PM2 config (legacy NestJS)
 ├── turbo.json
 └── pnpm-workspace.yaml
 ```

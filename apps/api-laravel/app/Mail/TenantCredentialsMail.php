@@ -14,16 +14,33 @@ class TenantCredentialsMail extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
-    public $user;
-    public $password;
+    public User $user;
+
+    /**
+     * Password-reset token generado por Password::broker()->createToken().
+     * Válido por 60 minutos (config/auth.php passwords.users.expire).
+     *
+     * 🔒 Este token NUNCA se almacena en logs ni en la BD en texto plano.
+     *     La tabla password_reset_tokens contiene un hash SHA-256.
+     */
+    public string $token;
+
+    /**
+     * URL completa al frontend SPA para que el usuario configure su contraseña.
+     */
+    public string $setupUrl;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(User $user, string $password)
+    public function __construct(User $user, string $token)
     {
-        $this->user = $user;
-        $this->password = $password;
+        $this->user  = $user;
+        $this->token = $token;
+
+        $this->setupUrl = rtrim(config('app.frontend_url', 'http://localhost:5173'), '/')
+                         . '/setup-password?token=' . urlencode($token)
+                         . '&email=' . urlencode($user->email);
     }
 
     /**
@@ -32,7 +49,7 @@ class TenantCredentialsMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Tus Credenciales de Acceso a MerxPOS',
+            subject: 'Configura tu contraseña — MerxPOS',
         );
     }
 

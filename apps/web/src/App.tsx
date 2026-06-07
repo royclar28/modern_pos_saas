@@ -10,6 +10,7 @@ import { TrialExpiredGuard } from './components/TrialExpiredGuard';
 import { LoginPage } from './pages/LoginPage';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import SetupPasswordPage from './pages/SetupPasswordPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { LandingPage } from './pages/public/LandingPage';
 import { ProductsPage } from './pages/ProductsPage';
@@ -308,6 +309,7 @@ const AppInner = () => {
                     <Route path="/register" element={<RegisterPage />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
+                    <Route path="/setup-password" element={<SetupPasswordPage />} />
                     <Route path="/" element={<LandingPage />} />
 
                     <Route element={<ProtectedRoute />}>

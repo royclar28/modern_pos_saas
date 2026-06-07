@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Decisión Arquitectónica (ADR) - MerxPOS</title>
+    <style>
+        :root {
+            --primary: #1e293b;
+            --secondary: #3b82f6;
+            --danger: #ef4444;
+            --success: #10b981;
+            --text-main: #334155;
+            --text-light: #64748b;
+            --bg-light: #f8fafc;
+            --border: #e2e8f0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text-main);
+            line-height: 1.6;
+            margin: 0;
+            padding: 40px;
+            background-color: #fff;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .header {
+            border-bottom: 3px solid var(--primary);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: var(--primary);
+            margin: 0 0 10px 0;
+            font-size: 28px;
+        }
+        .header p {
+            margin: 0;
+            color: var(--text-light);
+            font-size: 14px;
+        }
+        h2 {
+            color: var(--secondary);
+            font-size: 20px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 8px;
+            margin-top: 40px;
+        }
+        h3 {
+            color: var(--primary);
+            font-size: 16px;
+            margin-top: 25px;
+        }
+        .alert {
+            background-color: #fef2f2;
+            border-left: 4px solid var(--danger);
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 4px 4px 0;
+        }
+        .alert-success {
+            background-color: #f0fdf4;
+            border-left: 4px solid var(--success);
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 4px 4px 0;
+        }
+        code {
+            background-color: var(--bg-light);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+            color: #db2777;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            background-color: var(--bg-light);
+            color: var(--primary);
+            font-weight: 600;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            font-size: 12px;
+            color: var(--text-light);
+            text-align: center;
+        }
+        @media print {
+            body { padding: 0; }
+            .container { max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Architectural Decision Record (ADR)</h1>
+            <p><strong>Proyecto:</strong> MerxPOS SaaS (Offline-First / Multi-Tenant)</p>
+            <p><strong>Módulo:</strong> Gestión de Terminales y Unidades de Medida</p>
+            <p><strong>Fecha:</strong> 26 de Mayo, 2026</p>
+        </div>
+
+        <h2>1. Resumen Ejecutivo</h2>
+        <p>El presente documento detalla la resolución respecto a la propuesta de normalización de base de datos para las entidades de Cajas Registradoras (<code>cash_registers</code>) y Unidades de Medida (<code>measurement_units</code>). Si bien se valida la necesidad de normalizar estos datos, se ha procedido con una implementación ajustada a los estándares arquitectónicos del proyecto (Offline-First y Laravel Eloquent), descartando el script DDL original debido a incompatibilidades críticas con el sistema distribuido.</p>
+
+        <h2>2. Análisis de la Propuesta Original (Riesgos Identificados)</h2>
+        <div class="alert">
+            <strong>Incompatibilidad con Arquitectura Distribuida (Offline-First)</strong>
+            <p>La propuesta sugería el uso de llaves primarias auto-incrementables (<code>serial</code>). En MerxPOS, el cliente PWA (Tauri/Dexie) necesita generar registros sin conexión a internet. El uso de secuencias seriales en PostgreSQL impide la sincronización asíncrona, ya que el cliente no puede predecir el siguiente ID disponible, generando colisiones al reconectar.</p>
+        </div>
+        
+        <ul>
+            <li><strong>Ruptura del Aislamiento Multi-Tenant:</strong> La llave foránea sugerida para identificar la tienda (<code>fk_store_id</code>) apuntaba a la tabla <code>users(id)</code>. En nuestro esquema SaaS, el aislamiento de datos exige que la relación se haga mediante <code>tenant_id (UUID)</code> apuntando a la tabla <code>stores(id)</code>.</li>
+            <li><strong>Antipatrones de Framework:</strong> El uso de enteros (<code>smallint</code>) para <code>deleted</code> y campos de auditoría manuales (<code>fk_user_register_id</code>) en tablas de catálogo transaccional sobrecarga el modelo de dominio y choca con el manejo nativo de Eloquent (<code>SoftDeletes</code> y <code>timestamps</code>).</li>
+            <li><strong>Incoherencia de Dominio:</strong> Atar un producto global (<code>items</code>) a un usuario de caja físico (<code>fk_cash_register_user_id</code>) viola el principio de diseño de inventario, donde los productos pertenecen a la tienda (Tenant), no a un turno de caja específico.</li>
+        </ul>
+
+        <h2>3. Solución Implementada</h2>
+        <p>Se crearon dos nuevas migraciones y modelos (<code>Terminal</code> y <code>MeasurementUnit</code>) que satisfacen la necesidad de negocio planteada por el DBA, pero respetando estrictamente el motor de sincronización.</p>
+
+        <div class="alert-success">
+            <strong>Resolución Técnica Adoptada</strong>
+            <ul>
+                <li><strong>Llaves Primarias UUID (v4):</strong> Garantiza que el frontend offline pueda insertar registros locales (IndexedDB) de forma segura y sincronizarlos posteriormente sin conflictos de ID.</li>
+                <li><strong>TenantScope Global:</strong> Ambas tablas incluyen <code>tenant_id</code> como llave foránea hacia <code>stores</code>. El ORM vigila a nivel global que ningún usuario pueda consultar cajas o medidas de otro Tenant.</li>
+                <li><strong>Índices Compuestos (Unique):</strong> Se implementó <code>UNIQUE (tenant_id, code)</code>. Esto permite que la "Tienda A" y la "Tienda B" tengan ambas una caja con el código <code>CAJA_01</code> sin colisiones a nivel de base de datos.</li>
+            </ul>
+        </div>
+
+        <h2>4. Estructura de Datos Final Aprobada</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Tabla</th>
+                    <th>PK</th>
+                    <th>Aislamiento</th>
+                    <th>Campos Clave</th>
+                    <th>Auditoría / Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>terminals</code></td>
+                    <td>id (UUID)</td>
+                    <td>tenant_id (FK stores)</td>
+                    <td>name (varchar), code (varchar)</td>
+                    <td>is_active (bool), deleted_at</td>
+                </tr>
+                <tr>
+                    <td><code>measurement_units</code></td>
+                    <td>id (UUID)</td>
+                    <td>tenant_id (FK stores)</td>
+                    <td>name (varchar), abbreviation (varchar)</td>
+                    <td>deleted_at</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>5. Próximos Pasos (Roadmap de Migración)</h2>
+        <p>Con las entidades creadas, el equipo de backend procederá a generar las migraciones de transformación de datos (Data Migrations):</p>
+        <ol>
+            <li>Migrar el campo de texto libre <code>cash_shifts.terminal_id</code> para que actúe como una llave foránea real apuntando a <code>terminals.id</code>.</li>
+            <li>Reemplazar el campo <code>items.unit_label</code> por una relación robusta <code>items.measurement_unit_id</code> apuntando a <code>measurement_units.id</code>.</li>
+        </ol>
+
+        <div class="footer">
+            Generado por el Equipo de Arquitectura Backend - MerxPOS SaaS
+        </div>
+    </div>
+</body>
+</html>

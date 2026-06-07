@@ -30,8 +30,6 @@ export const RegisterPage = () => {
         last_name:        '',
         username:         '',
         email:            '',
-        password:         '',
-        password_confirmation: '',
     });
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -48,8 +46,6 @@ export const RegisterPage = () => {
         if (!form.username.trim())    errs.username    = 'El usuario es requerido';
         if (!/^[a-z0-9_]+$/i.test(form.username)) errs.username = 'Solo letras, números y guión bajo';
         if (!form.email.trim())       errs.email       = 'El email es requerido';
-        if (form.password.length < 8) errs.password    = 'Mínimo 8 caracteres';
-        if (form.password !== form.password_confirmation) errs.password_confirmation = 'Las contraseñas no coinciden';
         return errs;
     };
 
@@ -83,7 +79,7 @@ export const RegisterPage = () => {
             }
 
             // Éxito — redirigir al login
-            showToast('Registro exitoso. Hemos enviado tus credenciales de acceso a tu correo electrónico.', 'success');
+            showToast('Registro exitoso. Revisa tu correo para configurar tu contraseña de acceso.', 'success');
             navigate('/login');
         } catch (err) {
             showToast('Error de conexión. Intenta de nuevo.', 'error');
@@ -167,22 +163,6 @@ export const RegisterPage = () => {
                         type: "email",
                         placeholder: "maria@ejemplo.com",
                         error: errors.email
-                    })}
-
-                    {/* Contraseñas */}
-                    {renderInputField({
-                        label: "Contraseña",
-                        id: "password",
-                        type: "password",
-                        placeholder: "Mínimo 8 caracteres",
-                        error: errors.password
-                    })}
-                    {renderInputField({
-                        label: "Confirmar contraseña",
-                        id: "password_confirmation",
-                        type: "password",
-                        placeholder: "Repite tu contraseña",
-                        error: errors.password_confirmation
                     })}
 
                     {/* Términos */}

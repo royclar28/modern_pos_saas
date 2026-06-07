@@ -9,7 +9,6 @@
     },
     "dependencies": {
         "@hookform/resolvers": "^5.2.2",
-        "@pos/shared": "workspace:*",
         "clsx": "^2.1.1",
         "dexie": "^4.4.1",
         "dexie-react-hooks": "^4.4.0",

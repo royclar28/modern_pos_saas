@@ -45,9 +45,17 @@ return [
     | considered expired. This will override any values set in the token's
     | "expires_at" attribute, but first-party sessions are not affected.
     |
+    | 🔒 SECURITY: Set to 480 minutes (8 hours) — a full work shift.
+    |     Tokens live only for the duration of a work day. The POS client
+    |     must re-authenticate after expiration, which forces re-validation
+    |     of tenant_id and credentials.
+    |
+    |     In production, consider lowering this to 480 or using a refresh-
+    |     token pattern if longer sessions are needed.
+    |
     */
 
-    'expiration' => null,
+    'expiration' => env('SANCTUM_TOKEN_EXPIRATION', 480),
 
     /*
     |--------------------------------------------------------------------------
