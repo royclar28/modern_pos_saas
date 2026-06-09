@@ -46,6 +46,15 @@ class SyncEventProcessor
     {
         $eventId = $event['event_id'];
 
+        // ─── 0. Tenant Isolation — Blindaje por autenticación ─────────
+        // El tenant_id que llega en el payload se ignora completamente.
+        // Siempre usamos el tenant del usuario autenticado en la request.
+        // Esto previene ataques de inyección cross-tenant (Hallazgo #10).
+        $authenticatedTenantId = auth()->user()?->tenant_id;
+        if ($authenticatedTenantId) {
+            $event['tenant_id'] = $authenticatedTenantId;
+        }
+
         // ─── 1. Idempotencia ────────────────────────────────────────
         if (ProcessedSyncEvent::wasProcessed($eventId)) {
             Log::debug("[Sync] Evento {$eventId} ya procesado — skip (idempotencia)");

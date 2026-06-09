@@ -18,21 +18,16 @@ class PasswordResetController extends Controller
     public function forgotPassword(Request $request)
     {
         $request->validate([
-            'email' => 'required|email|exists:users,email',
+            'email' => 'required|email',
         ]);
 
-        $status = Password::broker()->sendResetLink(
+        Password::broker()->sendResetLink(
             $request->only('email')
         );
 
-        if ($status === Password::RESET_LINK_SENT) {
-            return response()->json([
-                'message' => 'Se ha enviado un enlace de recuperación de contraseña a su correo electrónico.'
-            ]);
-        }
-
-        throw ValidationException::withMessages([
-            'email' => [__($status)],
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Si el correo existe en nuestro sistema, hemos enviado un enlace de recuperación.'
         ]);
     }
 

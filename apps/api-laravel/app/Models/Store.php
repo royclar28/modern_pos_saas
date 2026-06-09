@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Carbon;
 
 /**
@@ -12,6 +13,8 @@ use Illuminate\Support\Carbon;
  */
 class Store extends Model
 {
+    use HasFactory;
+
     protected $keyType = 'string';
     public $incrementing = false;
 

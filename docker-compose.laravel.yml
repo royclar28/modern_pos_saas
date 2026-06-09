@@ -5,8 +5,9 @@ services:
       dockerfile: Dockerfile
     container_name: merx_pos_backend
     ports:
-      - "8001:8000"
+      - "8001:8001"
     volumes:
       - ./apps/api-laravel:/app
-    command: bash /app/entrypoint.sh
     restart: unless-stopped
+    # El entrypoint.sh del Dockerfile arranca FrankenPHP via Octane
+    # No se necesita override de command

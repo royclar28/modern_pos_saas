@@ -2,47 +2,42 @@
 set -e
 
 echo "═══════════════════════════════════════════════"
-echo "  MERX POS Backend — Bootstrap Script"
+echo "  MERX POS Backend — FrankenPHP + Octane"
 echo "═══════════════════════════════════════════════"
 
-# Si no hay vendor/ (primer arranque), scaffold Laravel
-if [ ! -f "artisan" ]; then
-    echo "📦 Creando proyecto Laravel fresco..."
-    composer create-project laravel/laravel /tmp/laravel-fresh --no-interaction --prefer-dist
-    
-    # Mover todo el scaffold de Laravel al directorio actual
-    # (preservando nuestros archivos custom que ya están montados)
-    cp -rn /tmp/laravel-fresh/* /app/ 2>/dev/null || true
-    cp -rn /tmp/laravel-fresh/.* /app/ 2>/dev/null || true
-    rm -rf /tmp/laravel-fresh
-    
-    echo "✅ Scaffold de Laravel creado"
-fi
-
-# Instalar dependencias
-if [ ! -d "vendor" ]; then
-    echo "📦 Instalando dependencias Composer..."
-    composer install --no-interaction --prefer-dist
-fi
-
-# Crear .env si no existe
+# ── Crear .env si no existe ────────────────────────────────────────────
 if [ ! -f ".env" ]; then
-    echo "⚙️  Creando .env con SQLite..."
+    echo "⚙️  Creando .env desde .env.example..."
     cp .env.example .env 2>/dev/null || true
     php artisan key:generate --force
 fi
 
-# Crear SQLite si usamos ese driver
+# ── Crear base de datos SQLite si aplica ──────────────────────────────
 if grep -q "DB_CONNECTION=sqlite" .env 2>/dev/null; then
+    mkdir -p database
     touch database/database.sqlite
-    echo "🗄️  Base de datos SQLite creada"
+    echo "🗄️  Base de datos SQLite lista"
 fi
 
-# Ejecutar migraciones
+# ── Ejecutar migraciones ───────────────────────────────────────────────
 echo "🔄 Ejecutando migraciones..."
-php artisan migrate --force 2>/dev/null || echo "⚠️  Migraciones pendientes (ejecutar manualmente)"
+php artisan migrate --force 2>/dev/null || echo "⚠️  Error en migraciones (verificar conexión DB)"
+
+# ── Limpiar y regenerar caches de producción ──────────────────────────
+echo "⚡ Optimizando caches..."
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
 
 echo ""
-echo "🚀 Arrancando servidor en http://0.0.0.0:8000"
+echo "🚀 Arrancando FrankenPHP Octane en http://0.0.0.0:8001"
+echo "   Workers: auto | Server: frankenphp"
 echo "═══════════════════════════════════════════════"
-php artisan serve --host=0.0.0.0 --port=8000
+
+# ── Iniciar servidor de producción ────────────────────────────────────
+exec php artisan octane:start \
+    --server=frankenphp \
+    --host=0.0.0.0 \
+    --port=8001 \
+    --workers=auto \
+    --no-interaction

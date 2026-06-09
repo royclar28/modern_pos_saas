@@ -11,15 +11,17 @@ use App\Http\Controllers\Api\TenantRegistrationController;
 use App\Http\Controllers\Api\SaasMetricsController;
 
 // ── Rutas Públicas ──────────────────────────────────────────────
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 Route::get('/login', function () {
     return response()->json(['message' => 'Unauthenticated.'], 401);
 })->name('login');
 
 // Registro de nuevos tenants (prueba gratuita de 30 días)
-Route::post('/register', [TenantRegistrationController::class, 'register']);
+Route::post('/register', [TenantRegistrationController::class, 'register'])->middleware('throttle:3,1');
 
-Route::post('/forgot-password', [\App\Http\Controllers\Api\PasswordResetController::class, 'forgotPassword'])->name('password.email');
+Route::post('/forgot-password', [\App\Http\Controllers\Api\PasswordResetController::class, 'forgotPassword'])
+    ->middleware('throttle:5,1')
+    ->name('password.email');
 Route::post('/reset-password', [\App\Http\Controllers\Api\PasswordResetController::class, 'resetPassword'])->name('password.store');
 
 Route::get('/settings/bcv', [SettingsController::class, 'getBcvRate']);
