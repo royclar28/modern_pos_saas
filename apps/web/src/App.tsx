@@ -13,6 +13,8 @@ import ResetPassword from './pages/ResetPassword';
 import SetupPasswordPage from './pages/SetupPasswordPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { LandingPage } from './pages/public/LandingPage';
+import { QuinielaLanding } from './pages/quiniela/QuinielaLanding';
+import { QuinielaDashboard } from './pages/quiniela/QuinielaDashboard';
 import { ProductsPage } from './pages/ProductsPage';
 import { PosPage } from './pages/PosPage';
 import { InventoryPage } from './pages/admin/InventoryPage';
@@ -311,6 +313,10 @@ const AppInner = () => {
                     <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/setup-password" element={<SetupPasswordPage />} />
                     <Route path="/" element={<LandingPage />} />
+                    
+                    {/* Quiniela Routes */}
+                    <Route path="/quiniela" element={<QuinielaLanding />} />
+                    <Route path="/quiniela/dashboard" element={<QuinielaDashboard />} />
 
                     <Route element={<ProtectedRoute />}>
                         <Route path="/dashboard" element={<Dashboard />} />

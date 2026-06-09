@@ -98,3 +98,14 @@ Route::middleware(['auth:sanctum', 'trial'])->group(function () {
         Route::get('/saas/metrics', [SaasMetricsController::class, 'metrics']);
     });
 });
+
+// ── Rutas Módulo Quiniela (Marketing Bounded Context) ───────────────
+Route::prefix('worldcup')->group(function () {
+    Route::post('/register', [\App\Http\Controllers\Api\QuinielaController::class, 'register']);
+    Route::get('/matches', [\App\Http\Controllers\Api\QuinielaController::class, 'getMatches']);
+
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/predictions', [\App\Http\Controllers\Api\QuinielaController::class, 'submitPredictions']);
+    });
+});
+

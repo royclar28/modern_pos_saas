@@ -33,5 +33,9 @@ class DatabaseSeeder extends Seeder
             'email' => 'admin@ejemplo.com',
             'role' => 'SUPER_ADMIN',
         ]);
+
+        $this->call([
+            QuinielaMatchSeeder::class,
+        ]);
     }
 }
