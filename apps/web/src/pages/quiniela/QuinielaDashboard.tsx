@@ -89,12 +89,20 @@ export const QuinielaDashboard = () => {
                     <h1 className="text-2xl font-black bg-gradient-to-r from-emerald-400 to-cyan-400 text-transparent bg-clip-text tracking-tight">
                         Mis Pronósticos
                     </h1>
-                    <button 
-                        onClick={() => { localStorage.removeItem('quiniela_token'); navigate('/quiniela'); }}
-                        className="text-sm font-medium text-slate-400 hover:text-white transition-colors"
-                    >
-                        Cerrar Sesión
-                    </button>
+                    <div className="flex items-center gap-4">
+                        <Link 
+                            to="/quiniela/leaderboard"
+                            className="text-sm font-bold bg-slate-800 hover:bg-slate-700 text-amber-400 px-4 py-2 rounded-lg transition-colors border border-slate-700 shadow-sm"
+                        >
+                            🏆 Ver Leaderboard
+                        </Link>
+                        <button 
+                            onClick={() => { localStorage.removeItem('quiniela_token'); navigate('/quiniela'); }}
+                            className="text-sm font-medium text-slate-400 hover:text-white transition-colors"
+                        >
+                            Cerrar Sesión
+                        </button>
+                    </div>
                 </div>
             </header>
 

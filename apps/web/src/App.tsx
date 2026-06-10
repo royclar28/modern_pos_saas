@@ -15,6 +15,8 @@ import { RegisterPage } from './pages/RegisterPage';
 import { LandingPage } from './pages/public/LandingPage';
 import { QuinielaLanding } from './pages/quiniela/QuinielaLanding';
 import { QuinielaDashboard } from './pages/quiniela/QuinielaDashboard';
+import { QuinielaLeaderboard } from './pages/quiniela/QuinielaLeaderboard';
+import { QuinielaAdmin } from './pages/quiniela/QuinielaAdmin';
 import { ProductsPage } from './pages/ProductsPage';
 import { PosPage } from './pages/PosPage';
 import { InventoryPage } from './pages/admin/InventoryPage';
@@ -317,6 +319,7 @@ const AppInner = () => {
                     {/* Quiniela Routes */}
                     <Route path="/quiniela" element={<QuinielaLanding />} />
                     <Route path="/quiniela/dashboard" element={<QuinielaDashboard />} />
+                    <Route path="/quiniela/leaderboard" element={<QuinielaLeaderboard />} />
 
                     <Route element={<ProtectedRoute />}>
                         <Route path="/dashboard" element={<Dashboard />} />
@@ -332,6 +335,11 @@ const AppInner = () => {
                         <Route path="/admin/sales" element={
                             <RequireRole allowed={['SUPER_ADMIN', 'ADMIN', 'MANAGER']}>
                                 <SalesDashboard />
+                            </RequireRole>
+                        } />
+                        <Route path="/admin/quiniela" element={
+                            <RequireRole allowed={['SUPER_ADMIN', 'ADMIN', 'MANAGER']}>
+                                <QuinielaAdmin />
                             </RequireRole>
                         } />
                         <Route path="/admin/creditos" element={

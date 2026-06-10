@@ -78,4 +78,82 @@ class QuinielaController extends Controller
             'message' => 'Predictions submitted successfully.'
         ]);
     }
+
+    public function updateMatchResult(Request $request)
+    {
+        $user = $request->user();
+        if (!$user || !isset($user->role) || !in_array($user->role, ['SUPER_ADMIN', 'ADMIN', 'MANAGER'])) {
+            return response()->json(['message' => 'Unauthorized. Admin role required.'], 403);
+        }
+
+        $request->validate([
+            'match_id' => 'required|exists:quiniela_matches,id',
+            'real_score_a' => 'required|integer|min:0',
+            'real_score_b' => 'required|integer|min:0',
+        ]);
+
+        $match = QuinielaMatch::findOrFail($request->match_id);
+        
+        // Update the match result
+        $match->update([
+            'real_score_a' => $request->real_score_a,
+            'real_score_b' => $request->real_score_b,
+            'status' => 'FINISHED'
+        ]);
+
+        // Calculate points
+        $this->calculatePointsForMatch($match);
+
+        return response()->json(['message' => 'Match result updated and points calculated successfully.']);
+    }
+
+    private function calculatePointsForMatch(QuinielaMatch $match)
+    {
+        $predictions = QuinielaPrediction::where('match_id', $match->id)->get();
+
+        foreach ($predictions as $prediction) {
+            $points = 0;
+            
+            $realA = $match->real_score_a;
+            $realB = $match->real_score_b;
+            $predA = $prediction->predicted_score_a;
+            $predB = $prediction->predicted_score_b;
+
+            // Exact match
+            if ($predA === $realA && $predB === $realB) {
+                $points = 3;
+            } 
+            // Winner match or draw match
+            else {
+                $realResult = $realA <=> $realB; // 1 if A wins, -1 if B wins, 0 if draw
+                $predResult = $predA <=> $predB;
+                
+                if ($realResult === $predResult) {
+                    $points = 1;
+                }
+            }
+
+            if ($points > 0) {
+                $prediction->update(['points_earned' => $points]);
+                
+                // Add points to player's total_points
+                $player = QuinielaPlayer::find($prediction->player_id);
+                if ($player) {
+                    $player->increment('total_points', $points);
+                }
+            }
+        }
+    }
+
+    public function getLeaderboard()
+    {
+        $leaderboard = QuinielaPlayer::select('first_name', 'last_name', 'total_points')
+            ->orderBy('total_points', 'desc')
+            ->limit(50)
+            ->get();
+
+        return response()->json([
+            'leaderboard' => $leaderboard
+        ]);
+    }
 }
