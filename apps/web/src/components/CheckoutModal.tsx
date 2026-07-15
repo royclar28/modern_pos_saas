@@ -152,6 +152,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
     const PAYMENT_TABS = enableCreditSales ? [...BASE_TABS, FIADO_TAB] : BASE_TABS;
 
+    // ── Customer assignment (opcional para no-FIADO) ──────────
+    const [showCustomerPicker, setShowCustomerPicker] = useState(false);
+
     useEffect(() => {
         if (isOpen) {
             setIsSplitPayment(false);
@@ -271,6 +274,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             }
             const payload: PaymentData = {
                 paymentMethod: paymentMethod,
+                customerId: selectedCustomer?.id,
                 payments: [{
                     method: paymentMethod,
                     amountUsd: total,
@@ -301,6 +305,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
         const payload: PaymentData = {
             paymentMethod: payments.length === 1 ? payments[0].method : 'MIXTO',
+            customerId: selectedCustomer?.id,
             payments: payments,
             amountReceived: parseFloat(totalPaidUsd.toFixed(2)),
             changeAmount: parseFloat(changeUsd.toFixed(2)),
@@ -465,6 +470,51 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                             </button>
                         ))}
                     </div>
+
+                    {/* ── Customer picker (opcional para cualquier método) ── */}
+                    {!isFiado && !selectedCustomer && (
+                        <div className="mb-4">
+                            {!showCustomerPicker ? (
+                                <button
+                                    onClick={() => setShowCustomerPicker(true)}
+                                    className="w-full py-2 text-xs font-bold text-slate-400 hover:text-violet-600 transition-colors flex items-center justify-center gap-1"
+                                >👤 Asignar cliente (opcional)</button>
+                            ) : (
+                                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs font-bold text-slate-500">Buscar Cliente</span>
+                                        <button onClick={() => setShowCustomerPicker(false)} className="text-slate-400 hover:text-red-500 text-sm">×</button>
+                                    </div>
+                                    <input
+                                        type="text"
+                                        value={customerSearch}
+                                        onChange={e => setCustomerSearch(e.target.value)}
+                                        className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"
+                                        placeholder="Nombre o teléfono..."
+                                        autoFocus
+                                    />
+                                    <div className="max-h-32 overflow-y-auto space-y-1">
+                                        {customers.map(cust => (
+                                            <button
+                                                key={cust.id}
+                                                onClick={() => { setSelectedCustomer(cust); setShowCustomerPicker(false); }}
+                                                className="w-full text-left px-3 py-2 rounded-lg hover:bg-violet-50 text-sm font-medium text-slate-700"
+                                            >{cust.firstName} {cust.lastName} {cust.phone && <span className="text-slate-400 text-xs">📞 {cust.phone}</span>}</button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    {selectedCustomer && !isFiado && (
+                        <div className="mb-4 bg-violet-50 border border-violet-200 rounded-xl p-3 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm">👤</span>
+                                <span className="text-sm font-bold text-violet-700">{selectedCustomer.firstName} {selectedCustomer.lastName}</span>
+                            </div>
+                            <button onClick={() => setSelectedCustomer(null)} className="text-xs text-violet-500 hover:text-red-500">Quitar</button>
+                        </div>
+                    )}
 
                     {!isFiado && (
                         <div className="flex-1 flex flex-col">

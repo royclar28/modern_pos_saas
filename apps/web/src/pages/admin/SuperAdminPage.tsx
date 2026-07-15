@@ -99,6 +99,38 @@ export const SuperAdminPage = () => {
         }
     };
 
+    // ── Plan Management ───────────────────────────────────
+    const PLAN_OPTIONS = ['BASIC', 'STANDARD', 'PRO', 'ENTERPRISE'];
+
+    const handlePlanChange = async (storeId: string, newPlan: string) => {
+        if (!confirm(`¿Cambiar plan a ${newPlan}?`)) return;
+        try {
+            const res = await fetch(`${apiUrl}/saas/plans/change`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ storeId, plan: newPlan }),
+            });
+            if (!res.ok) throw new Error((await res.json()).message || 'Error');
+            toast.success(`Plan cambiado a ${newPlan}`);
+            fetchStores();
+        } catch (e: any) { toast.error(e.message); }
+    };
+
+    const handleExtendTrial = async (storeId: string, storeName: string) => {
+        const days = prompt(`Extender trial de "${storeName}" (1-90 días):`, '15');
+        if (!days) return;
+        try {
+            const res = await fetch(`${apiUrl}/saas/plans/extend-trial`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ storeId, days: parseInt(days) }),
+            });
+            if (!res.ok) throw new Error((await res.json()).message || 'Error');
+            toast.success(`Trial extendido ${days} días`);
+            fetchStores();
+        } catch (e: any) { toast.error(e.message); }
+    };
+
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!formName || !formEmail || !formOwnerName) return toast.error('Nombre, correo y nombre del dueño son obligatorios');
@@ -236,17 +268,31 @@ export const SuperAdminPage = () => {
                                                 </span>
                                             </td>
                                             <td className="px-4 sm:px-6 py-4 text-center">
-                                                <button
-                                                    onClick={() => handleToggle(store)}
-                                                    disabled={toggling === store.id}
-                                                    className={`text-xs font-bold px-4 py-1.5 rounded-lg active:scale-95 transition-all disabled:opacity-50 ${
-                                                        store.isActive
-                                                            ? 'bg-red-50 text-red-600 hover:bg-red-100'
-                                                            : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
-                                                    }`}
-                                                >
-                                                    {toggling === store.id ? '⟳' : store.isActive ? '⏸ Suspender' : '▶ Activar'}
-                                                </button>
+                                                <div className="flex items-center justify-center gap-1.5">
+                                                    <button
+                                                        onClick={() => handleToggle(store)}
+                                                        disabled={toggling === store.id}
+                                                        className={`text-xs font-bold px-2.5 py-1.5 rounded-lg active:scale-95 transition-all disabled:opacity-50 ${
+                                                            store.isActive
+                                                                ? 'bg-red-50 text-red-600 hover:bg-red-100'
+                                                                : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+                                                        }`}
+                                                    >
+                                                        {toggling === store.id ? '⟳' : store.isActive ? '⏸' : '▶'}
+                                                    </button>
+                                                    <select
+                                                        value={store.plan}
+                                                        onChange={(e) => handlePlanChange(store.id, e.target.value)}
+                                                        className="text-[10px] font-bold bg-slate-100 border border-slate-200 rounded-lg px-1.5 py-1.5 text-slate-600 cursor-pointer"
+                                                    >
+                                                        {PLAN_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
+                                                    </select>
+                                                    <button
+                                                        onClick={() => handleExtendTrial(store.id, store.name)}
+                                                        className="text-[10px] font-bold bg-violet-50 hover:bg-violet-100 text-violet-600 px-2 py-1.5 rounded-lg transition-colors"
+                                                        title="Extender trial +15 días"
+                                                    >+15d</button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}

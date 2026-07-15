@@ -20,6 +20,7 @@ import { SaleDocType } from '../../db/schemas/sale.schema';
 import { CustomerDocType } from '../../db/schemas/customer.schema';
 import { useSettingsContext } from '../../contexts/SettingsProvider';
 import { useAuth } from '../../contexts/AuthProvider';
+import { AppHeader } from '../../components/AppHeader';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -69,7 +70,7 @@ export const FiadosPage = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
     const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
-    const { company, toggleDarkMode, darkMode, currencySymbol } = useSettingsContext();
+    const { company, currencySymbol } = useSettingsContext();
     const { user } = useAuth();
     const tenantId = user?.storeId || 'default-store';
 
@@ -217,40 +218,21 @@ export const FiadosPage = () => {
 
     return (
         <div className="flex flex-col h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
-            {/* ── Navbar ──────────────────────────────────────────────────── */}
-            <header className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between shadow-md shrink-0">
-                <div className="flex items-center gap-6">
-                    <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
-                        <span>📒</span>
-                        <span>Cuentas por Cobrar</span>
-                    </h1>
-                    <nav className="hidden sm:flex gap-4">
-                        <Link to="/" className="text-sm text-slate-300 hover:text-white transition-colors">
-                            ← Dashboard
-                        </Link>
-                        <Link to="/admin/settings" className="text-sm text-slate-300 hover:text-white transition-colors">
-                            Configuración
-                        </Link>
-                        <Link to="/pos" className="text-sm text-slate-300 hover:text-white transition-colors">
-                            Ir al POS →
-                        </Link>
-                        <button
-                            onClick={toggleDarkMode}
-                            className="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-3 py-1 rounded-lg text-sm transition-colors ml-4"
-                            title="Alternar Modo Oscuro"
-                        >
-                            {darkMode ? '🌞' : '🌙'}
-                        </button>
-                    </nav>
-                </div>
-
-                <button
-                    onClick={loadDebts}
-                    className="text-xs bg-slate-800 border border-slate-700/80 hover:bg-slate-700 px-3 py-1.5 text-slate-200 rounded-lg font-bold cursor-pointer transition-all flex items-center gap-1.5 active:scale-95 shadow-sm"
-                >
-                    🔄 Actualizar
-                </button>
-            </header>
+            <AppHeader
+                icon="📒"
+                title="Cuentas por Cobrar"
+                subtitle={`${debts.filter(d => d.totalOwed > 0).length} clientes con deuda · ${totalGlobalDebt > 0 ? `$${formatCurrency(totalGlobalDebt)} por cobrar` : 'Sin deudas'}`}
+                links={[
+                    { to: '/', label: '← Dashboard' },
+                    { to: '/admin/customers', label: 'Clientes' },
+                    { to: '/pos', label: 'POS →' },
+                ]}
+                actions={
+                    <button onClick={loadDebts} className="text-xs bg-slate-800 border border-slate-700/80 hover:bg-slate-700 px-3 py-1.5 text-slate-200 rounded-lg font-bold cursor-pointer transition-all flex items-center gap-1.5 active:scale-95 shadow-sm">
+                        🔄 Actualizar
+                    </button>
+                }
+            />
 
             {/* ── Main Content ──────────────────────────────────────────── */}
             <main className="flex-1 overflow-auto p-6 md:p-8">

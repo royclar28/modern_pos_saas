@@ -90,6 +90,12 @@ const ProductCard = ({ item, onAdd, exchangeRate, hv }: { item: ItemDocType; onA
                     ⚠ Bajo
                 </span>
             )}
+            {/* Badge de venta por peso */}
+            {item.sellBy === 'weight' && !isOutOfStock && (
+                <span className="absolute top-1.5 left-1.5 bg-sky-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded z-10 uppercase tracking-wide">
+                    ⚖️ Peso
+                </span>
+            )}
 
             <div className="flex items-start justify-between gap-1 z-10">
                 <span className={`font-bold text-slate-700 leading-tight group-hover:text-violet-800 transition-colors ${
@@ -211,7 +217,11 @@ const CartRow = ({
                 )}
             </div>
             <button
-                onClick={() => onRemove(item.product.id)}
+                onClick={() => {
+                    if (window.confirm(`¿Eliminar "${item.product.name}" del carrito?`)) {
+                        onRemove(item.product.id);
+                    }
+                }}
                 className={`text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-all leading-none shrink-0 ${
                     hv ? 'opacity-100 p-2.5 text-2xl' : 'opacity-100 md:opacity-0 md:group-hover:opacity-100 p-1.5 text-sm'
                 }`}
@@ -279,6 +289,7 @@ export const PosPage = () => {
     const hv = isHighVis;
 
     const [search, setSearch] = useState('');
+    const [categoryFilter, setCategoryFilter] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
     const [completedSale, setCompletedSale] = useState<SaleDocType | null>(null);
     const [isSyncingBCV, setIsSyncingBCV] = useState(false);
@@ -290,13 +301,23 @@ export const PosPage = () => {
 
     const filtered = useMemo(() => {
         const q = search.toLowerCase().trim();
-        if (!q) return items;
-        return items.filter(
+        let result = items;
+        if (categoryFilter) {
+            result = result.filter(i => i.category === categoryFilter);
+        }
+        if (!q) return result;
+        return result.filter(
             i => i.name.toLowerCase().includes(q) ||
                  i.category.toLowerCase().includes(q) ||
                  (i.itemNumber && i.itemNumber.toLowerCase().includes(q))
         );
-    }, [items, search]);
+    }, [items, search, categoryFilter]);
+
+    // ── Unique categories for filter ─────────────────────────
+    const categories = useMemo(() => {
+        const cats = new Set(items.map(i => i.category).filter(Boolean));
+        return Array.from(cats).sort();
+    }, [items]);
 
     // ── Handler para agregar al carrito (respeta sellBy) ───────────────────
     const handleAddToCart = useCallback((item: ItemDocType) => {
@@ -464,6 +485,18 @@ export const PosPage = () => {
                                 >✕</button>
                             )}
                         </div>
+                        {!hv && categories.length > 1 && (
+                            <select
+                                value={categoryFilter}
+                                onChange={e => setCategoryFilter(e.target.value)}
+                                className="text-xs border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 rounded-lg px-2 py-2 text-slate-600 dark:text-slate-300 font-medium max-w-[120px] truncate"
+                            >
+                                <option value="">Todas</option>
+                                {categories.map(cat => (
+                                    <option key={cat} value={cat}>{cat}</option>
+                                ))}
+                            </select>
+                        )}
                     </div>
 
                     {/* Product Grid */}

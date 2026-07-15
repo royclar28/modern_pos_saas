@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthProvider';
+import { AppHeader } from '../../components/AppHeader';
 import { Link } from 'react-router-dom';
 
 // ─── Tipos ───────────────────────────────────────────────────
@@ -95,7 +96,7 @@ const getDiffClass = (diff: number) => {
 // ─── Componente Principal ────────────────────────────────────
 
 export const ShiftHistoryPage = () => {
-    const { user, logout } = useAuth();
+    const { user } = useAuth();
     const [shifts, setShifts] = useState<ShiftRecord[]>([]);
     const [pagination, setPagination] = useState<PaginationMeta | null>(null);
     const [loading, setLoading] = useState(true);
@@ -127,31 +128,16 @@ export const ShiftHistoryPage = () => {
     // ── Render ────────────────────────────────────────────────
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
-            {/* Header */}
-            <header className="bg-slate-900 text-white px-4 sm:px-6 py-4 flex items-center justify-between shadow-lg">
-                <div className="flex items-center gap-3 sm:gap-4">
-                    <Link
-                        to="/"
-                        className="text-slate-300 hover:text-white text-xs sm:text-sm transition-colors"
-                    >
-                        ← Dashboard
-                    </Link>
-                    <h1 className="text-lg sm:text-xl font-bold flex items-center gap-2">
-                        📋 Historial de Caja
-                    </h1>
-                </div>
-                <div className="flex items-center gap-3">
-                    <span className="text-slate-300 text-xs sm:text-sm hidden sm:inline">
-                        {user?.username}
-                    </span>
-                    <button
-                        onClick={logout}
-                        className="text-xs sm:text-sm bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-lg transition-colors"
-                    >
-                        Salir
-                    </button>
-                </div>
-            </header>
+            <AppHeader
+                icon="📋"
+                title="Historial de Caja"
+                subtitle={pagination ? `${pagination.total} turno(s) cerrado(s)` : 'Cargando...'}
+                links={[
+                    { to: '/', label: '← Dashboard' },
+                    { to: '/admin/sales', label: 'Reporte Z' },
+                    { to: '/pos', label: 'POS →' },
+                ]}
+            />
 
             <main className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
                 {/* Page info */}

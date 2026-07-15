@@ -13,10 +13,6 @@ import ResetPassword from './pages/ResetPassword';
 import SetupPasswordPage from './pages/SetupPasswordPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { LandingPage } from './pages/public/LandingPage';
-import { QuinielaLanding } from './pages/quiniela/QuinielaLanding';
-import { QuinielaDashboard } from './pages/quiniela/QuinielaDashboard';
-import { QuinielaLeaderboard } from './pages/quiniela/QuinielaLeaderboard';
-import { QuinielaAdmin } from './pages/quiniela/QuinielaAdmin';
 import { ProductsPage } from './pages/ProductsPage';
 import { PosPage } from './pages/PosPage';
 import { InventoryPage } from './pages/admin/InventoryPage';
@@ -26,9 +22,11 @@ import { FiadosPage } from './pages/admin/FiadosPage';
 import { SuperAdminPage } from './pages/admin/SuperAdminPage';
 import { MasterDashboard } from './pages/admin/MasterDashboard';
 import { ShiftHistoryPage } from './pages/admin/ShiftHistoryPage';
+import { CustomersPage } from './pages/admin/CustomersPage';
 import { useSync } from './hooks/useSync';
 import { useInitialSync } from './hooks/useInitialSync';
 import { useItems } from './hooks/useItems';
+import { useDashboard } from './hooks/useDashboard';
 import { Toaster } from 'react-hot-toast';
 import { WhatsAppButton } from './components/WhatsAppButton';
 
@@ -88,6 +86,7 @@ const Dashboard = () => {
     useSync();
     const { items, isLoading } = useItems();
     const { hydrateLocalDB, isHydrating } = useInitialSync();
+    const { data: dashboard, isLoading: dashLoading } = useDashboard();
 
     useEffect(() => {
         // Auto-hydrate if DB is empty and not already hydrating
@@ -125,6 +124,8 @@ const Dashboard = () => {
     const canAccessAdmin = ADMIN_ROLES.includes(userRole);
     const canAccessSettings = SETTINGS_ROLES.includes(userRole);
     const trialEndsAt = (user as any)?.trial_ends_at ?? null;
+    const trialDaysLeft = (user as any)?.trialDaysLeft ?? 0;
+    const planInfo = (user as any)?.plan_limits as Record<string, any> | null;
 
     return (
         <div className="min-h-screen w-full bg-slate-50 dark:bg-slate-900 transition-colors duration-300 relative overflow-hidden">
@@ -169,6 +170,118 @@ const Dashboard = () => {
                     </div>
                 </div>
 
+                {/* ── KPI Cards — Live summary from backend ──────── */}
+                {!dashLoading && dashboard && (
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5">
+                        {/* Revenue Today */}
+                        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 sm:p-5 shadow-sm transition-colors">
+                            <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-bold mb-1">Ingresos Hoy</p>
+                            <p className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400">
+                                ${dashboard.today.revenue.toFixed(2)}
+                            </p>
+                            <div className="flex gap-3 mt-1.5 text-[10px] text-slate-400 font-medium">
+                                <span>💵 ${dashboard.today.direct_sales.toFixed(2)} ventas</span>
+                                {dashboard.today.debt_payments > 0 && (
+                                    <span>📒 +${dashboard.today.debt_payments.toFixed(2)} abonos</span>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Transactions + Units */}
+                        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 sm:p-5 shadow-sm transition-colors">
+                            <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-bold mb-1">Actividad Hoy</p>
+                            <p className="text-2xl sm:text-3xl font-black text-slate-800 dark:text-white">
+                                {dashboard.today.transaction_count} <span className="text-sm font-bold text-slate-400">tickets</span>
+                            </p>
+                            <p className="text-[10px] text-slate-400 font-medium mt-1.5">
+                                📦 {dashboard.today.units_sold} unidades vendidas
+                            </p>
+                        </div>
+
+                        {/* Pending Debt (global) */}
+                        {dashboard.debt.total_pending > 0 ? (
+                            <Link
+                                to="/admin/creditos"
+                                className="bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-800 hover:border-amber-400 dark:hover:border-amber-600 rounded-2xl p-4 sm:p-5 shadow-sm transition-all hover:-translate-y-0.5 group cursor-pointer"
+                            >
+                                <p className="text-xs text-amber-600 dark:text-amber-400 uppercase tracking-wider font-bold mb-1">Por Cobrar</p>
+                                <p className="text-2xl sm:text-3xl font-black text-amber-700 dark:text-amber-300">
+                                    ${dashboard.debt.total_pending.toFixed(2)}
+                                </p>
+                                <p className="text-[10px] text-amber-500 font-medium mt-1.5 flex items-center gap-1">
+                                    👥 {dashboard.debt.customers_with_debt} clientes · {dashboard.debt.pending_tickets} tickets
+                                    {dashboard.debt.oldest_debt_days > 30 && (
+                                        <span className="bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 px-1.5 py-0.5 rounded-full font-bold ml-1">
+                                            ⚠ {dashboard.debt.oldest_debt_days}d
+                                        </span>
+                                    )}
+                                </p>
+                            </Link>
+                        ) : (
+                            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 sm:p-5 shadow-sm transition-colors">
+                                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-bold mb-1">Por Cobrar</p>
+                                <p className="text-2xl sm:text-3xl font-black text-slate-400 dark:text-slate-500">$0.00</p>
+                                <p className="text-[10px] text-slate-400 font-medium mt-1.5">Sin deudas pendientes ✨</p>
+                            </div>
+                        )}
+
+                        {/* Stock Alerts */}
+                        <Link
+                            to={canAccessAdmin ? "/admin/inventory" : "#"}
+                            className={`rounded-2xl p-4 sm:p-5 shadow-sm transition-all hover:-translate-y-0.5 group cursor-pointer ${
+                                dashboard.stock.out_of_stock_count > 0
+                                    ? 'bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800 hover:border-red-400'
+                                    : dashboard.stock.low_stock_count > 0
+                                        ? 'bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-800 hover:border-amber-400'
+                                        : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700'
+                            }`}
+                        >
+                            <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-bold mb-1">Inventario</p>
+                            <p className="text-2xl sm:text-3xl font-black text-slate-800 dark:text-white">
+                                {dashboard.stock.out_of_stock_count > 0
+                                    ? `🚫 ${dashboard.stock.out_of_stock_count}`
+                                    : dashboard.stock.low_stock_count > 0
+                                        ? `⚠️ ${dashboard.stock.low_stock_count}`
+                                        : '✅ OK'
+                                }
+                            </p>
+                            <p className="text-[10px] text-slate-400 font-medium mt-1.5">
+                                {dashboard.stock.total_items} productos · {dashboard.stock.low_stock_count} bajos · {dashboard.stock.out_of_stock_count} agotados
+                            </p>
+                        </Link>
+                    </div>
+                )}
+
+                {/* ── Plan Badge ───────────────────────────────── */}
+                {planInfo && (
+                    <div className={`mb-5 rounded-xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between text-sm font-bold border gap-2 ${
+                        trialEndsAt && trialDaysLeft <= 3
+                            ? 'bg-red-50 border-red-200 text-red-700'
+                            : trialEndsAt && trialDaysLeft <= 7
+                                ? 'bg-amber-50 border-amber-200 text-amber-700'
+                                : 'bg-blue-50 border-blue-200 text-blue-700'
+                    }`}>
+                        <div className="flex items-center gap-2">
+                            <span>{planInfo.plan === 'TRIAL' ? '🕐' : '✅'}</span>
+                            <span>
+                                {planInfo.plan === 'TRIAL'
+                                    ? `${planInfo.plan_label} — ${trialDaysLeft} día(s) restante(s)`
+                                    : `${planInfo.plan_label}${planInfo.price > 0 ? ` ($${planInfo.price}/mes)` : ''} — Activo`
+                                }
+                            </span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs font-medium opacity-70">
+                            <span>📱 {planInfo.max_devices > 1 ? `Hasta ${planInfo.max_devices} disp.` : '1 dispositivo'}</span>
+                            <span>👥 {planInfo.current_users}/{planInfo.max_users} usuarios</span>
+                            <span>📦 {planInfo.current_items}/{planInfo.max_items} items</span>
+                            {planInfo.credit_sales ? <span>📒 Fiados</span> : <span className="text-slate-400">🚫 Fiados</span>}
+                            {planInfo.payment_methods && (
+                                <span className="text-slate-400">💳 {planInfo.payment_methods.join(', ')}</span>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 {/* Hero POS Card — Prominent, full width */}
                 <Link
                     to="/pos"
@@ -193,14 +306,24 @@ const Dashboard = () => {
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-6">
                     {/* Inventario — ADMIN y MANAGER */}
                     {canAccessAdmin && (
-                        <Link
-                            to="/admin/inventory"
-                            className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-violet-400 dark:hover:border-violet-500 text-slate-800 dark:text-white rounded-2xl p-5 sm:p-7 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
-                        >
-                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">📦</div>
-                            <div className="font-bold text-base sm:text-lg lg:text-xl">Inventario</div>
-                            <div className="text-slate-400 dark:text-slate-400 text-xs sm:text-sm mt-1">Ver catálogo →</div>
-                        </Link>
+                        <div className="space-y-3">
+                            <Link
+                                to="/admin/inventory"
+                                className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-violet-400 dark:hover:border-violet-500 text-slate-800 dark:text-white rounded-2xl p-5 sm:p-7 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 block"
+                            >
+                                <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">📦</div>
+                                <div className="font-bold text-base sm:text-lg lg:text-xl">Inventario</div>
+                                <div className="text-slate-400 dark:text-slate-400 text-xs sm:text-sm mt-1">Ver catálogo →</div>
+                            </Link>
+                            <Link
+                                to="/admin/inventory"
+                                className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-400 text-slate-800 dark:text-white rounded-2xl p-4 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 block text-center"
+                            >
+                                <div className="text-2xl mb-1">🤖</div>
+                                <div className="font-bold text-sm">Escanear Factura</div>
+                                <div className="text-slate-400 text-[10px] mt-0.5">Cargar con IA →</div>
+                            </Link>
+                        </div>
                     )}
 
                     {/* Dashboard General (Ventas) — ADMIN y MANAGER */}
@@ -248,6 +371,18 @@ const Dashboard = () => {
                             <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">📒</div>
                             <div className="font-bold text-base sm:text-lg lg:text-xl">Créditos y Cuentas</div>
                             <div className="text-primary text-xs sm:text-sm mt-1 font-semibold">Gestionar créditos →</div>
+                        </Link>
+                    )}
+
+                    {/* Clientes — ADMIN y MANAGER */}
+                    {canAccessAdmin && (
+                        <Link
+                            to="/admin/customers"
+                            className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-sky-400 dark:hover:border-sky-500 text-slate-800 dark:text-white rounded-2xl p-5 sm:p-7 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                        >
+                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">👥</div>
+                            <div className="font-bold text-base sm:text-lg lg:text-xl">Clientes</div>
+                            <div className="text-slate-400 dark:text-slate-400 text-xs sm:text-sm mt-1">Ver y gestionar →</div>
                         </Link>
                     )}
 
@@ -316,11 +451,6 @@ const AppInner = () => {
                     <Route path="/setup-password" element={<SetupPasswordPage />} />
                     <Route path="/" element={<LandingPage />} />
                     
-                    {/* Quiniela Routes */}
-                    <Route path="/quiniela" element={<QuinielaLanding />} />
-                    <Route path="/quiniela/dashboard" element={<QuinielaDashboard />} />
-                    <Route path="/quiniela/leaderboard" element={<QuinielaLeaderboard />} />
-
                     <Route element={<ProtectedRoute />}>
                         <Route path="/dashboard" element={<Dashboard />} />
                         <Route path="/products" element={<ProductsPage />} />
@@ -337,24 +467,21 @@ const AppInner = () => {
                                 <SalesDashboard />
                             </RequireRole>
                         } />
-                        <Route path="/admin/quiniela" element={
-                            <RequireRole allowed={['SUPER_ADMIN', 'ADMIN', 'MANAGER']}>
-                                <QuinielaAdmin />
-                            </RequireRole>
-                        } />
                         <Route path="/admin/creditos" element={
                             <RequireRole allowed={['SUPER_ADMIN', 'ADMIN', 'MANAGER']}>
                                 <FiadosPage />
                             </RequireRole>
                         } />
-
-                        {/* Historial de Caja — ADMIN y MANAGER */}
                         <Route path="/admin/shifts" element={
                             <RequireRole allowed={['SUPER_ADMIN', 'ADMIN', 'MANAGER']}>
                                 <ShiftHistoryPage />
                             </RequireRole>
                         } />
-
+                        <Route path="/admin/customers" element={
+                            <RequireRole allowed={['SUPER_ADMIN', 'ADMIN', 'MANAGER']}>
+                                <CustomersPage />
+                            </RequireRole>
+                        } />
                         {/* Settings — Solo ADMIN */}
                         <Route path="/admin/settings" element={
                             <RequireRole allowed={['SUPER_ADMIN', 'ADMIN']}>

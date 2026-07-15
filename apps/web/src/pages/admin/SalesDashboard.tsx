@@ -2,7 +2,12 @@ import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { getOutboxDB } from '../../db/outbox';
+import { enqueueSyncEvent } from '../../db/enqueueSyncEvent';
+import { SyncEntityType, SyncAction } from '../../db/outbox.types';
 import { SaleDocType } from '../../db/schemas/sale.schema';
+import { Receipt } from '../../components/Receipt';
+import { AppHeader } from '../../components/AppHeader';
+import { useSettingsContext } from '../../contexts/SettingsProvider';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -32,6 +37,9 @@ const PAYMENT_BADGE_MAP: Record<string, { label: string; icon: string; bg: strin
     EFECTIVO_BS: { label: 'Efectivo Bs.', icon: '💰', bg: 'bg-amber-100',  text: 'text-amber-800' },
     PAGO_MOVIL:  { label: 'Pago Móvil',  icon: '📱', bg: 'bg-blue-100',   text: 'text-blue-800' },
     PUNTO:       { label: 'Punto',        icon: '💳', bg: 'bg-indigo-100', text: 'text-indigo-800' },
+    FIADO:       { label: 'Crédito',      icon: '📒', bg: 'bg-orange-100', text: 'text-orange-800' },
+    MIXTO:       { label: 'Mixto',        icon: '🔀', bg: 'bg-purple-100', text: 'text-purple-800' },
+    ABONO:       { label: 'Abono',        icon: '💵', bg: 'bg-emerald-100', text: 'text-emerald-800' },
 };
 
 const PaymentBadge = ({ method }: { method?: string }) => {
@@ -83,6 +91,39 @@ const ArqueoCard = ({ icon, label, valueUsd, valueBs, sub, accent, ticketCount }
 export const SalesDashboard = () => {
     const [selectedDate, setSelectedDate] = useState<string>(todayStr());
     const [exchangeRate, setExchangeRate] = useState(38.5); // fallback
+    const [reprintSale, setReprintSale] = useState<SaleDocType | null>(null);
+    const [voidingSaleId, setVoidingSaleId] = useState<string | null>(null);
+
+    // ── Handle reprint ──────────────────────────────────────────
+    const handleReprint = (sale: SaleDocType) => {
+        setReprintSale(sale);
+        setTimeout(() => { window.print(); setReprintSale(null); }, 100);
+    };
+
+    // ── Handle void sale ────────────────────────────────────────
+    const handleVoidSale = async (sale: SaleDocType) => {
+        if (!confirm(`¿Anular venta ${sale.id.slice(-8).toUpperCase()} por $${sale.total.toFixed(2)}?\n\nEl stock será devuelto al inventario. Esta acción no se puede deshacer.`)) return;
+        setVoidingSaleId(sale.id);
+        try {
+            await enqueueSyncEvent({
+                entity_type: SyncEntityType.SALE,
+                action: SyncAction.VOID,
+                payload: {},
+                tenant_id: sale.storeId,
+                localTable: 'sales',
+                localRecordKey: sale.id,
+                localUpdater: (existing: SaleDocType) => ({
+                    ...existing,
+                    status: 'ANULADO',
+                    updatedAt: Date.now(),
+                }),
+            });
+        } catch (err) {
+            console.error('Void failed:', err);
+        } finally {
+            setVoidingSaleId(null);
+        }
+    };
 
     const db = getOutboxDB();
 
@@ -129,14 +170,18 @@ export const SalesDashboard = () => {
         const bsSales = byMethod('EFECTIVO_BS');
         const pagoMovilSales = byMethod('PAGO_MOVIL');
         const puntoSales = byMethod('PUNTO');
+        const fiadoSales = byMethod('FIADO');
+        const mixtoSales = byMethod('MIXTO');
 
         const divisaTotal = sumTotal(divisaSales);
         const bsTotal = sumTotal(bsSales);
         const pagoMovilTotal = sumTotal(pagoMovilSales);
         const puntoTotal = sumTotal(puntoSales);
+        const fiadoTotal = sumTotal(fiadoSales);
+        const mixtoTotal = sumTotal(mixtoSales);
 
         const digitalTotal = pagoMovilTotal + puntoTotal;
-        const grandTotal = divisaTotal + bsTotal + digitalTotal;
+        const grandTotal = divisaTotal + bsTotal + digitalTotal + fiadoTotal + mixtoTotal;
 
         const ticketCount = allSales.length;
         const totalTax = allSales.reduce((sum, s) => sum + (s.taxAmount ?? 0), 0);
@@ -151,6 +196,8 @@ export const SalesDashboard = () => {
             bsTotal, bsCount: bsSales.length,
             pagoMovilTotal, pagoMovilCount: pagoMovilSales.length,
             puntoTotal, puntoCount: puntoSales.length,
+            fiadoTotal, fiadoCount: fiadoSales.length,
+            mixtoTotal, mixtoCount: mixtoSales.length,
             digitalTotal, digitalCount: pagoMovilSales.length + puntoSales.length,
             grandTotal,
             ticketCount,
@@ -161,47 +208,66 @@ export const SalesDashboard = () => {
     }, [allSales]);
 
     const isToday = selectedDate === todayStr();
+    const { currencySymbol } = useSettingsContext();
+
+    // ── CSV Export ───────────────────────────────────────────
+    const exportCSV = () => {
+        const rows = allSales.map(sale => {
+            const totalItems = sale.items.reduce((sum, i) => sum + (i.quantityPurchased ?? 1), 0);
+            return [
+                sale.invoiceNumber ?? sale.id.slice(0, 8).toUpperCase(),
+                new Date(sale.saleTime).toLocaleString('es-VE'),
+                sale.paymentMethod || 'N/A',
+                sale.reference || '',
+                totalItems,
+                sale.subtotal.toFixed(2),
+                sale.taxAmount.toFixed(2),
+                sale.total.toFixed(2),
+                sale.status || '',
+            ].join(',');
+        });
+        const header = 'Ticket,Hora,Método,Referencia,Artículos,Subtotal,IVA,Total,Estado';
+        const csv = [header, ...rows].join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `arqueo_${selectedDate}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
 
     return (
         <div className="flex flex-col h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
 
-            {/* ── Navbar ─────────────────────────────────────────────────────── */}
-            <header className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between shadow-md shrink-0">
-                <div className="flex items-center gap-6">
-                    <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
-                        <span>📊</span>
-                        <span>Arqueo de Caja — Reporte Z</span>
-                    </h1>
-                    <nav className="hidden sm:flex gap-4">
-                        <Link to="/" className="text-sm text-slate-300 hover:text-white transition-colors">
-                            ← Dashboard
-                        </Link>
-                        <Link to="/admin/inventory" className="text-sm text-slate-300 hover:text-white transition-colors">
-                            Inventario
-                        </Link>
-                        <Link to="/pos" className="text-sm text-slate-300 hover:text-white transition-colors">
-                            Ir al POS →
-                        </Link>
-                    </nav>
-                </div>
-
-                <div className="flex items-center gap-3">
-                    {isToday && (
-                        <span className="flex items-center gap-1.5 text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-1 rounded-full">
-                            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
-                            En vivo · hoy
-                        </span>
-                    )}
-                    <label className="text-xs text-slate-400 uppercase tracking-widest">Fecha</label>
-                    <input
-                        id="sales-date-filter"
-                        type="date"
-                        value={selectedDate}
-                        onChange={(e) => setSelectedDate(e.target.value)}
-                        className="bg-slate-800 text-white text-sm border border-slate-700 rounded-lg px-3 py-1.5 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all"
-                    />
-                </div>
-            </header>
+            <AppHeader
+                icon="📊"
+                title="Arqueo de Caja — Reporte Z"
+                subtitle={isLoading ? 'Cargando...' : `${arqueo.ticketCount} transacciones · Tasa BCV: Bs. ${exchangeRate.toFixed(2)}`}
+                links={[
+                    { to: '/', label: '← Dashboard' },
+                    { to: '/admin/creditos', label: 'Créditos' },
+                    { to: '/pos', label: 'POS →' },
+                ]}
+                actions={
+                    <div className="flex items-center gap-3">
+                        {isToday && (
+                            <span className="flex items-center gap-1.5 text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-1 rounded-full">
+                                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+                                En vivo
+                            </span>
+                        )}
+                        <button onClick={exportCSV} className="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 text-slate-200 rounded-lg font-bold transition-all" title="Exportar a CSV">📥 CSV</button>
+                        <label className="text-xs text-slate-400 uppercase tracking-widest hidden sm:inline">Fecha</label>
+                        <input
+                            type="date"
+                            value={selectedDate}
+                            onChange={(e) => setSelectedDate(e.target.value)}
+                            className="bg-slate-800 text-white text-sm border border-slate-700 rounded-lg px-3 py-1.5 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all"
+                        />
+                    </div>
+                }
+            />
 
             {/* ── Main Content ────────────────────────────────────────────────── */}
             <main className="flex-1 overflow-auto p-6 md:p-8">
@@ -296,19 +362,20 @@ export const SalesDashboard = () => {
                                     <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500 font-semibold">
                                         <th className="px-5 py-3.5">ID Ticket</th>
                                         <th className="px-5 py-3.5">Hora</th>
-                                        <th className="px-5 py-3.5">Método de Pago</th>
-                                        <th className="px-5 py-3.5">Referencia</th>
+                                        <th className="px-5 py-3.5">Método</th>
+                                        <th className="px-5 py-3.5">Ref.</th>
                                         <th className="px-5 py-3.5 text-center">Art.</th>
                                         <th className="px-5 py-3.5 text-right">Subtotal</th>
                                         <th className="px-5 py-3.5 text-right">IVA</th>
                                         <th className="px-5 py-3.5 text-right">Total</th>
+                                        <th className="px-5 py-3.5 text-center">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100 text-sm">
                                     {isLoading ? (
                                         Array.from({ length: 5 }).map((_, i) => (
                                             <tr key={i}>
-                                                {Array.from({ length: 8 }).map((_, j) => (
+                                                {Array.from({ length: 9 }).map((_, j) => (
                                                     <td key={j} className="px-5 py-4">
                                                         <div className="h-4 bg-slate-100 rounded animate-pulse" style={{ width: `${60 + Math.random() * 40}%` }} />
                                                     </td>
@@ -317,7 +384,7 @@ export const SalesDashboard = () => {
                                         ))
                                     ) : allSales.length === 0 ? (
                                         <tr>
-                                            <td colSpan={8} className="text-center py-16">
+                                            <td colSpan={9} className="text-center py-16">
                                                 <div className="flex flex-col items-center gap-3 text-slate-400">
                                                     <span className="text-5xl">🏬</span>
                                                     <p className="font-semibold text-slate-500">Sin ventas para esta fecha</p>
@@ -337,7 +404,11 @@ export const SalesDashboard = () => {
                                             return (
                                                 <tr key={sale.id} className="hover:bg-violet-50/30 transition-colors">
                                                     <td className="px-5 py-3.5">
-                                                        <span className="font-mono text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-md">
+                                                        <span className={`font-mono text-xs px-2 py-1 rounded-md ${
+                                                            sale.status === 'ANULADO'
+                                                                ? 'bg-red-100 text-red-600 line-through'
+                                                                : 'bg-slate-100 text-slate-600'
+                                                        }`}>
                                                             {sale.invoiceNumber ?? sale.id.slice(0, 8).toUpperCase()}
                                                         </span>
                                                     </td>
@@ -345,7 +416,17 @@ export const SalesDashboard = () => {
                                                         {fmtTime(sale.saleTime)}
                                                     </td>
                                                     <td className="px-5 py-3.5">
-                                                        <PaymentBadge method={sale.paymentMethod} />
+                                                        <div className="flex flex-col gap-1">
+                                                            <PaymentBadge method={sale.paymentMethod} />
+                                                            {sale.status === 'ANULADO' && (
+                                                                <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded">ANULADO</span>
+                                                            )}
+                                                            {sale.paymentMethod === 'FIADO' && sale.status !== 'ANULADO' && (
+                                                                <span className="text-[10px] font-bold text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded">
+                                                                    {sale.status === 'PAGADO' ? '✅ SALDADO' : `🔸 ${sale.paidAmount ? `$${sale.paidAmount.toFixed(2)}` : 'PENDIENTE'}`}
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     </td>
                                                     <td className="px-5 py-3.5">
                                                         {sale.reference ? (
@@ -367,8 +448,27 @@ export const SalesDashboard = () => {
                                                     <td className="px-5 py-3.5 text-right text-slate-500 tabular-nums">
                                                         {fmt(sale.taxAmount)}
                                                     </td>
-                                                    <td className="px-5 py-3.5 text-right font-bold text-violet-700 tabular-nums">
+                                                    <td className={`px-5 py-3.5 text-right font-bold tabular-nums ${
+                                                        sale.status === 'ANULADO' ? 'text-red-400 line-through' : 'text-violet-700'
+                                                    }`}>
                                                         {fmt(sale.total)}
+                                                    </td>
+                                                    <td className="px-5 py-3.5 text-center">
+                                                        <div className="flex items-center justify-center gap-1.5">
+                                                            <button
+                                                                onClick={() => handleReprint(sale)}
+                                                                className="text-[10px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded-lg transition-colors"
+                                                                title="Reimprimir ticket"
+                                                            >🖨️</button>
+                                                            {sale.status !== 'ANULADO' && (
+                                                                <button
+                                                                    onClick={() => handleVoidSale(sale)}
+                                                                    disabled={voidingSaleId === sale.id}
+                                                                    className="text-[10px] font-bold bg-red-50 hover:bg-red-100 text-red-500 disabled:opacity-50 px-2 py-1 rounded-lg transition-colors"
+                                                                    title="Anular venta"
+                                                                >✕</button>
+                                                            )}
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             );
@@ -379,7 +479,7 @@ export const SalesDashboard = () => {
                                 {!isLoading && allSales.length > 0 && (
                                     <tfoot>
                                         <tr className="bg-slate-50 border-t-2 border-slate-200 font-bold text-sm">
-                                            <td colSpan={5} className="px-5 py-4 text-slate-700 uppercase tracking-wider text-xs">
+                                            <td colSpan={6} className="px-5 py-4 text-slate-700 uppercase tracking-wider text-xs">
                                                 TOTALES DEL DÍA
                                             </td>
                                             <td className="px-5 py-4 text-right text-slate-700 tabular-nums">
@@ -424,6 +524,8 @@ export const SalesDashboard = () => {
                                             { method: 'EFECTIVO_BS', total: arqueo.bsTotal, count: arqueo.bsCount },
                                             { method: 'PAGO_MOVIL', total: arqueo.pagoMovilTotal, count: arqueo.pagoMovilCount },
                                             { method: 'PUNTO', total: arqueo.puntoTotal, count: arqueo.puntoCount },
+                                            { method: 'FIADO', total: arqueo.fiadoTotal, count: arqueo.fiadoCount },
+                                            { method: 'MIXTO', total: arqueo.mixtoTotal, count: arqueo.mixtoCount },
                                         ].filter(row => row.count > 0).map(row => {
                                             const pct = arqueo.grandTotal > 0 ? (row.total / arqueo.grandTotal) * 100 : 0;
                                             return (

@@ -93,6 +93,29 @@ export const useCashShift = () => {
             }
         });
 
+        // ── Include debt payments (abonos) received during shift ──────
+        // Query sync_queue for SALE_PAYMENT events in this shift's time window
+        const paymentEvents = await db.sync_queue
+            .where('entity_type')
+            .equals('SALE_PAYMENT')
+            .filter(e => e.occurred_at >= openShift.openedAt)
+            .toArray();
+
+        let debtPaymentsCash = 0;
+        paymentEvents.forEach(e => {
+            const method = e.payload?.method || e.payload?.payment_method || 'EFECTIVO';
+            const amount = parseFloat(e.payload?.amount || '0');
+            // Only count cash abonos (EFECTIVO, DIVISA)
+            if (method === 'ABONO' || method === 'EFECTIVO' || method === 'DIVISA') {
+                debtPaymentsCash += amount;
+            }
+            // Track abonos in sales summary
+            const key = `ABONO_${method}`;
+            salesSummary[key] = (salesSummary[key] || 0) + amount;
+        });
+
+        cashSalesTotal += debtPaymentsCash;
+
         const expectedCash = openShift.startingCash + cashSalesTotal;
         const difference = actualCash - expectedCash;
 
