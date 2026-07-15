@@ -27,15 +27,11 @@ class DatabaseSeeder extends Seeder
         User::create([
             'tenant_id' => $store->id,
             'username' => 'admin',
-            'password' => 'password', // esto usará el cast a 'hashed' si tienes uno en el modelo, o deberías usar bcrypt()
+            'password' => 'password',
             'first_name' => 'Admin',
             'last_name' => 'User',
             'email' => 'admin@ejemplo.com',
             'role' => 'SUPER_ADMIN',
-        ]);
-
-        $this->call([
-            QuinielaMatchSeeder::class,
         ]);
     }
 }
