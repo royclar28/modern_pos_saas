@@ -3,25 +3,19 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\SessionService;
+use App\Services\PlanService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 
 class AuthController extends Controller
 {
-    /**
-     * Authenticate a user within a specific tenant.
-     *
-     * 🔒 CRITICAL SECURITY: This method MUST receive the tenant_id from the
-     *     client to guarantee cross-tenant isolation. The POS client knows its
-     *     tenant because it's configured during initial setup (offline-first).
-     *
-     *     The query is built with an explicit tenant_id filter AND grouped
-     *     OR conditions to prevent the classic "WHERE tenant_id = ? AND
-     *     username = ? OR email = ?" SQL logic bypass.
-     *
-     * @see https://laravel.com/docs/11.x/queries#logical-grouping
-     */
+    public function __construct(
+        private readonly SessionService $sessions,
+        private readonly PlanService $plans,
+    ) {}
+
     public function login(Request $request)
     {
         $request->validate([
@@ -30,10 +24,6 @@ class AuthController extends Controller
             'password'  => 'required',
         ]);
 
-        // ── Find user scoped to the explicit tenant ────────────────
-        // We do NOT use withoutGlobalScopes() here. Instead we build the
-        // query manually with an explicit tenant_id filter and grouped
-        // OR conditions to guarantee tenant isolation.
         $user = User::where('tenant_id', $request->tenant_id)
                     ->where(function ($query) use ($request) {
                         $query->where('username', $request->username)
@@ -48,24 +38,44 @@ class AuthController extends Controller
             ], 401);
         }
 
-        // Revoke previous tokens for this user (optional, but good practice
-        // to limit active sessions).
-        // $user->tokens()->delete();
+        // ── Device authorization ───────────────────────────────
+        try {
+            $fingerprint = $this->sessions->authorizeDevice($user->store, $request);
+        } catch (\RuntimeException $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => $e->getMessage(),
+                'code'    => 'DEVICE_LIMIT_REACHED',
+            ], 403);
+        }
 
-        // Issue Sanctum Token
-        $token = $user->createToken('pos-v1')->plainTextToken;
+        $deviceName = $request->header('X-Device-Name', 'POS Terminal');
+
+        // ── Issue token with device metadata ──────────────────
+        $token = $user->createToken('pos-v1');
+        $accessToken = $token->accessToken;
+        $accessToken->device_fingerprint = $fingerprint;
+        $accessToken->device_name        = $deviceName;
+        $accessToken->ip_address         = $request->ip();
+        $accessToken->last_activity_at   = now();
+        $accessToken->save();
+
+        $store = $user->store;
 
         return response()->json([
             'status' => 'ok',
-            'token'  => $token,
+            'token'  => $token->plainTextToken,
             'user'   => [
-                'id'         => $user->id,
-                'username'   => $user->username,
-                'name'       => $user->full_name,
-                'email'      => $user->email,
-                'tenant_id'  => $user->tenant_id,
-                'role'       => $user->role,
-                'trial_ends_at' => $user->store && $user->store->trial_ends_at ? $user->store->trial_ends_at->toIso8601String() : null,
+                'id'             => $user->id,
+                'username'       => $user->username,
+                'name'           => $user->full_name,
+                'email'          => $user->email,
+                'tenant_id'      => $user->tenant_id,
+                'role'           => $user->role,
+                'trial_ends_at'  => $store?->trial_ends_at?->toISOString(),
+                'trialDaysLeft'  => $store ? $store->trialDaysLeft() : 0,
+                'plan'           => $store?->plan,
+                'plan_limits'    => $store ? $this->plans->getLimits($store) : null,
             ]
         ]);
     }

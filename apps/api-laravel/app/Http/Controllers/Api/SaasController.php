@@ -4,15 +4,20 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Store;
-use App\Models\User;
-use App\Notifications\WelcomeUserNotification;
+use App\Services\TenantService;
+use App\Services\PlanService;
+use App\Services\SessionService;
+use App\Enums\Plan;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 class SaasController extends Controller
 {
+    public function __construct(
+        private readonly TenantService $tenants,
+        private readonly PlanService $plans,
+        private readonly SessionService $sessions,
+    ) {}
+
     public function index(Request $request)
     {
         $stores = Store::orderBy('created_at', 'desc')->get()->map(function ($store) {
@@ -46,41 +51,17 @@ class SaasController extends Controller
             'rif'        => 'nullable|string|max:20',
         ]);
 
-        // Si no viene ownerName (frontend viejo), derivar del email
-        $ownerName = $request->input('ownerName')
-            ?? ucfirst(explode('@', $request->input('ownerEmail'))[0]);
-
-        $temporaryPassword = Str::password(12, symbols: false);
-
-        DB::transaction(function () use ($request, $temporaryPassword, $ownerName) {
-            // 1. Crear la tienda
-            $store = Store::create([
-                'id'          => Str::uuid()->toString(),
-                'name'        => $request->input('name'),
-                'rif'         => $request->input('rif'),
-                'owner_email' => $request->input('ownerEmail'),
-                'plan'        => $request->input('plan', 'STANDARD'),
-                'is_active'   => true,
-            ]);
-
-            // 2. Crear el usuario administrador de la tienda
-            $nameParts = explode(' ', trim($ownerName), 2);
-            $user = User::create([
-                'tenant_id'  => $store->id,
-                'first_name' => $nameParts[0],
-                'last_name'  => $nameParts[1] ?? '',
-                'email'      => $request->input('ownerEmail'),
-                'username'   => Str::slug($nameParts[0] . '_' . ($nameParts[1] ?? ''), '_'),
-                'password'   => Hash::make($temporaryPassword),
-                'role'       => 'ADMIN',
-            ]);
-
-            // 3. Enviar el correo de bienvenida con las credenciales
-            $user->notify(new WelcomeUserNotification($temporaryPassword));
-        });
+        $result = $this->tenants->createTenant([
+            'name'       => $request->input('name'),
+            'ownerEmail' => $request->input('ownerEmail'),
+            'ownerName'  => $request->input('ownerName'),
+            'plan'       => $request->input('plan', 'STANDARD'),
+            'rif'        => $request->input('rif'),
+        ], sendWelcomeEmail: false);
 
         return response()->json([
-            'message' => 'Tienda creada exitosamente. Se ha enviado un correo al administrador con sus credenciales de acceso.',
+            'message' => 'Tienda creada exitosamente.',
+            'storeId' => $result['store']->id,
         ], 201);
     }
 
@@ -93,5 +74,84 @@ class SaasController extends Controller
             'message'  => 'Estado actualizado correctamente.',
             'isActive' => $store->is_active,
         ]);
+    }
+
+    // ─── Plan Management (SUPER_ADMIN only) ─────────────────
+
+    /**
+     * GET /api/saas/plans/limits/{storeId}
+     * Devuelve los límites del plan actual del tenant.
+     */
+    public function planLimits(string $storeId): \Illuminate\Http\JsonResponse
+    {
+        $store = Store::findOrFail($storeId);
+        return response()->json($this->plans->getLimits($store));
+    }
+
+    /**
+     * POST /api/saas/plans/change
+     * Body: { storeId, plan }
+     * Cambia el plan de un tenant. Marca trial_ends_at = null.
+     */
+    public function changePlan(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $request->validate([
+            'storeId' => 'required|uuid|exists:stores,id',
+            'plan'    => ['required', 'string', 'in:' . implode(',', array_column(Plan::cases(), 'value'))],
+        ]);
+
+        $store = Store::findOrFail($request->storeId);
+        $plan  = Plan::from($request->plan);
+
+        $this->plans->changePlan($store, $plan, $request->user());
+
+        return response()->json([
+            'message' => "Plan cambiado a {$plan->label()}.",
+            'limits'  => $this->plans->getLimits($store->fresh()),
+        ]);
+    }
+
+    /**
+     * POST /api/saas/plans/extend-trial
+     * Body: { storeId, days? }
+     * Extiende el trial N días. Default: 15.
+     */
+    public function extendTrial(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $request->validate([
+            'storeId' => 'required|uuid|exists:stores,id',
+            'days'    => 'nullable|integer|min:1|max:90',
+        ]);
+
+        $store = Store::findOrFail($request->storeId);
+        $this->plans->extendTrial($store, $request->integer('days', 15));
+
+        return response()->json([
+            'message'       => "Trial extendido {$request->integer('days', 15)} días.",
+            'trial_ends_at' => $store->fresh()->trial_ends_at?->toISOString(),
+        ]);
+    }
+
+    // ─── Session Management (SUPER_ADMIN only) ──────────────
+
+    public function listSessions(string $storeId): \Illuminate\Http\JsonResponse
+    {
+        $store = Store::findOrFail($storeId);
+        $plan = Plan::tryFrom($store->plan) ?? Plan::TRIAL;
+
+        return response()->json([
+            'store'    => $store->name,
+            'plan'     => $plan->label(),
+            'max_devices' => $plan->maxDevices(),
+            'active_devices' => $this->sessions->countActiveDevices($store->id),
+            'sessions' => $this->sessions->getActiveSessions($store->id),
+        ]);
+    }
+
+    public function revokeSession(string $tokenId): \Illuminate\Http\JsonResponse
+    {
+        $this->sessions->revokeSession($tokenId);
+
+        return response()->json(['message' => 'Sesión revocada.']);
     }
 }
