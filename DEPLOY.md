@@ -53,8 +53,8 @@ cp .env.example .env
 
 # .env
 DB_USER=postgres
-DB_PASSWORD=<generar-contraseña-fuerte>
-DATABASE_URL="postgresql://postgres:<DB_PASSWORD>@postgres:5432/merx_prod?schema=public"
+DB_PASSWORD=<generar-contrasena-fuerte>
+DATABASE_URL="postgresql://postgres:${DB_PASSWORD}@postgres:5432/merx_prod?schema=public"
 VITE_API_URL="https://api.merxpos.com/api"
 FRONTEND_URL="https://merxpos.com"
 ```
@@ -76,19 +76,19 @@ DB_HOST=postgres
 DB_PORT=5432
 DB_DATABASE=merx_prod
 DB_USERNAME=postgres
-DB_PASSWORD=<misma-contraseña-fuerte>
+DB_PASSWORD=<misma-contrasena-fuerte>
 
 SESSION_DRIVER=database
 QUEUE_CONNECTION=database
 CACHE_STORE=database
 
-MAIL_MAILER=resend
-MAIL_HOST=smtp.resend.com
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.tudominio.com
 MAIL_PORT=587
-MAIL_USERNAME=resend
+MAIL_USERNAME=tu_usuario_smtp
 MAIL_FROM_ADDRESS="noreply@merxpos.com"
 MAIL_FROM_NAME="${APP_NAME}"
-RESEND_API_KEY=re_xxxxxxxxxxxx
+RESEND_API_KEY=re_123456789_xxxxxxxxxxxx
 
 SANCTUM_STATEFUL_DOMAINS="merxpos.com,api.merxpos.com"
 SESSION_DOMAIN=".merxpos.com"
