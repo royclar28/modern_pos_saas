@@ -10,23 +10,43 @@ use Illuminate\Http\JsonResponse;
 class SyncReadController extends Controller
 {
     /**
-     * Devuelve todo el catálogo de productos (items) del tenant actual
+     * Devuelve el catálogo de productos (items) del tenant actual
      * para la hidratación inicial del POS offline.
+     *
+     * Query params:
+     *   ?page=1        — página (default: 1, 0 = todos sin paginar)
+     *   ?per_page=200  — items por página (default: 200, max: 1000)
      */
     public function getItems(Request $request): JsonResponse
     {
-        // El TenantScope asegura que solo se traigan los ítems del usuario
-        // Traemos todos los items (podría paginarse en un futuro, pero para POS
-        // offline es común traer todo o en chunks).
-        $items = Item::select([
+        $perPage = min((int) $request->query('per_page', 200), 1000);
+        $page    = (int) $request->query('page', 1);
+
+        $query = Item::select([
             'id', 'tenant_id', 'name', 'category', 'item_number',
             'description', 'cost_price', 'unit_price',
             'stock', 'reorder_level', 'min_stock_alert',
             'receiving_quantity', 'allow_alt_description',
             'is_serialized', 'sell_by', 'unit_label', 'created_at', 'updated_at',
-        ])->get();
-        
-        return response()->json($items);
+        ]);
+
+        // Si page=0, devolver todo sin paginar (compatibilidad hacia atrás)
+        if ($page === 0) {
+            $items = $query->get();
+            return response()->json($items);
+        }
+
+        $paginator = $query->paginate($perPage, ['*'], 'page', $page);
+
+        return response()->json([
+            'data' => $paginator->items(),
+            'pagination' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page'    => $paginator->lastPage(),
+                'per_page'     => $paginator->perPage(),
+                'total'        => $paginator->total(),
+            ],
+        ]);
     }
 
     /**

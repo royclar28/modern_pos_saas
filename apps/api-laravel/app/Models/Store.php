@@ -25,6 +25,7 @@ class Store extends Model
         'logo_url',
         'is_active',
         'plan',
+        'plan_changed_at',
         'rif',
         'owner_email',
         'trial_ends_at',
@@ -34,9 +35,33 @@ class Store extends Model
     protected function casts(): array
     {
         return [
-            'is_active'     => 'boolean',
-            'trial_ends_at' => 'datetime',
+            'is_active'       => 'boolean',
+            'trial_ends_at'   => 'datetime',
+            'plan_changed_at' => 'datetime',
         ];
+    }
+
+    // ─── Trial Helpers ─────────────────────────────────────
+
+    public function isOnTrial(): bool
+    {
+        return $this->trial_ends_at !== null;
+    }
+
+    public function trialHasExpired(): bool
+    {
+        if (!$this->isOnTrial()) {
+            return false;
+        }
+        return now()->greaterThan($this->trial_ends_at);
+    }
+
+    public function trialDaysLeft(): int
+    {
+        if (!$this->isOnTrial() || $this->trialHasExpired()) {
+            return 0;
+        }
+        return max(0, (int) now()->diffInDays($this->trial_ends_at, false));
     }
 
     // ─── Trial Helpers ────────────────────────────────────

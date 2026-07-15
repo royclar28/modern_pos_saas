@@ -10,6 +10,7 @@ use App\Models\ProcessedSyncEvent;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\SalePayment;
+use App\Services\AuditService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -33,6 +34,9 @@ use Illuminate\Support\Facades\Log;
  */
 class SyncEventProcessor
 {
+    public function __construct(
+        private readonly AuditService $audit
+    ) {}
     /**
      * Procesa un evento individual del Drain Loop.
      *
@@ -85,7 +89,10 @@ class SyncEventProcessor
                 'ITEM:ADJUST_STOCK' => $this->handleItemAdjustStock($event),
 
                 // ── Sale Payments (Abonos / Fiados) ─────────────────
+                // UPDATE es el alias que envía el frontend (FiadosPage usa action=UPDATE),
+                // ambos crean un nuevo registro de abono porque no hay payment_id previo.
                 'SALE_PAYMENT:CREATE' => $this->handleSalePaymentCreate($event),
+                'SALE_PAYMENT:UPDATE' => $this->handleSalePaymentCreate($event),
                 'SALE_PAYMENT:VOID'   => $this->handleSalePaymentVoid($event),
 
                 // ── Cash Shifts (Turnos de Caja) ─────────────────────
@@ -282,17 +289,45 @@ class SyncEventProcessor
 
     private function handleSaleVoid(array $event): void
     {
-        $sale = Sale::findOrFail($event['entity_id']);
+        $sale = Sale::where('id', $event['entity_id'])
+            ->lockForUpdate()
+            ->firstOrFail();
+
+        // Idempotencia: si ya está anulada, no hacer nada
+        if ($sale->status === 'ANULADO') {
+            Log::warning("[Sync] Venta {$sale->id} ya estaba anulada — skip");
+            return;
+        }
+
+        $oldStatus = $sale->status;
         $sale->update(['status' => 'ANULADO']);
 
         // Revertir stock de cada línea (devolver al inventario)
         foreach ($sale->saleItems as $saleItem) {
-            $item = Item::find($saleItem->item_id);
+            $item = Item::where('id', $saleItem->item_id)
+                ->lockForUpdate()
+                ->first();
+
             if ($item) {
                 // Delta positivo = devolver al inventario
                 $item->adjustStock((float) $saleItem->quantity_purchased);
             }
         }
+
+        // ── Auditoría ───────────────────────────────────────────
+        $this->audit->log(
+            entityType: 'sale',
+            entityId: $sale->id,
+            action: 'VOID',
+            oldValues: ['status' => $oldStatus],
+            newValues: ['status' => 'ANULADO'],
+            metadata: [
+                'items_count' => $sale->saleItems->count(),
+                'total'       => (float) $sale->total,
+            ],
+        );
+
+        Log::info("[Sync] Venta anulada: {$sale->id}");
     }
 
     // ── ITEM (INVENTORY) ────────────────────────────────────────────
@@ -391,24 +426,39 @@ class SyncEventProcessor
     {
         $p = $event['payload'];
 
-        // Crear el registro del abono
+        // ── Normalizar campos: el frontend envía camelCase (saleId, method),
+        //     mientras que otros orígenes pueden enviar snake_case (sale_id, payment_method).
+        $saleId        = $p['sale_id'] ?? $p['saleId'] ?? null;
+        $paymentMethod = $p['payment_method'] ?? $p['method'] ?? 'EFECTIVO';
+        $amount        = (float) $p['amount'];
+        $paymentId     = $p['id'] ?? (string) \Illuminate\Support\Str::uuid();
+
+        if (!$saleId || $amount <= 0) {
+            throw new \InvalidArgumentException('sale_id/saleId y amount > 0 son requeridos para un abono');
+        }
+
+        // Crear el registro del abono (con user_id del autenticado)
         $payment = SalePayment::create([
-            'id'             => $p['id'],
+            'id'             => $paymentId,
             'tenant_id'      => $event['tenant_id'],
-            'sale_id'        => $p['sale_id'],
-            'amount'         => $p['amount'],
-            'payment_method' => $p['payment_method'] ?? 'EFECTIVO',
+            'user_id'        => auth()->id(),
+            'sale_id'        => $saleId,
+            'amount'         => $amount,
+            'payment_method' => $paymentMethod,
             'reference'      => $p['reference'] ?? null,
             'note'           => $p['note'] ?? null,
             'paid_at'        => $p['paid_at'] ?? now(),
         ]);
 
         // Actualizar el monto pagado de la venta (con lock para atomicidad)
-        $sale = Sale::where('id', $p['sale_id'])
+        $sale = Sale::where('id', $saleId)
             ->lockForUpdate()
             ->firstOrFail();
 
-        $newPaidAmount = (float) $sale->paid_amount + (float) $p['amount'];
+        $oldStatus = $sale->status;
+        $oldPaid = (float) $sale->paid_amount;
+
+        $newPaidAmount = $oldPaid + $amount;
         $sale->paid_amount = $newPaidAmount;
 
         // Auto-cambiar status si ya se cubrió el total
@@ -418,6 +468,23 @@ class SyncEventProcessor
         }
 
         $sale->save();
+
+        // ── Auditoría ───────────────────────────────────────────
+        $this->audit->log(
+            entityType: 'sale_payment',
+            entityId: $paymentId,
+            action: 'CREATE',
+            metadata: [
+                'sale_id'        => $saleId,
+                'amount'         => $amount,
+                'payment_method' => $paymentMethod,
+                'sale_old_paid'  => $oldPaid,
+                'sale_new_paid'  => $newPaidAmount,
+                'sale_old_status'=> $oldStatus,
+                'sale_new_status'=> $sale->status,
+                'reference'      => $p['reference'] ?? null,
+            ],
+        );
     }
 
     private function handleSalePaymentVoid(array $event): void
@@ -429,10 +496,13 @@ class SyncEventProcessor
             ->lockForUpdate()
             ->firstOrFail();
 
-        $sale->paid_amount = max(0, (float) $sale->paid_amount - (float) $payment->amount);
+        $oldPaid = (float) $sale->paid_amount;
+        $oldStatus = $sale->status;
+
+        $sale->paid_amount = max(0, $oldPaid - (float) $payment->amount);
 
         // Si ya no está completamente pagada, volver a FIADO
-        if ((float) $sale->paid_amount < (float) $sale->total && $sale->status === 'PAGADO') {
+        if ((float) $sale->paid_amount < (float) $sale->total && $oldStatus === 'PAGADO') {
             $sale->status = 'FIADO';
         }
 
@@ -440,6 +510,27 @@ class SyncEventProcessor
 
         // SoftDelete del abono
         $payment->delete();
+
+        // ── Auditoría ───────────────────────────────────────────
+        $this->audit->log(
+            entityType: 'sale_payment',
+            entityId: $payment->id,
+            action: 'VOID',
+            oldValues: [
+                'amount'         => (float) $payment->amount,
+                'payment_method' => $payment->payment_method,
+            ],
+            newValues: ['deleted_at' => now()->toISOString()],
+            metadata: [
+                'sale_id'        => $payment->sale_id,
+                'sale_old_paid'  => $oldPaid,
+                'sale_new_paid'  => (float) $sale->paid_amount,
+                'sale_old_status'=> $oldStatus,
+                'sale_new_status'=> $sale->status,
+            ],
+        );
+
+        Log::info("[Sync] Abono anulado: {$payment->id} — Sale {$payment->sale_id} ajustado");
     }
 
     // ── CASH SHIFTS (TURNOS DE CAJA) ────────────────────────────────
