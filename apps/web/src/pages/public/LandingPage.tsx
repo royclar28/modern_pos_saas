@@ -33,7 +33,7 @@ export const LandingPage: React.FC = () => {
             <main className="px-4">
                 <section className="py-20 max-w-5xl mx-auto text-center">
                     <h1 className="text-5xl md:text-7xl font-black tracking-tight text-slate-900 dark:text-white mb-6 leading-tight">
-                        Controla tu inventario y factura <br className="hidden md:block" />
+                        Gestiona tu inventario y factura <br className="hidden md:block" />
                         <span className="text-violet-600 dark:text-violet-400">sin depender del internet.</span>
                     </h1>
                     <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-400 mb-10 max-w-3xl mx-auto font-medium">
@@ -84,7 +84,7 @@ export const LandingPage: React.FC = () => {
                     <div className="bg-slate-900 dark:bg-black rounded-3xl p-8 md:p-12 text-white relative overflow-hidden shadow-2xl">
                         <div className="absolute top-0 right-0 w-64 h-64 bg-violet-500/20 rounded-full blur-3xl pointer-events-none" />
                         <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl pointer-events-none" />
-                        
+
                         <div className="relative z-10 flex flex-col md:flex-row items-center gap-10">
                             <div className="flex-1">
                                 <h2 className="text-3xl md:text-4xl font-black mb-4 flex items-center gap-3 flex-wrap">
@@ -124,11 +124,11 @@ export const LandingPage: React.FC = () => {
                 <section className="py-16 max-w-5xl mx-auto text-center mb-10">
                     <h2 className="text-3xl font-black mb-10">Disponible en todos tus dispositivos</h2>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <a 
-                            href="https://github.com/royclar28/modern_pos_saas/releases/latest/download/MerxPOS-Installer.msi" 
-                            download 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
+                        <a
+                            href="https://github.com/royclar28/modern_pos_saas/releases/latest/download/MerxPOS-Installer.msi"
+                            download
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="flex flex-col items-center justify-center p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-violet-500 hover:shadow-lg hover:-translate-y-1 transition-all group"
                         >
                             <MonitorSmartphone className="w-12 h-12 mb-3 text-slate-400 group-hover:text-violet-600 transition-colors" />
