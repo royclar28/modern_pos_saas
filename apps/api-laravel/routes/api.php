@@ -26,9 +26,32 @@ Route::post('/reset-password', [\App\Http\Controllers\Api\PasswordResetControlle
 
 Route::get('/settings/bcv', [SettingsController::class, 'getBcvRate']);
 
+// ── Health Check ──────────────────────────────────────────────
+Route::get('/health', function () {
+    $checks = [
+        'version'  => config('app.version', '1.0.0'),
+        'time'     => now()->toIso8601String(),
+        'database' => 'fail',
+        'cache'    => 'fail',
+    ];
+
+    try {
+        \Illuminate\Support\Facades\DB::connection()->getPdo();
+        $checks['database'] = 'ok';
+    } catch (\Throwable) {}
+
+    try {
+        \Illuminate\Support\Facades\Cache::set('health_check', 'ok', 10);
+        $checks['cache'] = \Illuminate\Support\Facades\Cache::get('health_check') === 'ok' ? 'ok' : 'fail';
+    } catch (\Throwable) {}
+
+    $allOk = !in_array('fail', $checks);
+    return response()->json(['status' => $allOk ? 'healthy' : 'degraded', ...$checks], $allOk ? 200 : 503);
+});
+
 // ── Rutas Protegidas (Requieren Token de Sanctum) ─────────────────
 // El middleware 'trial' bloquea el acceso si el trial expiró (HTTP 402)
-Route::middleware(['auth:sanctum', 'trial'])->group(function () {
+Route::middleware(['auth:sanctum', 'trial', 'touch.session'])->group(function () {
 
     Route::patch('/auth/change-password', [AuthController::class, 'changePassword']);
 
@@ -36,6 +59,8 @@ Route::middleware(['auth:sanctum', 'trial'])->group(function () {
     Route::get('/user', function (Illuminate\Http\Request $request) {
         $u     = $request->user();
         $store = $u->store;
+        $planSvc = app(\App\Services\PlanService::class);
+
         return [
             'id'             => $u->id,
             'username'       => $u->username,
@@ -43,15 +68,21 @@ Route::middleware(['auth:sanctum', 'trial'])->group(function () {
             'email'          => $u->email,
             'role'           => $u->role,
             'tenant_id'      => $u->tenant_id,
-            // Trial info (null cuando el plan es pagado/sin trial)
+            'storeId'        => $u->tenant_id,
+            // Trial info
             'trial_ends_at'  => $store?->trial_ends_at?->toISOString(),
+            'trialDaysLeft'  => $store ? $store->trialDaysLeft() : 0,
             'store_status'   => $store?->status,
+            // Plan info
+            'plan'           => $store?->plan,
+            'plan_limits'    => $store ? $planSvc->getLimits($store) : null,
         ];
     });
 
     // ── Rutas abiertas a TODOS los roles autenticados ───────────
     // Sincronización Outbox (Drain Loop) — Ventas (SyncController)
-    Route::post('/sync/events', [SyncController::class, 'processBatch']);
+    Route::post('/sync/events', [SyncController::class, 'processBatch'])
+        ->middleware('throttle:30,1'); // 30 requests/min por tenant (≈1 batch cada 2s)
 
     // Hidratación Inicial para Offline mode
     Route::get('/items', [\App\Http\Controllers\Api\SyncReadController::class, 'getItems']);
@@ -92,22 +123,22 @@ Route::middleware(['auth:sanctum', 'trial'])->group(function () {
     });
 
     // ── Rutas EXCLUSIVAS para SUPER_ADMIN (Master Dashboard) ──────
-    // role:SUPER_ADMIN es el único nivel que NO hace bypass; requiere
-    // explícitamente el rol. Ningún ADMIN de tienda puede acceder.
     Route::middleware('role:SUPER_ADMIN')->group(function () {
         Route::get('/saas/metrics', [SaasMetricsController::class, 'metrics']);
+
+        // ── Gestión de Sesiones / Dispositivos ──────────
+        Route::get('/saas/sessions/{storeId}', [\App\Http\Controllers\Api\SaasController::class, 'listSessions']);
+        Route::delete('/saas/sessions/{tokenId}', [\App\Http\Controllers\Api\SaasController::class, 'revokeSession']);
+
+        // ── Gestión de Planes ────────────────────────────
+        Route::get('/saas/plans/limits/{storeId}', [\App\Http\Controllers\Api\SaasController::class, 'planLimits']);
+        Route::post('/saas/plans/change', [\App\Http\Controllers\Api\SaasController::class, 'changePlan']);
+        Route::post('/saas/plans/extend-trial', [\App\Http\Controllers\Api\SaasController::class, 'extendTrial']);
     });
 });
 
-// ── Rutas Módulo Quiniela (Marketing Bounded Context) ───────────────
-Route::prefix('worldcup')->group(function () {
-    Route::post('/register', [\App\Http\Controllers\Api\QuinielaController::class, 'register']);
-    Route::get('/matches', [\App\Http\Controllers\Api\QuinielaController::class, 'getMatches']);
-    Route::get('/leaderboard', [\App\Http\Controllers\Api\QuinielaController::class, 'getLeaderboard']);
-
-    Route::middleware('auth:sanctum')->group(function () {
-        Route::post('/predictions', [\App\Http\Controllers\Api\QuinielaController::class, 'submitPredictions']);
-        Route::post('/matches/result', [\App\Http\Controllers\Api\QuinielaController::class, 'updateMatchResult']);
-    });
-});
+// ── Módulo Quiniela removido (Julio 2026) ───────────────────────────
+// Las tablas quiniela_players, quiniela_matches, y quiniela_predictions
+// permanecen en BD para preservar datos históricos si es necesario.
+// Se pueden eliminar con una migración futura.
 

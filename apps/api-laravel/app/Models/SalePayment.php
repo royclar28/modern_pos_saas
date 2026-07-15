@@ -15,6 +15,7 @@ class SalePayment extends Model
     protected $fillable = [
         'id',
         'tenant_id',
+        'user_id',
         'sale_id',
         'amount',
         'payment_method',

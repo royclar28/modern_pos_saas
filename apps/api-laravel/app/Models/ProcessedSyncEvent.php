@@ -22,6 +22,7 @@ class ProcessedSyncEvent extends Model
     protected $fillable = [
         'event_id',
         'tenant_id',
+        'user_id',
         'entity_type',
         'action',
         'entity_id',
@@ -57,6 +58,7 @@ class ProcessedSyncEvent extends Model
         return static::create([
             'event_id'     => $event['event_id'],
             'tenant_id'    => $event['tenant_id'],
+            'user_id'      => auth()->id(),
             'entity_type'  => $event['entity_type'],
             'action'       => $event['action'],
             'entity_id'    => $event['entity_id'],
@@ -74,6 +76,7 @@ class ProcessedSyncEvent extends Model
         return static::create([
             'event_id'      => $event['event_id'],
             'tenant_id'     => $event['tenant_id'],
+            'user_id'       => auth()->id(),
             'entity_type'   => $event['entity_type'],
             'action'        => $event['action'],
             'entity_id'     => $event['entity_id'],
