@@ -1,0 +1,87 @@
+name: CI/CD — Build, Test & Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    name: Build, Test & Deploy to Coolify
+    runs-on: ubuntu-latest
+
+    steps:
+      # ──────────────────────────────────────────────────
+      # 1. Checkout
+      # ──────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ══════════════════════════════════════════════════
+      # BACKEND — Laravel
+      # ══════════════════════════════════════════════════
+
+      - name: Setup PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: apps/api-laravel/vendor
+          key: composer-${{ hashFiles('apps/api-laravel/composer.lock') }}
+          restore-keys: composer-
+
+      - name: Composer validate
+        working-directory: apps/api-laravel
+        run: composer validate --strict
+
+      - name: Composer install
+        working-directory: apps/api-laravel
+        run: composer install --no-dev --optimize-autoloader
+
+      # ══════════════════════════════════════════════════
+      # FRONTEND — React + Vite
+      # ══════════════════════════════════════════════════
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Cache pnpm dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.pnpm-store
+          key: pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build frontend
+        working-directory: apps/web
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL || 'https://api.merxpos.com/api' }}
+          VITE_SUPPORT_WHATSAPP: ${{ secrets.VITE_SUPPORT_WHATSAPP || '584124714797' }}
+        run: pnpm build
+
+      # ══════════════════════════════════════════════════
+      # DEPLOY — Coolify Webhooks
+      # ══════════════════════════════════════════════════
+      - name: Trigger Coolify Deployments
+        if: github.ref == 'refs/heads/main' && success()
+        run: |
+          echo "Desplegando Backend..."
+          curl -X GET "${{ secrets.COOLIFY_BACKEND_WEBHOOK }}"
+          echo ""
+          echo "Desplegando Frontend..."
+          curl -X GET "${{ secrets.COOLIFY_FRONTEND_WEBHOOK }}"
+          echo ""
+          echo "✅ Deploy triggers enviados a Coolify"
