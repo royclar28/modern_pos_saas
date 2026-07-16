@@ -22,10 +22,13 @@ return new class extends Migration
             DB::statement('ALTER TABLE sale_items ADD CONSTRAINT sale_items_quantity_purchased_check CHECK (quantity_purchased > 0);');
             DB::statement('ALTER TABLE sale_items ADD CONSTRAINT sale_items_item_unit_price_check CHECK (item_unit_price >= 0);');
 
-            // 3. Añadir índice GIN a la tabla cash_shifts para optimizar JSON
-            Schema::table('cash_shifts', function (Blueprint $table) {
-                $table->index('sales_summary', 'cash_shifts_sales_summary_gin', 'gin');
-            });
+            // 3. Añadir índice GIN a la tabla cash_shifts para optimizar JSON (requiere JSONB en Postgres)
+            try {
+                DB::statement('ALTER TABLE cash_shifts ALTER COLUMN sales_summary TYPE jsonb USING sales_summary::jsonb;');
+                Schema::table('cash_shifts', function (Blueprint $table) {
+                    $table->index('sales_summary', 'cash_shifts_sales_summary_gin', 'gin');
+                });
+            } catch (\Throwable $e) {}
         }
     }
 
