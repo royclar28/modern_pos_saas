@@ -18,6 +18,7 @@ import { CustomerDocType } from '../../db/schemas/customer.schema';
 import { SaleDocType } from '../../db/schemas/sale.schema';
 import { useAuth } from '../../contexts/AuthProvider';
 import { useSettingsContext } from '../../contexts/SettingsProvider';
+import { AppHeader } from '../../components/AppHeader';
 
 const fmt = (n: number) => `$${n.toFixed(2)}`;
 
@@ -364,20 +365,17 @@ export const CustomersPage = () => {
     return (
         <div className="flex flex-col h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
             {/* Header */}
-            <header className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between shadow-md shrink-0">
-                <div className="flex items-center gap-6">
-                    <h1 className="text-xl font-bold flex items-center gap-2">👥 Clientes</h1>
-                    <nav className="hidden sm:flex gap-4">
-                        <Link to="/" className="text-sm text-slate-300 hover:text-white">← Dashboard</Link>
-                        <Link to="/pos" className="text-sm text-slate-300 hover:text-white">Ir al POS →</Link>
-                        <button onClick={toggleDarkMode} className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1 rounded-lg text-sm">{darkMode ? '🌞' : '🌙'}</button>
-                    </nav>
-                </div>
-                <div className="flex items-center gap-3">
-                    <button onClick={loadData} className="text-xs bg-slate-800 border border-slate-700 px-3 py-1.5 text-slate-200 rounded-lg font-bold hover:bg-slate-700">🔄 Actualizar</button>
-                    <button onClick={() => setShowNewForm(true)} className="text-xs bg-violet-600 hover:bg-violet-700 px-3 py-1.5 text-white rounded-lg font-bold">+ Nuevo</button>
-                </div>
-            </header>
+            <AppHeader
+                icon="👥"
+                title="Clientes"
+                links={[{ to: '/', label: '← Dashboard' }, { to: '/pos', label: 'Ir al POS →' }]}
+                actions={
+                    <>
+                        <button onClick={loadData} className="text-xs bg-slate-800 border border-slate-700 px-3 py-1.5 text-slate-200 rounded-lg font-bold hover:bg-slate-700">🔄 Actualizar</button>
+                        <button onClick={() => setShowNewForm(true)} className="text-xs bg-violet-600 hover:bg-violet-700 px-3 py-1.5 text-white rounded-lg font-bold">+ Nuevo</button>
+                    </>
+                }
+            />
 
             {/* Search + New Customer */}
             <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-3">

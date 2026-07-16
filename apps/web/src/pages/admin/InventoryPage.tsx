@@ -11,6 +11,7 @@ import { ItemDocType } from '../../db/schemas/item.schema';
 import { useAuth } from '../../contexts/AuthProvider';
 import { Link } from 'react-router-dom';
 import { InvoiceScannerModal, ScannedProduct } from '../../components/InvoiceScannerModal';
+import { AppHeader } from '../../components/AppHeader';
 
 // ─── Zod Schema for Validation ──────────────────────────────────────────────
 const parseNumberVal = (val: unknown) => {
@@ -662,15 +663,11 @@ export const InventoryPage = () => {
     return (
         <div className="flex flex-col h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
             {/* ── Navbar Admin ── */}
-            <header className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between shadow-md shrink-0">
-                <div className="flex items-center gap-6">
-                    <h1 className="text-xl font-bold tracking-tight">📦 Gestión de Inventario</h1>
-                    <nav className="flex gap-4">
-                        <Link to="/" className="text-sm text-slate-300 hover:text-white transition-colors">Volver al Dashboard</Link>
-                        <Link to="/pos" className="text-sm text-slate-300 hover:text-white transition-colors">IR AL POS →</Link>
-                    </nav>
-                </div>
-            </header>
+            <AppHeader
+                icon="📦"
+                title="Gestión de Inventario"
+                links={[{ to: '/', label: '← Dashboard' }, { to: '/pos', label: 'IR AL POS →' }]}
+            />
 
             {/* ── Main Dashboard Area ── */}
             <main className="flex-1 overflow-auto p-8">

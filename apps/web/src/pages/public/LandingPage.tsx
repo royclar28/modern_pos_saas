@@ -2,12 +2,14 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthProvider';
 import { Zap, ShieldCheck, BarChart3, MonitorSmartphone, Smartphone, Terminal, Globe } from 'lucide-react';
+import { ThemeManager } from '../../components/themes/ThemeManager';
 
 export const LandingPage: React.FC = () => {
     const { isAuthenticated } = useAuth();
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-sans">
+            <ThemeManager />
             {/* Header / Nav */}
             <header className="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
                 <div className="flex items-center gap-2">

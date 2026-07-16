@@ -290,6 +290,7 @@ export const PosPage = () => {
 
     const [search, setSearch] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('');
+    const [inStockOnly, setInStockOnly] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [completedSale, setCompletedSale] = useState<SaleDocType | null>(null);
     const [isSyncingBCV, setIsSyncingBCV] = useState(false);
@@ -304,6 +305,9 @@ export const PosPage = () => {
         let result = items;
         if (categoryFilter) {
             result = result.filter(i => i.category === categoryFilter);
+        }
+        if (inStockOnly) {
+            result = result.filter(i => (i.stock ?? 0) > 0);
         }
         if (!q) return result;
         return result.filter(
@@ -459,43 +463,72 @@ export const PosPage = () => {
             <main className="flex-1 flex overflow-hidden max-w-[1600px] w-full mx-auto">
                 <section className="flex-1 border-r border-slate-200 dark:border-slate-700 flex flex-col bg-white dark:bg-slate-800 transition-colors">
                     {/* Search Bar */}
-                    <div className={`bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 shadow-sm shrink-0 z-10 flex gap-3 items-center ${
+                    <div className={`bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 shadow-sm shrink-0 z-10 flex flex-col gap-2 ${
                         hv ? 'px-4 py-2' : 'px-4 py-3'
                     }`}>
-                        <div className="relative flex-1">
-                            <span className={`absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 ${hv ? 'text-xl' : 'text-sm'}`}>🔍</span>
-                            <input
-                                ref={searchInputRef}
-                                type="text"
-                                value={search}
-                                onChange={e => setSearch(e.target.value)}
-                                placeholder={hv ? "Buscar o escanear..." : "Buscar artículo o escanear código de barras... [F2]"}
-                                className={`w-full border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-0 focus:border-violet-500 font-medium transition-all shadow-sm ${
-                                    hv
-                                        ? 'pl-12 pr-4 py-4 text-xl rounded-2xl'
-                                        : 'pl-10 pr-4 py-3 text-sm rounded-xl'
-                                }`}
-                            />
-                            {search && (
-                                <button
-                                    onClick={() => { setSearch(''); searchInputRef.current?.focus(); }}
-                                    className={`absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-lg transition-colors ${
-                                        hv ? 'p-2 text-xl' : 'p-1'
+                        <div className="flex gap-3 items-center">
+                            <div className="relative flex-1">
+                                <span className={`absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 ${hv ? 'text-xl' : 'text-sm'}`}>🔍</span>
+                                <input
+                                    ref={searchInputRef}
+                                    type="text"
+                                    value={search}
+                                    onChange={e => setSearch(e.target.value)}
+                                    placeholder={hv ? "Buscar o escanear..." : "Buscar artículo o escanear código de barras... [F2]"}
+                                    className={`w-full border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-0 focus:border-violet-500 font-medium transition-all shadow-sm ${
+                                        hv
+                                            ? 'pl-12 pr-4 py-4 text-xl rounded-2xl'
+                                            : 'pl-10 pr-4 py-3 text-sm rounded-xl'
                                     }`}
-                                >✕</button>
-                            )}
+                                />
+                                {search && (
+                                    <button
+                                        onClick={() => { setSearch(''); searchInputRef.current?.focus(); }}
+                                        className={`absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-lg transition-colors ${
+                                            hv ? 'p-2 text-xl' : 'p-1'
+                                        }`}
+                                    >✕</button>
+                                )}
+                            </div>
+                            
+                            <label className="flex items-center gap-2 cursor-pointer bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-200 transition-colors">
+                                <input 
+                                    type="checkbox" 
+                                    checked={inStockOnly}
+                                    onChange={e => setInStockOnly(e.target.checked)}
+                                    className="rounded border-slate-300 text-violet-600 focus:ring-violet-500" 
+                                />
+                                <span className="text-xs font-bold text-slate-600 dark:text-slate-300 whitespace-nowrap">Con Stock</span>
+                            </label>
                         </div>
-                        {!hv && categories.length > 1 && (
-                            <select
-                                value={categoryFilter}
-                                onChange={e => setCategoryFilter(e.target.value)}
-                                className="text-xs border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 rounded-lg px-2 py-2 text-slate-600 dark:text-slate-300 font-medium max-w-[120px] truncate"
-                            >
-                                <option value="">Todas</option>
+
+                        {/* Category Pills */}
+                        {categories.length > 0 && (
+                            <div className="flex gap-2 overflow-x-auto scroller pb-1">
+                                <button
+                                    onClick={() => setCategoryFilter('')}
+                                    className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                                        categoryFilter === '' 
+                                            ? 'bg-violet-600 text-white shadow-sm' 
+                                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                                    }`}
+                                >
+                                    Todas
+                                </button>
                                 {categories.map(cat => (
-                                    <option key={cat} value={cat}>{cat}</option>
+                                    <button
+                                        key={cat}
+                                        onClick={() => setCategoryFilter(cat)}
+                                        className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                                            categoryFilter === cat 
+                                                ? 'bg-violet-600 text-white shadow-sm' 
+                                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                                        }`}
+                                    >
+                                        {cat}
+                                    </button>
                                 ))}
-                            </select>
+                            </div>
                         )}
                     </div>
 

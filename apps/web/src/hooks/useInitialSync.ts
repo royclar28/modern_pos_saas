@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { api } from '../lib/api';
 import { getOutboxDB } from '../db/outbox';
 import toast from 'react-hot-toast';
@@ -18,7 +18,7 @@ export function useInitialSync() {
     const [isHydrating, setIsHydrating] = useState(false);
     const [progress, setProgress] = useState({ steps: 0, total: 3 });
 
-    const hydrateLocalDB = async () => {
+    const hydrateLocalDB = useCallback(async () => {
         setIsHydrating(true);
         setProgress({ steps: 0, total: 3 });
         
@@ -26,45 +26,59 @@ export function useInitialSync() {
             console.log('[useInitialSync] Iniciando hidratación. Obteniendo /items...');
             const db = getOutboxDB();
 
-            // 1. Descargar Ítems
-            const resItems: any = await api.get('/items');
-            const items = resItems?.data ?? resItems;
-            console.log(`[useInitialSync] /items respondió. ¿Es array? ${Array.isArray(items)}. Longitud: ${Array.isArray(items) ? items.length : 'N/A'}`, items);
+            // 1. Descargar Ítems con Paginación
+            let currentPage = 1;
+            let lastPage = 1;
             
-            if (Array.isArray(items) && items.length > 0) {
-                // Map properties from snake_case to camelCase
-                const mappedItems = items.map((item: any) => ({
-                    ...item,
-                    id: item.id,
-                    name: item.name,
-                    category: item.category,
-                    description: item.description,
-                    sellBy: item.sell_by ?? item.sellBy ?? 'unit',
-                    unitLabel: item.unit_label ?? item.unitLabel ?? 'und',
-                    receivingQuantity: Number(item.receiving_quantity ?? item.receivingQuantity ?? 1),
-                    stock: Number(item.stock ?? 0),
-                    itemNumber: item.item_number ?? item.itemNumber,
-                    costPrice: Number(item.cost_price ?? item.costPrice ?? 0),
-                    unitPrice: Number(item.unit_price ?? item.unitPrice ?? 0),
-                    reorderLevel: Number(item.reorder_level ?? item.reorderLevel ?? 0),
-                    minStockAlert: item.min_stock_alert !== null ? Number(item.min_stock_alert ?? item.minStockAlert) : undefined,
-                    allowAltDescription: Boolean(item.allow_alt_description ?? item.allowAltDescription ?? false),
-                    isSerialized: Boolean(item.is_serialized ?? item.isSerialized ?? false),
-                    storeId: item.tenant_id ?? item.store_id ?? item.storeId ?? 'default',
-                    createdAt: item.created_at ? new Date(item.created_at).getTime() : Date.now(),
-                    updatedAt: item.updated_at ? new Date(item.updated_at).getTime() : Date.now()
-                }));
-                console.log(`[useInitialSync] Mapeo completado. Primer item de muestra:`, mappedItems[0]);
+            do {
+                console.log(`[useInitialSync] Obteniendo /items?page=${currentPage}...`);
+                const resItems: any = await api.get(`/items?page=${currentPage}&per_page=200`);
                 
-                try {
-                    // Bulk put reemplaza conflictos por PK
-                    await db.items.bulkPut(mappedItems);
-                    console.log(`[useInitialSync] bulkPut exitoso en Dexie.`);
-                } catch (dexieErr) {
-                    console.error('[useInitialSync] Dexie rechazó el bulkPut:', dexieErr);
-                    throw dexieErr;
+                const items = resItems?.data ?? resItems;
+                const pagination = resItems?.pagination;
+                
+                if (pagination) {
+                    lastPage = pagination.last_page;
+                } else {
+                    lastPage = 1; // Fallback if no pagination
                 }
-            }
+                
+                if (Array.isArray(items) && items.length > 0) {
+                    // Map properties from snake_case to camelCase
+                    const mappedItems = items.map((item: any) => ({
+                        ...item,
+                        id: item.id,
+                        name: item.name,
+                        category: item.category,
+                        description: item.description,
+                        sellBy: item.sell_by ?? item.sellBy ?? 'unit',
+                        unitLabel: item.unit_label ?? item.unitLabel ?? 'und',
+                        receivingQuantity: Number(item.receiving_quantity ?? item.receivingQuantity ?? 1),
+                        stock: Number(item.stock ?? 0),
+                        itemNumber: item.item_number ?? item.itemNumber,
+                        costPrice: Number(item.cost_price ?? item.costPrice ?? 0),
+                        unitPrice: Number(item.unit_price ?? item.unitPrice ?? 0),
+                        reorderLevel: Number(item.reorder_level ?? item.reorderLevel ?? 0),
+                        minStockAlert: item.min_stock_alert !== null ? Number(item.min_stock_alert ?? item.minStockAlert) : undefined,
+                        allowAltDescription: Boolean(item.allow_alt_description ?? item.allowAltDescription ?? false),
+                        isSerialized: Boolean(item.is_serialized ?? item.isSerialized ?? false),
+                        storeId: item.tenant_id ?? item.store_id ?? item.storeId ?? 'default',
+                        createdAt: item.created_at ? new Date(item.created_at).getTime() : Date.now(),
+                        updatedAt: item.updated_at ? new Date(item.updated_at).getTime() : Date.now()
+                    }));
+                    
+                    try {
+                        await db.items.bulkPut(mappedItems);
+                        console.log(`[useInitialSync] bulkPut exitoso página ${currentPage}.`);
+                    } catch (dexieErr) {
+                        console.error('[useInitialSync] Dexie rechazó el bulkPut:', dexieErr);
+                        throw dexieErr;
+                    }
+                }
+                
+                currentPage++;
+            } while (currentPage <= lastPage);
+            
             setProgress(p => ({ ...p, steps: 1 }));
 
             // 2. Descargar Clientes
@@ -94,7 +108,7 @@ export function useInitialSync() {
         } finally {
             setIsHydrating(false);
         }
-    };
+    }, []);
 
     // Puedes retornar la función para que un botón de "Forzar Sincronización" o
     // un AppLoader puedan dispararla al montar

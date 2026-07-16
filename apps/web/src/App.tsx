@@ -29,6 +29,7 @@ import { useItems } from './hooks/useItems';
 import { useDashboard } from './hooks/useDashboard';
 import { Toaster } from 'react-hot-toast';
 import { WhatsAppButton } from './components/WhatsAppButton';
+import { ThemeManager } from './components/themes/ThemeManager';
 
 // ─── Role Helpers ─────────────────────────────────────────────────────────────
 /** Roles that can access admin features (inventory, reports, settings, fiados) */
@@ -274,7 +275,7 @@ const Dashboard = () => {
                             <span>📱 {planInfo.max_devices > 1 ? `Hasta ${planInfo.max_devices} disp.` : '1 dispositivo'}</span>
                             <span>👥 {planInfo.current_users}/{planInfo.max_users} usuarios</span>
                             <span>📦 {planInfo.current_items}/{planInfo.max_items} items</span>
-                            {planInfo.credit_sales ? <span>📒 Fiados</span> : <span className="text-slate-400">🚫 Fiados</span>}
+                            {planInfo.credit_sales ? <span>📒 Créditos</span> : <span className="text-slate-400">🚫 Créditos</span>}
                             {planInfo.payment_methods && (
                                 <span className="text-slate-400">💳 {planInfo.payment_methods.join(', ')}</span>
                             )}
@@ -442,6 +443,7 @@ const AppInner = () => {
     const { company } = useSettingsContext();
     return (
         <>
+            <ThemeManager />
             <TrialExpiredGuard storeName={company}>
                 <Routes>
                     <Route path="/login" element={<LoginPage />} />

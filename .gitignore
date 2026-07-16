@@ -27,3 +27,5 @@ evidencia/
 # OS Files
 .DS_Store
 Thumbs.db
+\n.codegraph/
+\n.~lock.*#

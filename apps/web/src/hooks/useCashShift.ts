@@ -158,9 +158,22 @@ export const useCashShift = () => {
         [openShift?.id, openShift?.openedAt],
     ) as SaleDocType[] | undefined;
 
+    // ── Include debt payments (abonos) received during shift ──────
+    const paymentEvents = useLiveQuery(
+        () => {
+            if (!openShift) return [];
+            return db.sync_queue
+                .where('entity_type')
+                .equals('SALE_PAYMENT')
+                .filter(e => e.occurred_at >= openShift.openedAt)
+                .toArray();
+        },
+        [openShift?.id, openShift?.openedAt]
+    );
+
     // Derive summary from live query
     const summary = (() => {
-        if (!shiftSales || !openShift) return null;
+        if (!shiftSales || !openShift || !paymentEvents) return null;
         const salesByMethod: Record<string, number> = {};
         let totalSales = 0;
         let cashTotal = 0;
@@ -173,6 +186,21 @@ export const useCashShift = () => {
                 cashTotal += sale.total;
             }
         });
+
+        let debtPaymentsCash = 0;
+        paymentEvents.forEach(e => {
+            const method = e.payload?.method || e.payload?.payment_method || 'EFECTIVO';
+            const amount = parseFloat(e.payload?.amount || '0');
+            // Only count cash abonos (EFECTIVO, DIVISA)
+            if (method === 'ABONO' || method === 'EFECTIVO' || method === 'DIVISA') {
+                debtPaymentsCash += amount;
+            }
+            // Track abonos in sales summary
+            const key = `ABONO_${method}`;
+            salesByMethod[key] = (salesByMethod[key] || 0) + amount;
+        });
+
+        cashTotal += debtPaymentsCash;
 
         return {
             saleCount: shiftSales.length,

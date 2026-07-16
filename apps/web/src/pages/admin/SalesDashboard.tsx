@@ -368,6 +368,7 @@ export const SalesDashboard = () => {
                                         <th className="px-5 py-3.5 text-right">Subtotal</th>
                                         <th className="px-5 py-3.5 text-right">IVA</th>
                                         <th className="px-5 py-3.5 text-right">Total</th>
+                                        <th className="px-5 py-3.5 text-center">Estado</th>
                                         <th className="px-5 py-3.5 text-center">Acciones</th>
                                     </tr>
                                 </thead>
@@ -454,6 +455,13 @@ export const SalesDashboard = () => {
                                                         {fmt(sale.total)}
                                                     </td>
                                                     <td className="px-5 py-3.5 text-center">
+                                                        {sale.status === 'PAGADO' && <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase">✅ Saldado</span>}
+                                                        {sale.status === 'FIADO' && <span className="inline-flex items-center gap-1 bg-orange-100 text-orange-700 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase">🔸 Crédito</span>}
+                                                        {sale.status === 'PENDIENTE' && <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase">⏳ Pendiente</span>}
+                                                        {sale.status === 'ANULADO' && <span className="inline-flex items-center gap-1 bg-red-100 text-red-700 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase line-through">❌ Anulado</span>}
+                                                        {(!sale.status || !['PAGADO', 'FIADO', 'PENDIENTE', 'ANULADO'].includes(sale.status)) && <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase">➖ {sale.status || 'N/A'}</span>}
+                                                    </td>
+                                                    <td className="px-5 py-3.5 text-center">
                                                         <div className="flex items-center justify-center gap-1.5">
                                                             <button
                                                                 onClick={() => handleReprint(sale)}
@@ -479,7 +487,7 @@ export const SalesDashboard = () => {
                                 {!isLoading && allSales.length > 0 && (
                                     <tfoot>
                                         <tr className="bg-slate-50 border-t-2 border-slate-200 font-bold text-sm">
-                                            <td colSpan={6} className="px-5 py-4 text-slate-700 uppercase tracking-wider text-xs">
+                                            <td colSpan={5} className="px-5 py-4 text-slate-700 uppercase tracking-wider text-xs">
                                                 TOTALES DEL DÍA
                                             </td>
                                             <td className="px-5 py-4 text-right text-slate-700 tabular-nums">
@@ -491,6 +499,7 @@ export const SalesDashboard = () => {
                                             <td className="px-5 py-4 text-right text-violet-700 tabular-nums text-base">
                                                 {fmt(arqueo.grandTotal)}
                                             </td>
+                                            <td colSpan={2} className="px-5 py-4"></td>
                                         </tr>
                                     </tfoot>
                                 )}

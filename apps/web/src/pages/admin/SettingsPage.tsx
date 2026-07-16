@@ -11,6 +11,7 @@ import { Link } from 'react-router-dom';
 import { useTerminal } from '../../hooks/useTerminal';
 import { useSettingsContext as useSettings, StoreSettings } from '../../contexts/SettingsProvider';
 import { useHighVisibility } from '../../hooks/useHighVisibility';
+import { AppHeader } from '../../components/AppHeader';
 
 // ─── Color Palette ────────────────────────────────────────────────────────────
 const COLOR_PALETTE = [
@@ -233,43 +234,26 @@ export const SettingsPage = () => {
     return (
         <div className="flex flex-col h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
             {/* ── Navbar ──────────────────────────────────────────────────────── */}
-            <header className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between shadow-md shrink-0">
-                <div className="flex items-center gap-6">
-                    <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
-                        <span>⚙️</span>
-                        <span>Configuración del Sistema</span>
-                    </h1>
-                    <nav className="hidden sm:flex gap-4">
-                        <Link to="/" className="text-sm text-slate-300 hover:text-white transition-colors">
-                            ← Dashboard
-                        </Link>
-                        <Link to="/admin/sales" className="text-sm text-slate-300 hover:text-white transition-colors">
-                            Reporte Z
-                        </Link>
-                        <Link to="/pos" className="text-sm text-slate-300 hover:text-white transition-colors">
-                            Ir al POS →
-                        </Link>
-                        <button
-                            onClick={toggleDarkMode}
-                            className="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-3 py-1 rounded-lg text-sm transition-colors ml-4"
-                            title="Alternar Modo Oscuro"
-                        >
-                            {darkMode ? '🌞' : '🌙'}
-                        </button>
-                    </nav>
-                </div>
-
-                {/* Live status */}
-                <div className="flex items-center gap-2 text-xs text-slate-400">
-                    {isLoading ? (
-                        <span className="animate-pulse">Cargando ajustes...</span>
-                    ) : error ? (
-                        <span className="text-amber-400">⚠️ Usando valores offline</span>
-                    ) : (
-                        <span className="text-emerald-400">● Conectado al servidor</span>
-                    )}
-                </div>
-            </header>
+            <AppHeader
+                icon="⚙️"
+                title="Configuración del Sistema"
+                links={[
+                    { to: '/', label: '← Dashboard' },
+                    { to: '/admin/sales', label: 'Reporte Z' },
+                    { to: '/pos', label: 'Ir al POS →' }
+                ]}
+                actions={
+                    <div className="flex items-center gap-2 text-xs text-slate-400 mr-2">
+                        {isLoading ? (
+                            <span className="animate-pulse">Cargando ajustes...</span>
+                        ) : error ? (
+                            <span className="text-amber-400">⚠️ Usando valores offline</span>
+                        ) : (
+                            <span className="text-emerald-400">● Conectado</span>
+                        )}
+                    </div>
+                }
+            />
 
             {/* ── Main Content ──────────────────────────────────────────────── */}
             <main className="flex-1 overflow-auto p-6 md:p-8">
@@ -605,6 +589,48 @@ export const SettingsPage = () => {
                                     <span>Ventas a Crédito <strong>HABILITADAS</strong>. La pestaña "Crédito" aparecerá en el modal de cobro.</span>
                                 </div>
                             )}
+                        </div>
+                    </Card>
+
+                    {/* ── SECTION: Local (This Device) ───────────────────────── */}
+                    <Card icon="💻" title="Ajustes de Este Equipo" badge="Local">
+                        <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                                <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                    <span className="text-lg">🏆</span> Tema Estacional (Mundialista)
+                                </h3>
+                                <p className="text-xs text-slate-400 mt-1 leading-relaxed max-w-md">
+                                    Activa o desactiva la decoración del mundial en este equipo. 
+                                    Este ajuste es local y no afecta a las otras cajas registradoras.
+                                </p>
+                            </div>
+                            <button
+                                id="theme-toggle"
+                                onClick={() => {
+                                    const current = localStorage.getItem('pos_seasonal_theme_override');
+                                    if (current === 'disabled') {
+                                        localStorage.removeItem('pos_seasonal_theme_override');
+                                        showToast('Tema Mundialista Activado', 'success');
+                                    } else {
+                                        localStorage.setItem('pos_seasonal_theme_override', 'disabled');
+                                        showToast('Tema Mundialista Desactivado', 'success');
+                                    }
+                                    window.dispatchEvent(new Event('pos_theme_changed'));
+                                    // Forzar renderizado
+                                    setTimeout(() => window.location.reload(), 300);
+                                }}
+                                className={`relative w-14 h-8 rounded-full transition-all duration-300 shadow-inner ${
+                                    localStorage.getItem('pos_seasonal_theme_override') !== 'disabled'
+                                        ? 'bg-primary'
+                                        : 'bg-slate-300 dark:bg-slate-600'
+                                }`}
+                            >
+                                <span
+                                    className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-300 ${
+                                        localStorage.getItem('pos_seasonal_theme_override') !== 'disabled' ? 'translate-x-6' : 'translate-x-0'
+                                    }`}
+                                />
+                            </button>
                         </div>
                     </Card>
 
