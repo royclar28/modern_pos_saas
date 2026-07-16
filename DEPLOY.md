@@ -19,7 +19,8 @@ git push → GitHub Actions → Build + Test → Colify Webhook → Deploy
 ### Activar (2 pasos)
 
 1. **En GitHub** → Settings → Secrets and variables → Actions → New repository secret:
-   - `COLIFY_WEBHOOK_URL`: La URL del webhook de deploy de Colify
+   - `COOLIFY_BACKEND_WEBHOOK`: La URL del webhook de deploy del Backend en Coolify
+   - `COOLIFY_FRONTEND_WEBHOOK`: La URL del webhook de deploy del Frontend en Coolify
    - `VITE_SUPPORT_WHATSAPP`: Tu número de WhatsApp
 
 2. **Push a `main`** → El deploy se dispara solo.
