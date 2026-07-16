@@ -64,19 +64,7 @@ class Store extends Model
         return max(0, (int) now()->diffInDays($this->trial_ends_at, false));
     }
 
-    // ─── Trial Helpers ────────────────────────────────────
 
-    /** True si el store tiene un trial activo (no expirado). */
-    public function isOnTrial(): bool
-    {
-        return $this->trial_ends_at !== null && Carbon::now()->lessThan($this->trial_ends_at);
-    }
-
-    /** True si el trial existió y ya expiró. */
-    public function trialHasExpired(): bool
-    {
-        return $this->trial_ends_at !== null && Carbon::now()->greaterThan($this->trial_ends_at);
-    }
 
     // ─── Relations ──────────────────────────────────────────────
 
