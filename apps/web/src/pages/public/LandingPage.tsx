@@ -33,7 +33,7 @@ export const LandingPage: React.FC = () => {
             <main className="px-4">
                 <section className="py-20 max-w-5xl mx-auto text-center">
                     <h1 className="text-5xl md:text-7xl font-black tracking-tight text-slate-900 dark:text-white mb-6 leading-tight">
-                        Controla tu inventario y factura <br className="hidden md:block" />
+                        Gestiona tu inventario y factura <br className="hidden md:block" />
                         <span className="text-violet-600 dark:text-violet-400">sin depender del internet.</span>
                     </h1>
                     <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-400 mb-10 max-w-3xl mx-auto font-medium">
