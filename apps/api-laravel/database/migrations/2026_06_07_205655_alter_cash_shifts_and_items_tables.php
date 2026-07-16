@@ -19,6 +19,11 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Asegurar que tenant_id sea UUID antes de aplicar la FK para evitar error de tipo incompatible
+        try {
+            DB::statement('ALTER TABLE cash_shifts ALTER COLUMN tenant_id TYPE uuid USING tenant_id::uuid');
+        } catch (\Throwable $e) {}
+
         // ── cash_shifts: solo el índice parcial y FK a stores ─────
         Schema::table('cash_shifts', function (Blueprint $table) {
             // 1. Eliminar el constraint único actual (si existe)
