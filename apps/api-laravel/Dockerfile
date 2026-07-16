@@ -39,17 +39,21 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 WORKDIR /app
 
 # ── Instalar dependencias (capa cacheada) ─────────────────────────────
-# Copiamos los archivos mínimos necesarios para composer install.
-# artisan es necesario para el script post-autoload-dump de Laravel.
-COPY composer.json composer.lock artisan ./
+# --no-scripts evita que busque artisan prematuramente (aún no copiado)
+COPY composer.json composer.lock ./
 RUN composer install \
         --no-interaction \
         --no-dev \
         --optimize-autoloader \
-        --prefer-dist
+        --prefer-dist \
+        --no-scripts
 
-# ── Copiar el código fuente ────────────────────────────────────────────
+# ── Copiar el código fuente (incluye artisan) ────────────────────────
 COPY . .
+
+# ── Ahora sí: con artisan en el contenedor, ejecutar scripts de Laravel ─
+RUN composer dump-autoload --optimize \
+    && composer run-script post-autoload-dump
 
 # ── Optimizaciones de producción ──────────────────────────────────────
 RUN php artisan config:cache \
