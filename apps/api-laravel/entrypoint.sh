@@ -21,7 +21,7 @@ fi
 
 # ── Ejecutar migraciones ───────────────────────────────────────────────
 echo "🔄 Ejecutando migraciones..."
-php artisan migrate --force 2>/dev/null || echo "⚠️  Error en migraciones (verificar conexión DB)"
+php artisan migrate --force || echo "⚠️  Error en migraciones — el servidor arrancará con la DB en estado anterior"
 
 # ── Limpiar y regenerar caches de producción ──────────────────────────
 echo "⚡ Optimizando caches..."

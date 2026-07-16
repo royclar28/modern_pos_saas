@@ -19,7 +19,20 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => explode(',', env('CORS_ALLOWED_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,tauri://localhost,http://tauri.localhost,https://tauri.localhost')),
+    'allowed_origins' => explode(',', env('CORS_ALLOWED_ORIGINS', implode(',', [
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+        'http://localhost:5174',
+        'http://127.0.0.1:5174',
+        'tauri://localhost',
+        'http://tauri.localhost',
+        'https://tauri.localhost',
+        // ── Producción ────────────────────────────
+        'https://merxpos.com',
+        'https://www.merxpos.com',
+        // ── Coolify preview URLs (cualquier subdominio) ──
+        env('APP_URL', ''),
+    ]))),
 
     'allowed_origins_patterns' => [],
 
