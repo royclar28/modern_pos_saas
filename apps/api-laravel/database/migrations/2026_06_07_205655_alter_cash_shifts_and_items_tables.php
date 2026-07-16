@@ -30,12 +30,14 @@ return new class extends Migration
             try { $table->dropUnique('unique_open_shift'); } catch (\Throwable) {}
 
             // 2. FK a stores (tenant_id)
-            if (!$this->foreignExists('cash_shifts', 'cash_shifts_tenant_id_foreign')) {
-                $table->foreign('tenant_id')
-                      ->references('id')
-                      ->on('stores')
-                      ->cascadeOnDelete();
-            }
+            try {
+                if (!$this->foreignExists('cash_shifts', 'cash_shifts_tenant_id_foreign')) {
+                    $table->foreign('tenant_id')
+                          ->references('id')
+                          ->on('stores')
+                          ->cascadeOnDelete();
+                }
+            } catch (\Throwable) {}
 
             // 3. Índice parcial: solo un turno OPEN por usuario
             try {
