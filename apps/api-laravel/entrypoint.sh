@@ -19,6 +19,11 @@ if grep -q "DB_CONNECTION=sqlite" .env 2>/dev/null; then
     echo "🗄️  Base de datos SQLite lista"
 fi
 
+# ── Asegurar que los directorios de logs y cache existan ─────────────────
+echo "📁 Verificando directorios de storage..."
+mkdir -p storage/logs bootstrap/cache
+chmod -R 777 storage bootstrap/cache 2>/dev/null || true
+
 # ── Ejecutar migraciones ───────────────────────────────────────────────
 echo "🔄 Ejecutando migraciones..."
 php artisan migrate --force || echo "⚠️  Error en migraciones — el servidor arrancará con la DB en estado anterior"
