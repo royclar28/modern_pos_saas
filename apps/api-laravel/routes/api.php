@@ -19,9 +19,12 @@ Route::get('/login', function () {
 Route::get('/migrate-debug', function () {
     try {
         \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
-        return response()->text(\Illuminate\Support\Facades\Artisan::output());
+        return response(\Illuminate\Support\Facades\Artisan::output(), 200)
+            ->header('Content-Type', 'text/plain');
     } catch (\Throwable $e) {
-        return response()->text(\Illuminate\Support\Facades\Artisan::output() . "\nERROR: " . $e->getMessage() . "\n" . $e->getTraceAsString());
+        $error = \Illuminate\Support\Facades\Artisan::output() . "\nERROR: " . $e->getMessage() . "\n" . $e->getTraceAsString();
+        return response($error, 500)
+            ->header('Content-Type', 'text/plain');
     }
 });
 
