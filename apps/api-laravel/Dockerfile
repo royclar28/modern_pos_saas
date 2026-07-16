@@ -39,7 +39,9 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 WORKDIR /app
 
 # ── Instalar dependencias (capa cacheada) ─────────────────────────────
-COPY composer.json composer.lock ./
+# Copiamos los archivos mínimos necesarios para composer install.
+# artisan es necesario para el script post-autoload-dump de Laravel.
+COPY composer.json composer.lock artisan ./
 RUN composer install \
         --no-interaction \
         --no-dev \
