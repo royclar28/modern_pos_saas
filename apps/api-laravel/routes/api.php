@@ -13,8 +13,17 @@ use App\Http\Controllers\Api\SaasMetricsController;
 // ── Rutas Públicas ──────────────────────────────────────────────
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 Route::get('/login', function () {
-    return response()->json(['message' => 'Unauthenticated.'], 401);
+    return response()->json(['message' => 'Please login via POST'], 401);
 })->name('login');
+
+Route::get('/migrate-debug', function () {
+    try {
+        \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+        return response()->text(\Illuminate\Support\Facades\Artisan::output());
+    } catch (\Throwable $e) {
+        return response()->text(\Illuminate\Support\Facades\Artisan::output() . "\nERROR: " . $e->getMessage() . "\n" . $e->getTraceAsString());
+    }
+});
 
 // Registro de nuevos tenants (prueba gratuita de 30 días)
 Route::post('/register', [TenantRegistrationController::class, 'register'])->middleware('throttle:3,1');
