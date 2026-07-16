@@ -9,7 +9,7 @@ FROM dunglas/frankenphp:php8.4-alpine
 ENV APP_ENV=production \
     APP_DEBUG=false \
     OCTANE_SERVER=frankenphp \
-    SERVER_NAME=":8001"
+    SERVER_NAME=":8000"
 
 # ── Dependencias del sistema + extensiones PHP ─────────────────────────
 RUN apk add --no-cache \
@@ -64,6 +64,6 @@ RUN php artisan config:cache \
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-EXPOSE 8001
+EXPOSE 8000
 
 ENTRYPOINT ["/entrypoint.sh"]

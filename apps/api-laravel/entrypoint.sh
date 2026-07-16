@@ -30,7 +30,7 @@ php artisan route:cache
 php artisan view:cache
 
 echo ""
-echo "🚀 Arrancando FrankenPHP Octane en http://0.0.0.0:8001"
+echo "🚀 Arrancando FrankenPHP Octane en http://0.0.0.0:8000"
 echo "   Workers: auto | Server: frankenphp"
 echo "═══════════════════════════════════════════════"
 
@@ -38,6 +38,6 @@ echo "════════════════════════�
 exec php artisan octane:start \
     --server=frankenphp \
     --host=0.0.0.0 \
-    --port=8001 \
+    --port=8000 \
     --workers=auto \
     --no-interaction
