@@ -19,13 +19,11 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'tenant_id' => 'required|string|size:36|exists:stores,id',
             'username'  => 'required|string',
             'password'  => 'required',
         ]);
 
-        $user = User::where('tenant_id', $request->tenant_id)
-                    ->where(function ($query) use ($request) {
+        $user = User::where(function ($query) use ($request) {
                         $query->where('username', $request->username)
                               ->orWhere('email', $request->username);
                     })
