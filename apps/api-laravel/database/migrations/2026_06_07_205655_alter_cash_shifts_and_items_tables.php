@@ -29,16 +29,6 @@ return new class extends Migration
             // 1. Eliminar el constraint único actual (si existe)
             try { $table->dropUnique('unique_open_shift'); } catch (\Throwable) {}
 
-            // 2. FK a stores (tenant_id)
-            try {
-                if (!$this->foreignExists('cash_shifts', 'cash_shifts_tenant_id_foreign')) {
-                    $table->foreign('tenant_id')
-                          ->references('id')
-                          ->on('stores')
-                          ->cascadeOnDelete();
-                }
-            } catch (\Throwable) {}
-
             // 3. Índice parcial: solo un turno OPEN por usuario
             try {
                 DB::statement(
