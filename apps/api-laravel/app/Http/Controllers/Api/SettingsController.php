@@ -48,7 +48,7 @@ class SettingsController extends Controller
         }
 
         // Append live BCV exchange rate
-        $bcvRateData = $this->scrapeBcvRate();
+        $bcvRateData = $this->bcv->getRate();
         $settings['exchange_rate'] = (string) ($bcvRateData['rate'] ?? 36.5);
 
         return response()->json($settings);

@@ -27,7 +27,8 @@ export function useInitialSync() {
             const db = getOutboxDB();
 
             // 1. Descargar Ítems
-            const items = await api.get('/items');
+            const resItems: any = await api.get('/items');
+            const items = resItems?.data ?? resItems;
             console.log(`[useInitialSync] /items respondió. ¿Es array? ${Array.isArray(items)}. Longitud: ${Array.isArray(items) ? items.length : 'N/A'}`, items);
             
             if (Array.isArray(items) && items.length > 0) {
@@ -67,7 +68,8 @@ export function useInitialSync() {
             setProgress(p => ({ ...p, steps: 1 }));
 
             // 2. Descargar Clientes
-            const customers = await api.get('/customers');
+            const resCustomers: any = await api.get('/customers');
+            const customers = resCustomers?.data ?? resCustomers;
             if (Array.isArray(customers) && customers.length > 0) {
                 await db.customers.bulkPut(customers);
             }
@@ -75,7 +77,8 @@ export function useInitialSync() {
 
             // (Opcional) 3. Las categorías se derivan de los items, pero si ocupas
             // cachearlas aparte o sincronizar configuraciones maestras como /settings
-            const categories = await api.get('/categories');
+            const resCategories: any = await api.get('/categories');
+            const categories = resCategories?.data ?? resCategories;
             if (Array.isArray(categories)) {
                 // Si usamos global state / zustand para categorías, aquí se guardaría
                 // Ej: setGlobalCategories(categories)

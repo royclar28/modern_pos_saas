@@ -79,7 +79,7 @@ class DashboardController extends Controller
 
         $totalDebt = (float) $debtQuery->sum(DB::raw('total - COALESCE(paid_amount, 0)'));
 
-        $customersWithDebt = $debtQuery->distinct('customer_id')
+        $customersWithDebt = $debtQuery->clone()->distinct('customer_id')
             ->whereNotNull('customer_id')
             ->count('customer_id');
 
