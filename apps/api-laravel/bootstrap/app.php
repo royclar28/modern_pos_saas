@@ -35,9 +35,8 @@ return Application::configure(basePath: dirname(__DIR__))
 
                 return response()->json([
                     'status'  => 'error',
-                    'message' => app()->isProduction() && $status === 500
-                        ? 'Error interno del servidor.'
-                        : $e->getMessage(),
+                    'message' => $e->getMessage(),
+                    'trace'   => $e->getTraceAsString(),
                     'code'    => $status,
                 ], $status);
             }
