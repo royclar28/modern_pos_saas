@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { Gift, Trophy } from 'lucide-react';
+import { Gift, Trophy, Play } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export const LiveRaffle: React.FC = () => {
@@ -15,16 +15,56 @@ export const LiveRaffle: React.FC = () => {
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
     const intervalRef = useRef<number | null>(null);
 
-    // Audio effects
-    const drumRoll = useRef(new Audio('https://actions.google.com/sounds/v1/foley/drum_roll.ogg'));
-    const fanfare = useRef(new Audio('https://actions.google.com/sounds/v1/cartoon/cartoon_success_fanfare.ogg'));
+    // Audio effects using Web Audio API (No CORS issues)
+    const playDrumRoll = () => {
+        try {
+            const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+            if (!AudioContext) return;
+            const ctx = new AudioContext();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(60, ctx.currentTime);
+            for (let i = 0; i < 40; i++) {
+                gain.gain.setValueAtTime(0.5, ctx.currentTime + i * 0.1);
+                gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + i * 0.1 + 0.05);
+            }
+            osc.start();
+            osc.stop(ctx.currentTime + 4);
+        } catch (e) {}
+    };
+
+    const playFanfare = () => {
+        try {
+            const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+            if (!AudioContext) return;
+            const ctx = new AudioContext();
+            const playNote = (freq: number, startTime: number, duration: number) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = 'triangle';
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.3, startTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+                osc.start(startTime);
+                osc.stop(startTime + duration);
+            };
+            const t = ctx.currentTime;
+            playNote(440, t, 0.2); // A4
+            playNote(554.37, t + 0.2, 0.2); // C#5
+            playNote(659.25, t + 0.4, 0.2); // E5
+            playNote(880, t + 0.6, 0.8); // A5
+        } catch (e) {}
+    };
 
     useEffect(() => {
         fetchRaffle();
         return () => {
             if (intervalRef.current) clearInterval(intervalRef.current);
-            drumRoll.current.pause();
-            fanfare.current.pause();
         };
     }, [id]);
 
@@ -53,9 +93,8 @@ export const LiveRaffle: React.FC = () => {
         setIsDrawing(true);
         setWinner(null);
         
-        // Reset and play drumroll
-        drumRoll.current.currentTime = 0;
-        drumRoll.current.play().catch(e => console.log('Audio autoplay blocked', e));
+        // Play synthetic drumroll
+        playDrumRoll();
 
         // Biombo animation
         const names = raffle.participants.map((p:any) => p.name);
@@ -86,9 +125,7 @@ export const LiveRaffle: React.FC = () => {
                     setWinner(data.winner);
                     setCurrentName(data.winner.name);
                     
-                    drumRoll.current.pause();
-                    fanfare.current.currentTime = 0;
-                    fanfare.current.play().catch(e => console.log('Audio autoplay blocked', e));
+                    playFanfare();
                     
                     toast.success('¡Tenemos un ganador!');
                     fetchRaffle(); // Refrescar para que el premio ya salga como entregado
@@ -98,13 +135,11 @@ export const LiveRaffle: React.FC = () => {
                 if (intervalRef.current) clearInterval(intervalRef.current);
                 setIsDrawing(false);
                 toast.error('Error al sortear. ¿Estás logueado como administrador?');
-                drumRoll.current.pause();
                 setCurrentName('Error en el sorteo');
             }
         } catch (error) {
             if (intervalRef.current) clearInterval(intervalRef.current);
             setIsDrawing(false);
-            drumRoll.current.pause();
             toast.error('Error de red');
         }
     };
@@ -169,12 +204,6 @@ export const LiveRaffle: React.FC = () => {
                             <div className={`font-black tracking-tight leading-none ${isDrawing ? 'text-7xl md:text-8xl text-white opacity-80 blur-[1px]' : winner ? 'text-7xl md:text-9xl text-white' : 'text-5xl text-white/30'} transition-all`}>
                                 {currentName}
                             </div>
-
-                            {winner && (
-                                <div className="mt-8 inline-block bg-emerald-500 text-black font-black text-4xl px-8 py-4 rounded-2xl animate-bounce">
-                                    TICKET: {winner.ticket_number}
-                                </div>
-                            )}
                         </div>
                     </div>
                 </div>

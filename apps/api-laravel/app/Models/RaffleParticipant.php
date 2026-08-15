@@ -15,7 +15,6 @@ class RaffleParticipant extends Model
         'raffle_id',
         'name',
         'phone',
-        'ticket_number',
     ];
 
     // ─── Relations ──────────────────────────────────────────────

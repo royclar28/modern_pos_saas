@@ -20,7 +20,7 @@ class PublicRaffleController extends Controller
             // Ocultamos el teléfono de los participantes en la API pública por privacidad, 
             // solo necesitamos el nombre y el número de ticket para la animación.
             'participants' => function($query) {
-                $query->select('id', 'raffle_id', 'name', 'ticket_number');
+                $query->select('id', 'raffle_id', 'name');
             }
         ])->findOrFail($id);
 

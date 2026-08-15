@@ -105,14 +105,7 @@ class RaffleController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'phone' => 'nullable|string|max:255',
-            'ticket_number' => 'required|string|max:255',
         ]);
-
-        // Verificar unicidad de ticket en este sorteo
-        $exists = $raffle->participants()->where('ticket_number', $validated['ticket_number'])->exists();
-        if ($exists) {
-            return response()->json(['message' => 'El número de boleto ya está registrado en este sorteo.'], 422);
-        }
 
         $participant = $raffle->participants()->create($validated);
 
