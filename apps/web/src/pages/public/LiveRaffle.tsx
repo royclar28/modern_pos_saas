@@ -14,6 +14,8 @@ export const LiveRaffle: React.FC = () => {
 
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
     const intervalRef = useRef<number | null>(null);
+    const pollIntervalRef = useRef<number | null>(null);
+    const isOwner = !!localStorage.getItem('pos_token'); // Simple check if logged in as admin
 
     // Audio effects using Web Audio API (No CORS issues)
     const playDrumRoll = () => {
@@ -63,28 +65,81 @@ export const LiveRaffle: React.FC = () => {
 
     useEffect(() => {
         fetchRaffle();
+        
+        // Polling para mantener sincronizados a los participantes
+        pollIntervalRef.current = window.setInterval(() => {
+            if (!isDrawing) {
+                fetchRaffle(true); // silent fetch
+            }
+        }, 2500);
+
         return () => {
             if (intervalRef.current) clearInterval(intervalRef.current);
+            if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
         };
-    }, [id]);
+    }, [id, isDrawing]);
 
-    const fetchRaffle = async () => {
+    const fetchRaffle = async (silent = false) => {
         try {
             const res = await fetch(`${apiUrl}/raffles/public/${id}`);
             if (res.ok) {
                 const data = await res.json();
-                setRaffle(data);
-                // Seleccionar el primer premio sin ganador por defecto
-                const availablePrizes = data.prizes?.filter((p:any) => !p.winner_participant_id).sort((a:any, b:any) => b.position - a.position); // sort descending (3rd prize first, then 2nd, then 1st)
-                if (availablePrizes && availablePrizes.length > 0) {
-                    setCurrentPrize(availablePrizes[0]);
+                
+                // Si estamos en modo espectador (silent poll) y detectamos un ganador nuevo
+                if (silent && !isOwner && !isDrawing) {
+                    const currentAvailable = data.prizes?.filter((p:any) => !p.winner_participant_id).sort((a:any, b:any) => b.position - a.position);
+                    
+                    // Comprobar si el premio actual acaba de ganar (backend tiene winner, frontend no)
+                    if (currentPrize && !winner) {
+                        const updatedPrize = data.prizes?.find((p:any) => p.id === currentPrize.id);
+                        if (updatedPrize && updatedPrize.winner_participant_id) {
+                            const winnerParticipant = data.participants?.find((p:any) => p.id === updatedPrize.winner_participant_id);
+                            if (winnerParticipant) {
+                                triggerSpectatorAnimation(winnerParticipant);
+                            }
+                        }
+                    } else if (!currentPrize && currentAvailable?.length > 0) {
+                        setCurrentPrize(currentAvailable[0]);
+                    }
                 }
-            } else {
+
+                setRaffle(data);
+                
+                // Actualizar premio actual si no estamos girando ni mostrando un ganador
+                if (!isDrawing && !winner) {
+                    const availablePrizes = data.prizes?.filter((p:any) => !p.winner_participant_id).sort((a:any, b:any) => b.position - a.position);
+                    if (availablePrizes && availablePrizes.length > 0) {
+                        setCurrentPrize(availablePrizes[0]);
+                    }
+                }
+            } else if (!silent) {
                 setError('Sorteo no encontrado o no activo.');
             }
         } catch (error) {
-            setError('Error de conexión.');
+            if (!silent) setError('Error de conexión.');
         }
+    };
+
+    const triggerSpectatorAnimation = (winnerData: any) => {
+        setIsDrawing(true);
+        setWinner(null);
+        playDrumRoll();
+        
+        const names = raffle?.participants?.map((p:any) => p.name) || ['...'];
+        let i = 0;
+        intervalRef.current = window.setInterval(() => {
+            setCurrentName(names[i % names.length]);
+            i++;
+        }, 80);
+
+        setTimeout(() => {
+            if (intervalRef.current) clearInterval(intervalRef.current);
+            setIsDrawing(false);
+            setWinner(winnerData);
+            setCurrentName(winnerData.name);
+            playFanfare();
+            toast.success('¡Tenemos un ganador!');
+        }, 4000);
     };
 
     const startDraw = async () => {
@@ -211,31 +266,49 @@ export const LiveRaffle: React.FC = () => {
                 {/* Controls (Only visible if there's a prize to draw) */}
                 <div className="mt-16 relative z-10">
                     {availablePrizes?.length > 0 && !isDrawing && !winner && (
-                        <button 
-                            onClick={startDraw}
-                            className="group relative px-12 py-6 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full font-black text-3xl text-white shadow-[0_0_40px_rgba(139,92,246,0.4)] hover:shadow-[0_0_80px_rgba(139,92,246,0.8)] hover:scale-105 transition-all"
-                        >
-                            <span className="relative z-10 flex items-center gap-4">
-                                <Play size={32} fill="currentColor" /> INICIAR SORTEO
-                            </span>
-                            <div className="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-20 transition-opacity"></div>
-                        </button>
+                        isOwner ? (
+                            <button 
+                                onClick={startDraw}
+                                className="group relative px-12 py-6 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full font-black text-3xl text-white shadow-[0_0_40px_rgba(139,92,246,0.4)] hover:shadow-[0_0_80px_rgba(139,92,246,0.8)] hover:scale-105 transition-all"
+                            >
+                                <span className="relative z-10 flex items-center gap-4">
+                                    <Play size={32} fill="currentColor" /> INICIAR SORTEO
+                                </span>
+                                <div className="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-20 transition-opacity"></div>
+                            </button>
+                        ) : (
+                            <div className="text-2xl font-bold text-white/50 bg-black/30 px-8 py-4 rounded-full backdrop-blur-sm border border-white/10 animate-pulse">
+                                Esperando que inicie el sorteo...
+                            </div>
+                        )
                     )}
 
                     {winner && (
-                        <button 
-                            onClick={() => {
-                                setWinner(null);
-                                setCurrentName('¿Quién será el siguiente?');
-                                // Move to next available prize
-                                const remaining = availablePrizes.filter((p:any) => p.id !== currentPrize?.id);
-                                if (remaining.length > 0) setCurrentPrize(remaining[0]);
-                                else setCurrentPrize(null);
-                            }}
-                            className="px-8 py-4 bg-white/10 hover:bg-white/20 rounded-full font-bold text-xl text-white backdrop-blur-sm transition-all"
-                        >
-                            Continuar Sorteo →
-                        </button>
+                        <div className="flex flex-col items-center gap-4">
+                            <button 
+                                onClick={() => {
+                                    setWinner(null);
+                                    setCurrentName('¿Quién será el siguiente?');
+                                    // Move to next available prize
+                                    const remaining = availablePrizes.filter((p:any) => p.id !== currentPrize?.id);
+                                    if (remaining.length > 0) setCurrentPrize(remaining[0]);
+                                    else setCurrentPrize(null);
+                                }}
+                                className="px-8 py-4 bg-white/10 hover:bg-white/20 rounded-full font-bold text-xl text-white backdrop-blur-sm transition-all"
+                            >
+                                Continuar Sorteo →
+                            </button>
+                            
+                            {isOwner && winner.phone && (
+                                <a 
+                                    href={`https://wa.me/${winner.phone.replace(/\D/g,'')}?text=¡Felicidades ${winner.name}! Has ganado el premio: ${currentPrize?.name} en nuestro sorteo.`}
+                                    target="_blank" rel="noreferrer"
+                                    className="px-6 py-3 bg-[#25D366] hover:bg-[#128C7E] rounded-full font-bold text-white shadow-lg transition-all flex items-center gap-2"
+                                >
+                                    Notificar por WhatsApp
+                                </a>
+                            )}
+                        </div>
                     )}
 
                     {availablePrizes?.length === 0 && !winner && (

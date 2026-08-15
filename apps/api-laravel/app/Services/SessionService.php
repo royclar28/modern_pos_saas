@@ -43,9 +43,15 @@ class SessionService
      *
      * @throws \RuntimeException con mensaje descriptivo si se excede el límite
      */
-    public function authorizeDevice(Store $store, Request $request): string
+    public function authorizeDevice(Store $store, Request $request, ?\App\Models\User $user = null): string
     {
         $fingerprint = $this->fingerprint($request);
+        
+        // El Super Admin tiene dispositivos ilimitados
+        if ($user && $user->role === 'SUPER_ADMIN') {
+            return $fingerprint;
+        }
+
         $deviceName  = $request->header('X-Device-Name', $request->userAgent() ?? 'Desconocido');
 
         $plan = Plan::tryFrom($store->plan) ?? Plan::TRIAL;

@@ -43,6 +43,39 @@ export const SuperAdminPage = () => {
     const [successModalData, setSuccessModalData] = useState<{ email: string; temporaryPassword?: string } | null>(null);
     const [toggling, setToggling] = useState<string | null>(null);
 
+    // Logs state
+    const [showLogs, setShowLogs] = useState(false);
+    const [logs, setLogs] = useState('');
+    const [loadingLogs, setLoadingLogs] = useState(false);
+
+    const fetchLogs = useCallback(async () => {
+        setLoadingLogs(true);
+        try {
+            const res = await fetch(`${apiUrl}/logs/laravel`, { headers: { Authorization: `Bearer ${token}` } });
+            const data = await res.json();
+            setLogs(data.logs || 'No hay logs.');
+        } catch (e: any) {
+            toast.error('Error fetching logs');
+        } finally {
+            setLoadingLogs(false);
+        }
+    }, [apiUrl, token]);
+
+    const clearLogs = async () => {
+        if (!confirm('¿Seguro que quieres borrar todos los logs de Laravel?')) return;
+        try {
+            await fetch(`${apiUrl}/logs/laravel`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+            toast.success('Logs limpios');
+            setLogs('');
+        } catch (e: any) {
+            toast.error('Error limpiando logs');
+        }
+    };
+
+    useEffect(() => {
+        if (showLogs) fetchLogs();
+    }, [showLogs, fetchLogs]);
+
     // Form state
     const [formName, setFormName] = useState('');
     const [formRif, setFormRif] = useState('');
@@ -191,6 +224,12 @@ export const SuperAdminPage = () => {
                         >
                             📡 Centro de Comando
                         </Link>
+                        <button
+                            onClick={() => setShowLogs(true)}
+                            className="text-sm font-bold text-indigo-200 hover:text-white transition-colors flex items-center gap-1.5 bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg"
+                        >
+                            📝 Ver Logs
+                        </button>
                     </nav>
                 </div>
                 <span className="text-xs text-indigo-300 font-mono hidden sm:inline">SaaS Management Console</span>
@@ -380,6 +419,33 @@ export const SuperAdminPage = () => {
                             >
                                 Cerrar
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal Visor de Logs */}
+            {showLogs && (
+                <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
+                    <div className="bg-slate-900 rounded-2xl shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col border border-slate-700 overflow-hidden">
+                        <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-black/50">
+                            <h2 className="text-xl font-bold text-slate-200 font-mono flex items-center gap-2">
+                                <span>📝</span> laravel.log
+                            </h2>
+                            <div className="flex items-center gap-4">
+                                <button onClick={fetchLogs} className="text-sm font-bold text-indigo-400 hover:text-indigo-300">
+                                    {loadingLogs ? 'Actualizando...' : '↻ Refrescar'}
+                                </button>
+                                <button onClick={clearLogs} className="text-sm font-bold text-red-400 hover:text-red-300">
+                                    🗑️ Vaciar
+                                </button>
+                                <button onClick={() => setShowLogs(false)} className="text-slate-400 hover:text-white text-2xl leading-none ml-4">&times;</button>
+                            </div>
+                        </div>
+                        <div className="flex-1 overflow-auto p-4 bg-slate-950">
+                            <pre className="text-xs text-green-400 font-mono whitespace-pre-wrap break-all">
+                                {loadingLogs && !logs ? 'Cargando...' : logs}
+                            </pre>
                         </div>
                     </div>
                 </div>

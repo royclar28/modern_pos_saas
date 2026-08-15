@@ -76,19 +76,42 @@ export const RaffleDetailPage: React.FC = () => {
 
     const importContact = async () => {
         if (!('contacts' in navigator && 'ContactsManager' in window)) {
-            toast.error('Tu navegador no soporta importar contactos (Contact Picker API). Usa Chrome en Android.');
+            toast.error('Tu navegador no soporta importar contactos (Contact Picker API). Usa Chrome en Android o iOS 14.5+.');
             return;
         }
 
         try {
             const props = ['name', 'tel'];
-            const opts = { multiple: false };
+            const opts = { multiple: true };
             const contacts = await (navigator as any).contacts.select(props, opts);
             if (contacts.length > 0) {
-                const c = contacts[0];
-                setPartName(c.name ? c.name[0] : '');
-                setPartPhone(c.tel ? c.tel[0].replace(/\D/g, '') : '');
-                toast.success('Contacto importado');
+                let successCount = 0;
+                let errorCount = 0;
+                
+                toast.loading(`Importando ${contacts.length} contactos...`, { id: 'import-toast' });
+                
+                for (const c of contacts) {
+                    const cName = c.name ? c.name[0] : 'Desconocido';
+                    const cPhone = c.tel ? c.tel[0].replace(/\D/g, '') : '';
+                    
+                    try {
+                        const res = await fetch(`${apiUrl}/raffles/${id}/participants`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                            body: JSON.stringify({ name: cName, phone: cPhone })
+                        });
+                        if (res.ok) successCount++;
+                        else errorCount++;
+                    } catch (e) {
+                        errorCount++;
+                    }
+                }
+                
+                toast.dismiss('import-toast');
+                if (successCount > 0) toast.success(`Se importaron ${successCount} contactos correctamente.`);
+                if (errorCount > 0) toast.error(`Hubo errores al importar ${errorCount} contactos.`);
+                
+                fetchRaffle();
             }
         } catch (error) {
             // User cancelled or error

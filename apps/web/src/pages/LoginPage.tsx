@@ -70,14 +70,22 @@ export const LoginPage = () => {
                 body: JSON.stringify(data),
             });
 
-            if (!response.ok) {
-                if (response.status === 401 || response.status === 422) {
-                    throw new Error('Credenciales inválidas');
-                }
-                throw new Error(`Error del servidor (${response.status})`);
+            let result;
+            try {
+                result = await response.json();
+            } catch (e) {
+                result = null;
             }
 
-            const result = await response.json();
+            if (!response.ok) {
+                if (response.status === 403 && result?.code === 'DEVICE_LIMIT_REACHED') {
+                    throw new Error('Has alcanzado el límite de dispositivos de tu plan. Cierra sesión en otro equipo para continuar.');
+                }
+                if (response.status === 401 || response.status === 422) {
+                    throw new Error(result?.message || 'Credenciales inválidas');
+                }
+                throw new Error(result?.message || `Error del servidor (${response.status})`);
+            }
 
             // Llamar a login redirigirá al dashboard
             login(result.token, {

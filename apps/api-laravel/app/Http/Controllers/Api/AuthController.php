@@ -36,9 +36,8 @@ class AuthController extends Controller
             ], 401);
         }
 
-        // ── Device authorization ───────────────────────────────
         try {
-            $fingerprint = $this->sessions->authorizeDevice($user->store, $request);
+            $fingerprint = $this->sessions->authorizeDevice($user->store, $request, $user);
         } catch (\RuntimeException $e) {
             return response()->json([
                 'status'  => 'error',

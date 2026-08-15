@@ -161,6 +161,10 @@ Route::middleware(['auth:sanctum', 'trial', 'touch.session'])->group(function ()
         Route::get('/saas/plans/limits/{storeId}', [\App\Http\Controllers\Api\SaasController::class, 'planLimits']);
         Route::post('/saas/plans/change', [\App\Http\Controllers\Api\SaasController::class, 'changePlan']);
         Route::post('/saas/plans/extend-trial', [\App\Http\Controllers\Api\SaasController::class, 'extendTrial']);
+
+        // ── Visor de Logs ────────────────────────────────
+        Route::get('/logs/laravel', [\App\Http\Controllers\Api\LogViewerController::class, 'getLogs']);
+        Route::delete('/logs/laravel', [\App\Http\Controllers\Api\LogViewerController::class, 'clearLogs']);
     });
 });
 
