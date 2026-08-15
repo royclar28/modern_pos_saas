@@ -106,7 +106,7 @@ export const LiveRaffle: React.FC = () => {
 
         try {
             // Mientras gira, pedimos al backend el ganador real para asegurarnos que es 100% seguro y se guarda.
-            const token = localStorage.getItem('auth_token'); // El backend necesita auth para sortear (solo admin)
+            const token = localStorage.getItem('pos_token'); // Clave correcta del AuthProvider
             // NOTA: Para que el administrador pueda sortear, debe estar logueado en la misma ventana o tener el token.
             // Si el sorteo en vivo se muestra publicamente, la API de /draw requiere auth. 
             // Si no hay token, fallará. El organizador debe abrir esta pantalla desde su sesión.

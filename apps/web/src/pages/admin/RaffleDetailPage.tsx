@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { AppHeader } from '../../components/AppHeader';
 import { useAuth } from '../../contexts/AuthProvider';
-import { ArrowLeft, Gift, Users, Trophy, Play, Plus, BookBox, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Users, Trophy, Play, Plus, ContactRound, MessageCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export const RaffleDetailPage: React.FC = () => {
@@ -218,7 +218,7 @@ export const RaffleDetailPage: React.FC = () => {
                                 <span className="flex items-center gap-2"><Users size={20}/> Añadir</span>
                                 {('contacts' in navigator) && (
                                     <button onClick={importContact} type="button" className="text-xs bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 p-2 rounded-lg flex items-center gap-1 font-bold transition-colors">
-                                        <BookBox size={14} /> Importar
+                                        <ContactRound size={14} /> Importar
                                     </button>
                                 )}
                             </h3>
