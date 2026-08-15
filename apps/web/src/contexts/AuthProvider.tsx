@@ -59,7 +59,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         navigate('/dashboard');
     };
 
-    const logout = () => {
+    const logout = async () => {
+        if (token) {
+            try {
+                const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+                await fetch(`${apiUrl}/logout`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json'
+                    }
+                });
+            } catch (e) {}
+        }
+        
         localStorage.removeItem('pos_token');
         localStorage.removeItem('pos_user');
         setToken(null);

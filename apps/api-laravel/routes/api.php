@@ -70,6 +70,7 @@ Route::get('/health', function () {
 Route::middleware(['auth:sanctum', 'trial', 'touch.session'])->group(function () {
 
     Route::patch('/auth/change-password', [AuthController::class, 'changePassword']);
+    Route::post('/logout', [AuthController::class, 'logout']);
 
     // ── Perfil del usuario autenticado ──────────────────────────
     Route::get('/user', function (Illuminate\Http\Request $request) {

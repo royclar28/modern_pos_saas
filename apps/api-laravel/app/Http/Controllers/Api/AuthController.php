@@ -102,4 +102,11 @@ class AuthController extends Controller
             'message' => 'Contraseña actualizada correctamente.',
         ]);
     }
+
+    public function logout(Request $request)
+    {
+        // Revoke current token
+        $request->user()->currentAccessToken()->delete();
+        return response()->json(['message' => 'Logged out successfully']);
+    }
 }
