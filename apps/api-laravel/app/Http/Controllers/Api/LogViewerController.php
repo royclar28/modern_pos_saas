@@ -5,30 +5,25 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 
 class LogViewerController extends Controller
 {
     public function getLogs(Request $request)
     {
-        $logPath = storage_path('logs/laravel.log');
-        
-        if (!File::exists($logPath)) {
-            return response()->json([
-                'status' => 'ok',
-                'logs' => "No se encontró el archivo laravel.log o está vacío.\n"
-            ]);
+        Log::info('Test log entry to confirm logging works.');
+
+        $logFiles = File::files(storage_path('logs'));
+        $allLogs = "";
+
+        foreach ($logFiles as $file) {
+            $allLogs .= "--- File: " . $file->getFilename() . " ---\n";
+            $allLogs .= File::get($file->getPathname()) . "\n\n";
         }
 
-        // Leer las últimas 500 líneas
-        $file = file($logPath);
-        if (!$file) {
-            return response()->json(['logs' => "Error al leer laravel.log"]);
-        }
-
-        $lines = array_slice($file, -500);
         return response()->json([
             'status' => 'ok',
-            'logs' => implode("", $lines)
+            'logs' => $allLogs
         ]);
     }
 

@@ -76,46 +76,41 @@ export const RaffleDetailPage: React.FC = () => {
 
     const importContact = async () => {
         if (!('contacts' in navigator && 'ContactsManager' in window)) {
-            toast.error('Tu navegador no soporta importar contactos (Contact Picker API). Usa Chrome en Android o iOS 14.5+.');
+            toast.error('Tu navegador no soporta importar contactos. Usa Chrome en Android.');
             return;
         }
 
+        let contacts: any[] = [];
         try {
-            const props = ['name', 'tel'];
-            const opts = { multiple: true };
-            const contacts = await (navigator as any).contacts.select(props, opts);
-            if (contacts.length > 0) {
-                let successCount = 0;
-                let errorCount = 0;
-                
-                toast.loading(`Importando ${contacts.length} contactos...`, { id: 'import-toast' });
-                
-                for (const c of contacts) {
-                    const cName = c.name ? c.name[0] : 'Desconocido';
-                    const cPhone = c.tel ? c.tel[0].replace(/\D/g, '') : '';
-                    
-                    try {
-                        const res = await fetch(`${apiUrl}/raffles/${id}/participants`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                            body: JSON.stringify({ name: cName, phone: cPhone })
-                        });
-                        if (res.ok) successCount++;
-                        else errorCount++;
-                    } catch (e) {
-                        errorCount++;
-                    }
-                }
-                
-                toast.dismiss('import-toast');
-                if (successCount > 0) toast.success(`Se importaron ${successCount} contactos correctamente.`);
-                if (errorCount > 0) toast.error(`Hubo errores al importar ${errorCount} contactos.`);
-                
-                fetchRaffle();
-            }
-        } catch (error) {
-            // User cancelled or error
+            contacts = await (navigator as any).contacts.select(['name', 'tel'], { multiple: true });
+        } catch {
+            return; // Usuario canceló
         }
+
+        if (!contacts || contacts.length === 0) return;
+
+        const loadingToast = toast.loading(`Importando ${contacts.length} contacto(s)...`);
+
+        // Enviar todas las requests en paralelo
+        const promises = contacts.map((c: any) => {
+            const cName = c.name?.[0] || 'Desconocido';
+            const cPhone = c.tel?.[0]?.replace(/\D/g, '') || '';
+            return fetch(`${apiUrl}/raffles/${id}/participants`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ name: cName, phone: cPhone })
+            }).then(r => r.ok ? 'ok' : 'err').catch(() => 'err');
+        });
+
+        const results = await Promise.allSettled(promises);
+        const successCount = results.filter(r => r.status === 'fulfilled' && (r as any).value === 'ok').length;
+        const errorCount = results.length - successCount;
+
+        toast.dismiss(loadingToast);
+        if (successCount > 0) toast.success(`✅ ${successCount} contacto(s) importados.`);
+        if (errorCount > 0) toast.error(`❌ ${errorCount} contacto(s) fallaron (quizás duplicados).`);
+
+        fetchRaffle();
     };
 
     const setStatus = async (status: string) => {
