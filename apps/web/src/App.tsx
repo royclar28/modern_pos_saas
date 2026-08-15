@@ -23,6 +23,9 @@ import { SuperAdminPage } from './pages/admin/SuperAdminPage';
 import { MasterDashboard } from './pages/admin/MasterDashboard';
 import { ShiftHistoryPage } from './pages/admin/ShiftHistoryPage';
 import { CustomersPage } from './pages/admin/CustomersPage';
+import { RafflesPage } from './pages/admin/RafflesPage';
+import { RaffleDetailPage } from './pages/admin/RaffleDetailPage';
+import { LiveRaffle } from './pages/public/LiveRaffle';
 import { useSync } from './hooks/useSync';
 import { useInitialSync } from './hooks/useInitialSync';
 import { useItems } from './hooks/useItems';
@@ -387,6 +390,18 @@ const Dashboard = () => {
                         </Link>
                     )}
 
+                    {/* Sorteos — ADMIN y MANAGER */}
+                    {canAccessAdmin && (
+                        <Link
+                            to="/admin/raffles"
+                            className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-pink-400 dark:hover:border-pink-500 text-slate-800 dark:text-white rounded-2xl p-5 sm:p-7 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                        >
+                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">🎁</div>
+                            <div className="font-bold text-base sm:text-lg lg:text-xl">Sorteos</div>
+                            <div className="text-slate-400 dark:text-slate-400 text-xs sm:text-sm mt-1">Sorteos en vivo →</div>
+                        </Link>
+                    )}
+
                     {/* Sugerencias — visible para TODOS los roles */}
                     <a
                         href="https://merx-pos.canny.io/sugerencias-merxpos"
@@ -452,6 +467,7 @@ const AppInner = () => {
                     <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/setup-password" element={<SetupPasswordPage />} />
                     <Route path="/" element={<LandingPage />} />
+                    <Route path="/raffles/live/:id" element={<LiveRaffle />} />
                     
                     <Route element={<ProtectedRoute />}>
                         <Route path="/dashboard" element={<Dashboard />} />
@@ -482,6 +498,16 @@ const AppInner = () => {
                         <Route path="/admin/customers" element={
                             <RequireRole allowed={['SUPER_ADMIN', 'ADMIN', 'MANAGER']}>
                                 <CustomersPage />
+                            </RequireRole>
+                        } />
+                        <Route path="/admin/raffles" element={
+                            <RequireRole allowed={['SUPER_ADMIN', 'ADMIN', 'MANAGER']}>
+                                <RafflesPage />
+                            </RequireRole>
+                        } />
+                        <Route path="/admin/raffles/:id" element={
+                            <RequireRole allowed={['SUPER_ADMIN', 'ADMIN', 'MANAGER']}>
+                                <RaffleDetailPage />
                             </RequireRole>
                         } />
                         {/* Settings — Solo ADMIN */}

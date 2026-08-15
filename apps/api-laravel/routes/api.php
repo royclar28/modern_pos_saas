@@ -16,6 +16,10 @@ Route::get('/login', function () {
     return response()->json(['message' => 'Please login via POST'], 401);
 })->name('login');
 
+// Sorteos Públicos
+Route::get('/raffles/public/{id}', [\App\Http\Controllers\Api\PublicRaffleController::class, 'show']);
+
+
 Route::get('/migrate-debug', function () {
     try {
         \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
@@ -121,6 +125,16 @@ Route::middleware(['auth:sanctum', 'trial', 'touch.session'])->group(function ()
 
         // ── Historial de Cierres de Caja ──────────────────────
         Route::get('/cash-shifts', [CashShiftController::class, 'index']);
+
+        // ── Sorteos (Raffles) ──────────────────────────────────
+        Route::get('/raffles', [\App\Http\Controllers\Api\RaffleController::class, 'index']);
+        Route::post('/raffles', [\App\Http\Controllers\Api\RaffleController::class, 'store']);
+        Route::get('/raffles/{id}', [\App\Http\Controllers\Api\RaffleController::class, 'show']);
+        Route::put('/raffles/{id}', [\App\Http\Controllers\Api\RaffleController::class, 'update']);
+        Route::delete('/raffles/{id}', [\App\Http\Controllers\Api\RaffleController::class, 'destroy']);
+        Route::post('/raffles/{id}/prizes', [\App\Http\Controllers\Api\RaffleController::class, 'addPrize']);
+        Route::post('/raffles/{id}/participants', [\App\Http\Controllers\Api\RaffleController::class, 'addParticipant']);
+        Route::post('/raffles/{id}/prizes/{prizeId}/draw', [\App\Http\Controllers\Api\RaffleController::class, 'drawWinner']);
     });
 
     // ── Rutas SOLO para ADMIN ───────────────────────────────────
