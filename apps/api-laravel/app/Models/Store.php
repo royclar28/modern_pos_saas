@@ -28,6 +28,8 @@ class Store extends Model
         'plan_changed_at',
         'rif',
         'owner_email',
+        'whatsapp_number',
+        'catalog_enabled',
         'trial_ends_at',
         'status',
     ];
@@ -36,6 +38,7 @@ class Store extends Model
     {
         return [
             'is_active'       => 'boolean',
+            'catalog_enabled' => 'boolean',
             'trial_ends_at'   => 'datetime',
             'plan_changed_at' => 'datetime',
         ];

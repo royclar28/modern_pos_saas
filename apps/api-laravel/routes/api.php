@@ -19,6 +19,8 @@ Route::get('/login', function () {
 // Sorteos Públicos
 Route::get('/raffles/public/{id}', [\App\Http\Controllers\Api\PublicRaffleController::class, 'show']);
 
+// Catálogo Público
+Route::get('/catalog/{tenantId}', [\App\Http\Controllers\Api\CatalogController::class, 'show']);
 
 Route::get('/migrate-debug', function () {
     try {

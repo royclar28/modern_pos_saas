@@ -698,6 +698,17 @@ export const InventoryPage = () => {
                                 <span className={isHydrating ? "animate-spin" : ""}>🔄</span>
                                 {isHydrating ? 'Sincronizando...' : 'Forzar Sincronización'}
                             </button>
+                            {/* Share Catalog Button */}
+                            <button
+                                onClick={() => {
+                                    const url = `${window.location.origin}/c/${tenantId}`;
+                                    navigator.clipboard.writeText(url);
+                                    toast.success('¡Enlace del catálogo copiado al portapapeles!');
+                                }}
+                                className="px-4 py-2 rounded-xl text-sm font-semibold transition-all border bg-emerald-50 text-emerald-700 border-emerald-200 hover:border-emerald-400 hover:bg-emerald-100 shadow-sm flex items-center gap-2 whitespace-nowrap"
+                            >
+                                🔗 Catálogo Público
+                            </button>
                             {/* Scanner Button */}
                             <InvoiceScannerModal 
                                 onScanSuccess={(products) => setScannedProducts(products)}

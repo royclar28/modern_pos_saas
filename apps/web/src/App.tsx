@@ -29,6 +29,7 @@ import { RafflesPage } from './pages/admin/RafflesPage';
 import { RaffleDetailPage } from './pages/admin/RaffleDetailPage';
 import { LiveRaffle } from './pages/public/LiveRaffle';
 import { BIPage } from './pages/admin/BIPage';
+import { CatalogPage } from './pages/public/CatalogPage';
 import { useSync } from './hooks/useSync';
 import { useInitialSync } from './hooks/useInitialSync';
 import { useItems } from './hooks/useItems';
@@ -485,6 +486,7 @@ const AppInner = () => {
                     <Route path="/terminos" element={<TermsPage />} />
                     <Route path="/privacidad" element={<PrivacyPage />} />
                     <Route path="/raffles/live/:id" element={<LiveRaffle />} />
+                    <Route path="/c/:tenantId" element={<CatalogPage />} />
                     
                     <Route element={<ProtectedRoute />}>
                         <Route path="/dashboard" element={<Dashboard />} />
