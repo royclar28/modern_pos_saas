@@ -4,7 +4,8 @@ export type ItemDocType = {
     id: string;
     storeId: string;
     name: string;
-    category: string;
+    category_id?: string;    // FK a categories (3FN)
+    brand_id?: string;       // FK a brands (3FN)
     itemNumber?: string;
     description?: string;
     costPrice: number;
@@ -15,7 +16,7 @@ export type ItemDocType = {
     receivingQuantity: number;
     allowAltDescription: boolean;
     isSerialized: boolean;
-    sellBy: 'unit' | 'weight';    // ← NUEVO
-    unitLabel?: string;       // ← NUEVO: ej. 'Kg', 'Mts', 'und', 'Lts'
+    sellBy: 'unit' | 'weight';
+    unitLabel?: string;
     updatedAt: number; // Unix timestamp for delta sync checkpoint
 };

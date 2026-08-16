@@ -14,6 +14,7 @@ import type { ItemDocType } from './schemas/item.schema';
 import type { SaleDocType } from './schemas/sale.schema';
 import type { CustomerDocType } from './schemas/customer.schema';
 import type { CashShiftDocType } from './schemas/cashshift.schema';
+import type { BrandDocType } from './schemas/brand.schema';
 
 class PosOutboxDB extends Dexie {
   // ── READ tables (local cache) ──────────────────────────────────────────────
@@ -21,6 +22,7 @@ class PosOutboxDB extends Dexie {
   sales!: Table<SaleDocType, string>;
   customers!: Table<CustomerDocType, string>;
   shifts!: Table<CashShiftDocType, string>;
+  brands!: Table<BrandDocType, string>;
 
   // ── WRITE table (outbox / bandeja de salida) ───────────────────────────────
   sync_queue!: Table<SyncQueueEvent, number>;
@@ -50,6 +52,16 @@ class PosOutboxDB extends Dexie {
       sales: 'id, saleTime, employeeId, storeId, customerId, paymentMethod, status',
       customers: 'id, firstName, lastName, storeId',
       shifts: 'id, userId, terminalId, storeId, status, openedAt',
+      sync_queue: '++event_id, sync_status, entity_type, occurred_at',
+    });
+
+    // v4 — 3FN: replace category string with category_id + brand_id. Add brands table.
+    this.version(4).stores({
+      items: 'id, name, category_id, brand_id, storeId, updatedAt, itemNumber',
+      sales: 'id, saleTime, employeeId, storeId, customerId, paymentMethod, status',
+      customers: 'id, firstName, lastName, storeId',
+      shifts: 'id, userId, terminalId, storeId, status, openedAt',
+      brands: 'id, name, storeId',
       sync_queue: '++event_id, sync_status, entity_type, occurred_at',
     });
   }
