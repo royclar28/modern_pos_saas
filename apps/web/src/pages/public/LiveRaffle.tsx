@@ -1,7 +1,40 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { Gift, Trophy, Play } from 'lucide-react';
+import { Gift, Trophy, Play, RotateCcw } from 'lucide-react';
 import toast from 'react-hot-toast';
+
+// Fanfarria suave con Web Audio API (triangle wave - mucho más agradable)
+const playFanfare = () => {
+    try {
+        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+        const playNote = (freq: number, startTime: number, duration: number) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'triangle';
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.25, startTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+            osc.start(startTime);
+            osc.stop(startTime + duration);
+        };
+        const t = ctx.currentTime;
+        playNote(523.25, t,       0.25); // C5
+        playNote(659.25, t + 0.2, 0.25); // E5
+        playNote(783.99, t + 0.4, 0.25); // G5
+        playNote(1046.5, t + 0.6, 0.8);  // C6 (final largo)
+    } catch (e) {}
+};
+
+// Cuenta regresiva formateada
+const formatCountdown = (seconds: number) => {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+};
 
 export const LiveRaffle: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -12,77 +45,79 @@ export const LiveRaffle: React.FC = () => {
     const [currentPrize, setCurrentPrize] = useState<any>(null);
     const [winner, setWinner] = useState<any>(null);
 
+    // Countdown hasta que inicia el sorteo (en segundos, null = ya inició o no hay hora programada)
+    const [startCountdown, setStartCountdown] = useState<number | null>(null);
+
+    // Countdown de reclamación del ganador
+    const [claimCountdown, setClaimCountdown] = useState<number | null>(null);
+    const claimIntervalRef = useRef<number | null>(null);
+
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
-    // Refs para no depender de estado en closures
+    // Refs para evitar stale closures en callbacks del polling
     const intervalRef = useRef<number | null>(null);
     const pollIntervalRef = useRef<number | null>(null);
+    const startCountdownIntervalRef = useRef<number | null>(null);
     const isDrawingRef = useRef(false);
     const winnerRef = useRef<any>(null);
     const currentPrizeRef = useRef<any>(null);
     const raffleRef = useRef<any>(null);
+
     const isOwner = !!localStorage.getItem('pos_token');
 
-    // Sincronizar refs con estado
+    // Sync refs ↔ state
     useEffect(() => { isDrawingRef.current = isDrawing; }, [isDrawing]);
     useEffect(() => { winnerRef.current = winner; }, [winner]);
     useEffect(() => { currentPrizeRef.current = currentPrize; }, [currentPrize]);
     useEffect(() => { raffleRef.current = raffle; }, [raffle]);
 
-    // Audio effects using Web Audio API (No CORS issues)
-    const playDrumRoll = () => {
-        try {
-            const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-            if (!AudioContext) return;
-            const ctx = new AudioContext();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(60, ctx.currentTime);
-            for (let i = 0; i < 40; i++) {
-                gain.gain.setValueAtTime(0.5, ctx.currentTime + i * 0.1);
-                gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + i * 0.1 + 0.05);
+    // ─── Countdown hasta que inicia ───────────────────────────────
+    const startStartCountdown = useCallback((startsAt: string) => {
+        if (startCountdownIntervalRef.current) clearInterval(startCountdownIntervalRef.current);
+
+        const tick = () => {
+            const diff = Math.floor((new Date(startsAt).getTime() - Date.now()) / 1000);
+            if (diff <= 0) {
+                setStartCountdown(null);
+                if (startCountdownIntervalRef.current) clearInterval(startCountdownIntervalRef.current);
+            } else {
+                setStartCountdown(diff);
             }
-            osc.start();
-            osc.stop(ctx.currentTime + 4);
-        } catch (e) {}
-    };
+        };
+        tick();
+        startCountdownIntervalRef.current = window.setInterval(tick, 1000);
+    }, []);
 
-    const playFanfare = () => {
-        try {
-            const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-            if (!AudioContext) return;
-            const ctx = new AudioContext();
-            const playNote = (freq: number, startTime: number, duration: number) => {
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.type = 'triangle';
-                osc.frequency.value = freq;
-                gain.gain.setValueAtTime(0.3, startTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
-                osc.start(startTime);
-                osc.stop(startTime + duration);
-            };
-            const t = ctx.currentTime;
-            playNote(440, t, 0.2);
-            playNote(554.37, t + 0.2, 0.2);
-            playNote(659.25, t + 0.4, 0.2);
-            playNote(880, t + 0.6, 0.8);
-        } catch (e) {}
-    };
+    // ─── Countdown de reclamación del ganador ─────────────────────
+    const startClaimCountdown = useCallback((winnerDrawnAt: string, claimMinutes: number) => {
+        if (claimIntervalRef.current) clearInterval(claimIntervalRef.current);
 
-    // Animación del biombo para espectadores cuando detectan un nuevo ganador
-    const triggerSpectatorAnimation = useCallback((winnerData: any, prizeData: any, participants: any[]) => {
-        // Si ya estamos animando o ya hay ganador, no repetir
+        const deadlineMs = new Date(winnerDrawnAt).getTime() + claimMinutes * 60 * 1000;
+
+        const tick = () => {
+            const diff = Math.floor((deadlineMs - Date.now()) / 1000);
+            if (diff <= 0) {
+                setClaimCountdown(0);
+                if (claimIntervalRef.current) clearInterval(claimIntervalRef.current);
+            } else {
+                setClaimCountdown(diff);
+            }
+        };
+        tick();
+        claimIntervalRef.current = window.setInterval(tick, 1000);
+    }, []);
+
+    const stopClaimCountdown = useCallback(() => {
+        if (claimIntervalRef.current) clearInterval(claimIntervalRef.current);
+        setClaimCountdown(null);
+    }, []);
+
+    // ─── Animación del biombo para espectadores ───────────────────
+    const triggerSpectatorAnimation = useCallback((winnerData: any, prizeData: any, participants: any[], winnerDrawnAt?: string, claimMinutes?: number) => {
         if (isDrawingRef.current || winnerRef.current) return;
 
         setIsDrawing(true);
         isDrawingRef.current = true;
-        playDrumRoll();
 
         const names = participants.map((p: any) => p.name);
         if (names.length === 0) names.push('...');
@@ -104,9 +139,15 @@ export const LiveRaffle: React.FC = () => {
             setCurrentName(winnerData.name);
             playFanfare();
             toast.success('¡Tenemos un ganador!');
-        }, 4000);
-    }, []);
 
+            // Arrancar countdown de reclamación si aplica
+            if (winnerDrawnAt && claimMinutes) {
+                startClaimCountdown(winnerDrawnAt, claimMinutes);
+            }
+        }, 4000);
+    }, [startClaimCountdown]);
+
+    // ─── Fetch del sorteo ─────────────────────────────────────────
     const fetchRaffle = useCallback(async (silent = false) => {
         try {
             const res = await fetch(`${apiUrl}/raffles/public/${id}`);
@@ -116,7 +157,15 @@ export const LiveRaffle: React.FC = () => {
             }
             const data = await res.json();
 
-            // Para espectadores: detectar si acaba de aparecer un ganador nuevo
+            // Actualizar countdown de inicio si hay hora programada
+            if (data.starts_at && new Date(data.starts_at) > new Date()) {
+                startStartCountdown(data.starts_at);
+            } else {
+                setStartCountdown(null);
+                if (startCountdownIntervalRef.current) clearInterval(startCountdownIntervalRef.current);
+            }
+
+            // Detectar ganador nuevo para espectadores
             if (silent && !isOwner) {
                 const currentPrizeSnap = currentPrizeRef.current;
                 const winnerSnap = winnerRef.current;
@@ -129,12 +178,30 @@ export const LiveRaffle: React.FC = () => {
                             (p: any) => p.id === updatedPrize.winner_participant_id
                         );
                         if (winnerParticipant) {
-                            triggerSpectatorAnimation(winnerParticipant, updatedPrize, data.participants || []);
-                            // No sobreescribir el premio actual durante la animación
+                            triggerSpectatorAnimation(
+                                winnerParticipant,
+                                updatedPrize,
+                                data.participants || [],
+                                data.winner_drawn_at,
+                                data.winner_claim_minutes
+                            );
                             setRaffle(data);
                             raffleRef.current = data;
                             return;
                         }
+                    }
+                }
+
+                // Detectar re-sorteo: el premio que tenía ganador ya no lo tiene
+                if (currentPrizeSnap && winnerSnap && !isDrawingSnap) {
+                    const updatedPrize = data.prizes?.find((p: any) => p.id === currentPrizeSnap.id);
+                    if (updatedPrize && !updatedPrize.winner_participant_id) {
+                        // El ganador fue anulado → re-sorteo iniciado
+                        stopClaimCountdown();
+                        setWinner(null);
+                        winnerRef.current = null;
+                        setCurrentName('Re-sorteando...');
+                        // La animación la dispara cuando vuelva a detectar el nuevo ganador
                     }
                 }
             }
@@ -142,7 +209,6 @@ export const LiveRaffle: React.FC = () => {
             setRaffle(data);
             raffleRef.current = data;
 
-            // Solo actualizar el premio actual si no hay animación ni ganador activo
             if (!isDrawingRef.current && !winnerRef.current) {
                 const available = data.prizes
                     ?.filter((p: any) => !p.winner_participant_id)
@@ -150,7 +216,7 @@ export const LiveRaffle: React.FC = () => {
                 if (available?.length > 0) {
                     setCurrentPrize(available[0]);
                     currentPrizeRef.current = available[0];
-                } else {
+                } else if (available?.length === 0) {
                     setCurrentPrize(null);
                     currentPrizeRef.current = null;
                 }
@@ -158,34 +224,35 @@ export const LiveRaffle: React.FC = () => {
         } catch {
             if (!silent) setError('Error de conexión.');
         }
-    }, [id, apiUrl, isOwner, triggerSpectatorAnimation]);
+    }, [id, apiUrl, isOwner, triggerSpectatorAnimation, startStartCountdown, stopClaimCountdown]);
 
-    // Arrancar polling solo 1 vez al montar
+    // Montar polling
     useEffect(() => {
         fetchRaffle();
-
-        pollIntervalRef.current = window.setInterval(() => {
-            fetchRaffle(true);
-        }, 3000);
+        pollIntervalRef.current = window.setInterval(() => fetchRaffle(true), 3000);
 
         return () => {
             if (intervalRef.current) clearInterval(intervalRef.current);
             if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+            if (startCountdownIntervalRef.current) clearInterval(startCountdownIntervalRef.current);
+            if (claimIntervalRef.current) clearInterval(claimIntervalRef.current);
         };
     }, [fetchRaffle]);
 
+    // ─── Sortear ──────────────────────────────────────────────────
     const startDraw = async () => {
-        if (!raffleRef.current || !currentPrizeRef.current) return;
-        if (raffleRef.current.participants?.length === 0) return;
+        const raffleSnap = raffleRef.current;
+        const prizeSnap = currentPrizeRef.current;
+        if (!raffleSnap || !prizeSnap) return;
+        if (raffleSnap.participants?.length === 0) { toast.error('No hay participantes.'); return; }
 
         setIsDrawing(true);
         isDrawingRef.current = true;
         setWinner(null);
         winnerRef.current = null;
+        stopClaimCountdown();
 
-        playDrumRoll();
-
-        const names = raffleRef.current.participants.map((p: any) => p.name);
+        const names = raffleSnap.participants.map((p: any) => p.name);
         let i = 0;
         if (intervalRef.current) clearInterval(intervalRef.current);
         intervalRef.current = window.setInterval(() => {
@@ -195,15 +262,13 @@ export const LiveRaffle: React.FC = () => {
 
         try {
             const token = localStorage.getItem('pos_token');
-            const prizeId = currentPrizeRef.current.id;
-            const res = await fetch(`${apiUrl}/raffles/${id}/prizes/${prizeId}/draw`, {
+            const res = await fetch(`${apiUrl}/raffles/${id}/prizes/${prizeSnap.id}/draw`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
             if (res.ok) {
                 const data = await res.json();
-
                 setTimeout(() => {
                     if (intervalRef.current) clearInterval(intervalRef.current);
                     setIsDrawing(false);
@@ -214,8 +279,12 @@ export const LiveRaffle: React.FC = () => {
                     playFanfare();
                     toast.success('¡Tenemos un ganador!');
                     fetchRaffle();
-                }, 4000);
 
+                    // Countdown de reclamación
+                    if (raffleSnap.winner_claim_minutes) {
+                        startClaimCountdown(new Date().toISOString(), raffleSnap.winner_claim_minutes);
+                    }
+                }, 4000);
             } else {
                 if (intervalRef.current) clearInterval(intervalRef.current);
                 setIsDrawing(false);
@@ -231,126 +300,237 @@ export const LiveRaffle: React.FC = () => {
         }
     };
 
+    // ─── Re-sortear ───────────────────────────────────────────────
+    const redraw = async () => {
+        const prizeSnap = currentPrizeRef.current;
+        if (!prizeSnap) return;
+
+        stopClaimCountdown();
+        setWinner(null);
+        winnerRef.current = null;
+        setIsDrawing(true);
+        isDrawingRef.current = true;
+
+        const raffleSnap = raffleRef.current;
+        const names = raffleSnap?.participants?.map((p: any) => p.name) || ['...'];
+        let i = 0;
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        intervalRef.current = window.setInterval(() => {
+            setCurrentName(names[i % names.length]);
+            i++;
+        }, 80);
+
+        try {
+            const token = localStorage.getItem('pos_token');
+            const res = await fetch(`${apiUrl}/raffles/${id}/prizes/${prizeSnap.id}/redraw`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                setTimeout(() => {
+                    if (intervalRef.current) clearInterval(intervalRef.current);
+                    setIsDrawing(false);
+                    isDrawingRef.current = false;
+                    setWinner(data.winner);
+                    winnerRef.current = data.winner;
+                    setCurrentName(data.winner.name);
+                    playFanfare();
+                    toast.success('¡Nuevo ganador seleccionado!');
+                    fetchRaffle();
+
+                    if (raffleSnap?.winner_claim_minutes) {
+                        startClaimCountdown(new Date().toISOString(), raffleSnap.winner_claim_minutes);
+                    }
+                }, 4000);
+            } else {
+                if (intervalRef.current) clearInterval(intervalRef.current);
+                setIsDrawing(false);
+                isDrawingRef.current = false;
+                toast.error('Error al re-sortear');
+                setCurrentName('Error');
+            }
+        } catch {
+            if (intervalRef.current) clearInterval(intervalRef.current);
+            setIsDrawing(false);
+            isDrawingRef.current = false;
+            toast.error('Error de red');
+        }
+    };
+
     if (error) return <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white text-2xl font-bold">{error}</div>;
     if (!raffle) return <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white text-2xl animate-pulse">Preparando Sorteo...</div>;
 
     const availablePrizes = raffle.prizes?.filter((p: any) => !p.winner_participant_id) || [];
+    const claimExpired = claimCountdown !== null && claimCountdown <= 0;
 
     return (
         <div className="min-h-screen bg-slate-950 flex flex-col text-white font-sans overflow-hidden relative">
-            {/* Background effects */}
-            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-violet-900/40 via-slate-900 to-black z-0"></div>
-            <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-violet-600/30 rounded-full blur-[120px] z-0"></div>
-            <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-amber-600/20 rounded-full blur-[120px] z-0"></div>
+            {/* Background */}
+            <div className="absolute inset-0 bg-gradient-to-br from-violet-900/40 via-slate-900 to-black z-0" />
+            <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-violet-600/30 rounded-full blur-[120px] z-0" />
+            <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-amber-600/20 rounded-full blur-[120px] z-0" />
 
             {/* Header */}
-            <header className="relative z-10 p-8 flex justify-between items-center border-b border-white/10 bg-black/20 backdrop-blur-md">
-                <div>
-                    <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-amber-400 tracking-tight flex items-center gap-4">
-                        <Gift className="text-violet-400" size={40} />
-                        {raffle.name}
-                    </h1>
-                </div>
-                <div className="flex gap-6 text-xl font-bold text-white/70">
+            <header className="relative z-10 p-6 md:p-8 flex flex-col sm:flex-row justify-between items-center gap-4 border-b border-white/10 bg-black/20 backdrop-blur-md">
+                <h1 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-amber-400 tracking-tight flex items-center gap-4">
+                    <Gift className="text-violet-400 shrink-0" size={36} />
+                    {raffle.name}
+                </h1>
+                <div className="flex gap-6 text-lg font-bold text-white/70">
                     <div>Participantes: <span className="text-white">{raffle.participants?.length || 0}</span></div>
-                    <div>Premios Restantes: <span className="text-amber-400">{availablePrizes.length}</span></div>
+                    <div>Premios: <span className="text-amber-400">{availablePrizes.length}</span></div>
                 </div>
             </header>
 
-            {/* Main Stage */}
-            <main className="relative z-10 flex-grow flex flex-col items-center justify-center p-8">
+            {/* ── Countdown hasta el inicio ── */}
+            {startCountdown !== null && startCountdown > 0 && !isDrawing && !winner && (
+                <div className="relative z-10 bg-indigo-900/60 backdrop-blur-md border-b border-indigo-500/30 px-8 py-5 text-center">
+                    <p className="text-indigo-300 text-sm font-bold uppercase tracking-widest mb-1">El sorteo inicia en</p>
+                    <p className="text-5xl font-black text-white tabular-nums">{formatCountdown(startCountdown)}</p>
+                    <p className="text-indigo-400 text-xs mt-2">¡Prepárate! Todos los participantes serán notificados al iniciar.</p>
+                </div>
+            )}
 
-                {/* Prize display */}
+            {/* Main Stage */}
+            <main className="relative z-10 flex-grow flex flex-col items-center justify-center p-6 md:p-8">
+
+                {/* Premio actual */}
                 {currentPrize && !isDrawing && !winner && (
-                    <div className="mb-12 flex flex-col items-center">
-                        <Trophy size={64} className="text-amber-400 mb-4" />
-                        <h2 className="text-2xl text-white/70 uppercase tracking-widest font-bold">Premio a Sortear:</h2>
-                        <h3 className="text-5xl font-black text-amber-400 mt-2 text-center">{currentPrize.name}</h3>
-                        {currentPrize.description && <p className="text-xl text-white/50 mt-2">{currentPrize.description}</p>}
+                    <div className="mb-10 flex flex-col items-center">
+                        <Trophy size={60} className="text-amber-400 mb-4" />
+                        <h2 className="text-xl text-white/70 uppercase tracking-widest font-bold">Premio a Sortear:</h2>
+                        <h3 className="text-4xl md:text-5xl font-black text-amber-400 mt-2 text-center">{currentPrize.name}</h3>
+                        {currentPrize.description && <p className="text-lg text-white/50 mt-2">{currentPrize.description}</p>}
                     </div>
                 )}
 
-                {/* Biombo Display */}
+                {/* Biombo */}
                 <div className="w-full max-w-5xl">
-                    <div className={`relative bg-black/50 backdrop-blur-xl border-4 ${winner ? 'border-emerald-500 shadow-[0_0_100px_rgba(16,185,129,0.4)]' : isDrawing ? 'border-violet-500 shadow-[0_0_80px_rgba(139,92,246,0.6)]' : 'border-white/10'} rounded-[3rem] p-16 text-center transition-all duration-500 overflow-hidden`}>
+                    <div className={`relative bg-black/50 backdrop-blur-xl border-4 rounded-[3rem] p-12 md:p-16 text-center transition-all duration-500 overflow-hidden
+                        ${winner ? 'border-emerald-500 shadow-[0_0_100px_rgba(16,185,129,0.4)]'
+                        : isDrawing ? 'border-violet-500 shadow-[0_0_80px_rgba(139,92,246,0.6)]'
+                        : 'border-white/10'}`}>
 
-                        {winner && (
-                            <div className="absolute inset-0 pointer-events-none">
-                                <div className="absolute inset-0 bg-emerald-500/10 animate-pulse"></div>
-                            </div>
-                        )}
+                        {winner && <div className="absolute inset-0 bg-emerald-500/10 animate-pulse pointer-events-none" />}
 
                         <div className="relative z-10">
                             {winner && (
-                                <div className="text-3xl font-bold text-emerald-400 uppercase tracking-[0.3em] mb-6">
-                                    ¡Ganador de {currentPrize?.name}!
+                                <div className="text-2xl md:text-3xl font-bold text-emerald-400 uppercase tracking-[0.3em] mb-6">
+                                    🎉 ¡Ganador de {currentPrize?.name}!
                                 </div>
                             )}
-
-                            <div className={`font-black tracking-tight leading-none ${isDrawing ? 'text-7xl md:text-8xl text-white opacity-80 blur-[1px]' : winner ? 'text-7xl md:text-9xl text-white' : 'text-5xl text-white/30'} transition-all`}>
+                            <div className={`font-black tracking-tight leading-none transition-all
+                                ${isDrawing ? 'text-6xl md:text-8xl text-white opacity-80 blur-[1px]'
+                                : winner ? 'text-6xl md:text-9xl text-white'
+                                : 'text-4xl md:text-5xl text-white/30'}`}>
                                 {currentName}
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Controls */}
-                <div className="mt-16 relative z-10">
+                {/* ── Countdown de reclamación ── */}
+                {winner && claimCountdown !== null && (
+                    <div className={`mt-8 px-8 py-4 rounded-2xl text-center border transition-all
+                        ${claimExpired
+                            ? 'bg-red-900/60 border-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.3)]'
+                            : claimCountdown < 30
+                                ? 'bg-amber-900/60 border-amber-500/50'
+                                : 'bg-slate-800/60 border-white/10'}`}>
+                        {claimExpired ? (
+                            <div>
+                                <p className="text-red-400 text-lg font-black uppercase tracking-widest">⏰ ¡Tiempo agotado!</p>
+                                <p className="text-red-300 text-sm mt-1">El ganador no se presentó. Se realizará un nuevo sorteo.</p>
+                                {isOwner && (
+                                    <button
+                                        onClick={redraw}
+                                        className="mt-3 flex items-center gap-2 mx-auto px-6 py-3 bg-red-600 hover:bg-red-700 rounded-full font-black text-white transition-all hover:scale-105"
+                                    >
+                                        <RotateCcw size={20} /> Re-sortear ahora
+                                    </button>
+                                )}
+                            </div>
+                        ) : (
+                            <div>
+                                <p className="text-white/60 text-sm font-bold uppercase tracking-widest">El ganador tiene hasta</p>
+                                <p className={`text-4xl font-black tabular-nums mt-1 ${claimCountdown < 30 ? 'text-amber-400' : 'text-white'}`}>
+                                    {formatCountdown(claimCountdown)}
+                                </p>
+                                <p className="text-white/50 text-xs mt-1">para presentarse, o se sorteará de nuevo.</p>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Controles */}
+                <div className="mt-10 relative z-10">
+                    {/* Botón sortear / esperar */}
                     {availablePrizes.length > 0 && !isDrawing && !winner && (
                         isOwner ? (
                             <button
                                 onClick={startDraw}
-                                className="group relative px-12 py-6 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full font-black text-3xl text-white shadow-[0_0_40px_rgba(139,92,246,0.4)] hover:shadow-[0_0_80px_rgba(139,92,246,0.8)] hover:scale-105 transition-all"
+                                disabled={startCountdown !== null && startCountdown > 0}
+                                className="group relative px-10 md:px-12 py-5 md:py-6 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full font-black text-2xl md:text-3xl text-white shadow-[0_0_40px_rgba(139,92,246,0.4)] hover:shadow-[0_0_80px_rgba(139,92,246,0.8)] hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                             >
                                 <span className="relative z-10 flex items-center gap-4">
-                                    <Play size={32} fill="currentColor" /> INICIAR SORTEO
+                                    <Play size={30} fill="currentColor" /> INICIAR SORTEO
                                 </span>
-                                <div className="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-20 transition-opacity"></div>
+                                <div className="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-20 transition-opacity" />
                             </button>
                         ) : (
-                            <div className="text-2xl font-bold text-white/50 bg-black/30 px-8 py-4 rounded-full backdrop-blur-sm border border-white/10 animate-pulse">
+                            <div className="text-xl md:text-2xl font-bold text-white/50 bg-black/30 px-8 py-4 rounded-full backdrop-blur-sm border border-white/10 animate-pulse">
                                 Esperando que inicie el sorteo...
                             </div>
                         )
                     )}
 
-                    {winner && (
+                    {/* Ganador + botones de acción */}
+                    {winner && !claimExpired && (
                         <div className="flex flex-col items-center gap-4">
                             {isOwner && (
-                                <button
-                                    onClick={() => {
-                                        setWinner(null);
-                                        winnerRef.current = null;
-                                        setCurrentName('¿Quién será el siguiente?');
-                                        const remaining = availablePrizes.filter((p: any) => p.id !== currentPrize?.id);
-                                        if (remaining.length > 0) {
-                                            setCurrentPrize(remaining[0]);
-                                            currentPrizeRef.current = remaining[0];
-                                        } else {
-                                            setCurrentPrize(null);
-                                            currentPrizeRef.current = null;
-                                        }
-                                    }}
-                                    className="px-8 py-4 bg-white/10 hover:bg-white/20 rounded-full font-bold text-xl text-white backdrop-blur-sm transition-all"
-                                >
-                                    Continuar Sorteo →
-                                </button>
-                            )}
+                                <>
+                                    <button
+                                        onClick={() => {
+                                            stopClaimCountdown();
+                                            setWinner(null);
+                                            winnerRef.current = null;
+                                            setCurrentName('¿Quién será el siguiente?');
+                                            const remaining = availablePrizes.filter((p: any) => p.id !== currentPrize?.id);
+                                            if (remaining.length > 0) { setCurrentPrize(remaining[0]); currentPrizeRef.current = remaining[0]; }
+                                            else { setCurrentPrize(null); currentPrizeRef.current = null; }
+                                        }}
+                                        className="px-8 py-4 bg-white/10 hover:bg-white/20 rounded-full font-bold text-xl text-white backdrop-blur-sm transition-all"
+                                    >
+                                        Continuar Sorteo →
+                                    </button>
 
-                            {isOwner && winner.phone && (
-                                <a
-                                    href={`https://wa.me/${winner.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`¡Felicidades ${winner.name}! 🎉 Has ganado el premio: ${currentPrize?.name} en nuestro sorteo.`)}`}
-                                    target="_blank" rel="noreferrer"
-                                    className="px-6 py-3 bg-[#25D366] hover:bg-[#128C7E] rounded-full font-bold text-white shadow-lg transition-all flex items-center gap-2"
-                                >
-                                    🟢 Notificar por WhatsApp
-                                </a>
+                                    {winner.phone && (
+                                        <a
+                                            href={`https://wa.me/${winner.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`¡Felicidades ${winner.name}! 🎉 Has ganado el premio: ${currentPrize?.name} en nuestro sorteo.`)}`}
+                                            target="_blank" rel="noreferrer"
+                                            className="px-6 py-3 bg-[#25D366] hover:bg-[#128C7E] rounded-full font-bold text-white shadow-lg transition-all flex items-center gap-2"
+                                        >
+                                            🟢 Notificar por WhatsApp
+                                        </a>
+                                    )}
+
+                                    {raffle.winner_claim_minutes && (
+                                        <button
+                                            onClick={redraw}
+                                            className="px-6 py-3 bg-slate-700 hover:bg-slate-600 rounded-full font-bold text-white/70 text-sm transition-all flex items-center gap-2"
+                                        >
+                                            <RotateCcw size={16} /> Re-sortear manualmente
+                                        </button>
+                                    )}
+                                </>
                             )}
                         </div>
                     )}
 
                     {availablePrizes.length === 0 && !winner && !isDrawing && (
-                        <div className="text-3xl font-black text-white/50 bg-black/30 px-12 py-6 rounded-full backdrop-blur-sm border border-white/10">
+                        <div className="text-2xl md:text-3xl font-black text-white/50 bg-black/30 px-12 py-6 rounded-full backdrop-blur-sm border border-white/10">
                             Sorteo Finalizado 🎉
                         </div>
                     )}

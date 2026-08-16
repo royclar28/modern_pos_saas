@@ -136,6 +136,7 @@ Route::middleware(['auth:sanctum', 'trial', 'touch.session'])->group(function ()
         Route::post('/raffles/{id}/prizes', [\App\Http\Controllers\Api\RaffleController::class, 'addPrize']);
         Route::post('/raffles/{id}/participants', [\App\Http\Controllers\Api\RaffleController::class, 'addParticipant']);
         Route::post('/raffles/{id}/prizes/{prizeId}/draw', [\App\Http\Controllers\Api\RaffleController::class, 'drawWinner']);
+        Route::post('/raffles/{id}/prizes/{prizeId}/redraw', [\App\Http\Controllers\Api\RaffleController::class, 'redrawWinner']);
     });
 
     // ── Rutas SOLO para ADMIN ───────────────────────────────────

@@ -18,12 +18,18 @@ class Raffle extends Model
         'name',
         'status', // draft, active, completed
         'draw_date',
+        'starts_at',
+        'winner_claim_minutes',
+        'winner_drawn_at',
     ];
 
     protected function casts(): array
     {
         return [
-            'draw_date' => 'datetime',
+            'draw_date'             => 'datetime',
+            'starts_at'             => 'datetime',
+            'winner_drawn_at'       => 'datetime',
+            'winner_claim_minutes'  => 'integer',
         ];
     }
 

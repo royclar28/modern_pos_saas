@@ -2,21 +2,25 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { AppHeader } from '../../components/AppHeader';
 import { useAuth } from '../../contexts/AuthProvider';
-import { ArrowLeft, Users, Trophy, Play, Plus, ContactRound, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Users, Trophy, Play, Plus, ContactRound, MessageCircle, Bell, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export const RaffleDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const { token } = useAuth();
     const [raffle, setRaffle] = useState<any>(null);
-    const [activeTab, setActiveTab] = useState<'prizes' | 'participants'>('prizes');
-    
+    const [activeTab, setActiveTab] = useState<'prizes' | 'participants' | 'settings'>('prizes');
+
     // Formularios
     const [prizeName, setPrizeName] = useState('');
     const [prizePos, setPrizePos] = useState(1);
     
     const [partName, setPartName] = useState('');
     const [partPhone, setPartPhone] = useState('');
+
+    // Configuración de timing
+    const [startsAt, setStartsAt] = useState('');
+    const [claimMinutes, setClaimMinutes] = useState<number | ''>(2);
 
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
@@ -34,6 +38,19 @@ export const RaffleDetailPage: React.FC = () => {
     useEffect(() => {
         if (id) fetchRaffle();
     }, [id]);
+
+    // Sincronizar campos de config con el raffle cargado
+    useEffect(() => {
+        if (raffle) {
+            if (raffle.starts_at) {
+                // Convertir ISO a formato datetime-local
+                const d = new Date(raffle.starts_at);
+                const pad = (n: number) => n.toString().padStart(2, '0');
+                setStartsAt(`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`);
+            }
+            if (raffle.winner_claim_minutes) setClaimMinutes(raffle.winner_claim_minutes);
+        }
+    }, [raffle?.id]);
 
     const addPrize = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -120,11 +137,39 @@ export const RaffleDetailPage: React.FC = () => {
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ status })
             });
-            if (res.ok) {
-                toast.success('Estado actualizado');
-                fetchRaffle();
-            }
+            if (res.ok) { toast.success('Estado actualizado'); fetchRaffle(); }
         } catch (error) {}
+    };
+
+    const saveTiming = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            const res = await fetch(`${apiUrl}/raffles/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({
+                    starts_at: startsAt || null,
+                    winner_claim_minutes: claimMinutes || null,
+                })
+            });
+            if (res.ok) { toast.success('Configuración guardada'); fetchRaffle(); }
+            else toast.error('Error al guardar');
+        } catch { toast.error('Error de red'); }
+    };
+
+    const remindAll = () => {
+        const participants = raffle?.participants?.filter((p: any) => p.phone) || [];
+        if (participants.length === 0) {
+            toast.error('Ningún participante tiene teléfono registrado.');
+            return;
+        }
+        const msg = encodeURIComponent(`¡Hola! El sorteo "${raffle.name}" está a punto de comenzar. Únete en vivo aquí: ${publicUrl}`);
+        participants.forEach((p: any, i: number) => {
+            setTimeout(() => {
+                window.open(`https://wa.me/${cleanPhone(p.phone)}?text=${msg}`, '_blank');
+            }, i * 500); // Pequeño delay entre cada apertura
+        });
+        toast.success(`Abriendo WhatsApp para ${participants.length} participante(s)...`);
     };
 
     const cleanPhone = (phone: string) => phone.replace(/\D/g, '');
@@ -165,12 +210,15 @@ export const RaffleDetailPage: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="flex gap-2 mb-6 border-b border-slate-200 dark:border-slate-700">
-                    <button onClick={() => setActiveTab('prizes')} className={`px-6 py-3 font-bold border-b-2 transition-colors ${activeTab === 'prizes' ? 'border-violet-600 text-violet-600' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>
+                <div className="flex gap-2 mb-6 border-b border-slate-200 dark:border-slate-700 overflow-x-auto">
+                    <button onClick={() => setActiveTab('prizes')} className={`px-6 py-3 font-bold border-b-2 transition-colors whitespace-nowrap ${activeTab === 'prizes' ? 'border-violet-600 text-violet-600' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>
                         Premios
                     </button>
-                    <button onClick={() => setActiveTab('participants')} className={`px-6 py-3 font-bold border-b-2 transition-colors ${activeTab === 'participants' ? 'border-violet-600 text-violet-600' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>
+                    <button onClick={() => setActiveTab('participants')} className={`px-6 py-3 font-bold border-b-2 transition-colors whitespace-nowrap ${activeTab === 'participants' ? 'border-violet-600 text-violet-600' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>
                         Participantes ({raffle.participants?.length || 0})
+                    </button>
+                    <button onClick={() => setActiveTab('settings')} className={`px-6 py-3 font-bold border-b-2 transition-colors whitespace-nowrap flex items-center gap-1 ${activeTab === 'settings' ? 'border-violet-600 text-violet-600' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>
+                        <Clock size={16} /> Configuración
                     </button>
                 </div>
 
@@ -234,11 +282,13 @@ export const RaffleDetailPage: React.FC = () => {
                         <div className="md:col-span-1 bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 h-fit">
                             <h3 className="font-bold text-lg mb-4 flex items-center justify-between">
                                 <span className="flex items-center gap-2"><Users size={20}/> Añadir</span>
-                                {('contacts' in navigator) && (
-                                    <button onClick={importContact} type="button" className="text-xs bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 p-2 rounded-lg flex items-center gap-1 font-bold transition-colors">
-                                        <ContactRound size={14} /> Importar
-                                    </button>
-                                )}
+                                <div className="flex items-center gap-2">
+                                    {('contacts' in navigator) && (
+                                        <button onClick={importContact} type="button" className="text-xs bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 p-2 rounded-lg flex items-center gap-1 font-bold transition-colors">
+                                            <ContactRound size={14} /> Importar
+                                        </button>
+                                    )}
+                                </div>
                             </h3>
                             <form onSubmit={addParticipant} className="space-y-4">
                                 <div>
@@ -289,6 +339,89 @@ export const RaffleDetailPage: React.FC = () => {
                                 </table>
                             </div>
                         </div>
+                    </div>
+                )}
+
+                {/* Pestaña Configuración */}
+                {activeTab === 'settings' && (
+                    <div className="grid md:grid-cols-2 gap-6">
+
+                        {/* Hora de inicio */}
+                        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+                            <h3 className="font-bold text-lg mb-1 flex items-center gap-2"><Clock size={20} className="text-violet-500"/> Hora de Inicio</h3>
+                            <p className="text-xs text-slate-400 mb-4">Los participantes verán un conteo regresivo en la pantalla del sorteo.</p>
+                            <form onSubmit={saveTiming} className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Fecha y hora de inicio</label>
+                                    <input
+                                        type="datetime-local"
+                                        className="w-full rounded-xl border-slate-300 dark:border-slate-600 dark:bg-slate-700"
+                                        value={startsAt}
+                                        onChange={e => setStartsAt(e.target.value)}
+                                    />
+                                    {startsAt && (
+                                        <button type="button" onClick={() => setStartsAt('')} className="text-xs text-slate-400 hover:text-red-500 mt-1">
+                                            × Quitar hora programada
+                                        </button>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Minutos para reclamar el premio (opcional)</label>
+                                    <p className="text-[10px] text-slate-400 mb-2">Si el ganador no se presenta en este tiempo, se muestra la opción de re-sortear. Deja vacío para desactivar.</p>
+                                    <div className="flex items-center gap-3">
+                                        <input
+                                            type="number"
+                                            min="1" max="60"
+                                            placeholder="Ej. 2"
+                                            className="w-24 rounded-xl border-slate-300 dark:border-slate-600 dark:bg-slate-700 text-center font-bold"
+                                            value={claimMinutes}
+                                            onChange={e => setClaimMinutes(e.target.value === '' ? '' : Number(e.target.value))}
+                                        />
+                                        <span className="text-sm text-slate-500">minutos</span>
+                                        {claimMinutes !== '' && (
+                                            <button type="button" onClick={() => setClaimMinutes('')} className="text-xs text-slate-400 hover:text-red-500">
+                                                × Desactivar
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <button type="submit" className="w-full bg-violet-600 hover:bg-violet-700 text-white py-2.5 rounded-xl font-bold transition-colors">
+                                    Guardar Configuración
+                                </button>
+                            </form>
+                        </div>
+
+                        {/* Notificar a todos */}
+                        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+                            <h3 className="font-bold text-lg mb-1 flex items-center gap-2"><Bell size={20} className="text-emerald-500"/> Recordar a Participantes</h3>
+                            <p className="text-xs text-slate-400 mb-6">Envía un mensaje de WhatsApp a todos los participantes con teléfono registrado, avisándoles que el sorteo está por comenzar.</p>
+
+                            <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4 mb-4 text-sm">
+                                <p className="font-bold text-slate-600 dark:text-slate-300 mb-1">Vista previa del mensaje:</p>
+                                <p className="text-slate-500 italic text-xs">
+                                    "¡Hola! El sorteo "{raffle.name}" está a punto de comenzar. Únete en vivo aquí: {publicUrl.substring(0, 40)}..."
+                                </p>
+                            </div>
+
+                            <div className="text-sm text-slate-500 mb-4">
+                                {(() => {
+                                    const withPhone = raffle.participants?.filter((p: any) => p.phone)?.length || 0;
+                                    const total = raffle.participants?.length || 0;
+                                    return <span>{withPhone} de {total} participantes tienen teléfono registrado.</span>;
+                                })()}
+                            </div>
+
+                            <button
+                                onClick={remindAll}
+                                className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors shadow-md"
+                            >
+                                <Bell size={20} /> Notificar a Todos por WhatsApp
+                            </button>
+                            <p className="text-[10px] text-slate-400 mt-2 text-center">Se abrirá WhatsApp con un mensaje por cada participante.</p>
+                        </div>
+
                     </div>
                 )}
             </div>
