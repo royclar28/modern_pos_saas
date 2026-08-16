@@ -73,12 +73,10 @@ class SyncReadController extends Controller
      */
     public function getCategories(Request $request): JsonResponse
     {
-        // Puesto que "category" es un string en la tabla Items,
-        // agrupamos los valores distintos para rehidratar el selector.
-        $categories = Item::distinct()
-            ->whereNotNull('category')
-            ->where('category', '!=', '')
-            ->pluck('category');
+        // El frontend espera las categorías de la tabla categories.
+        $categories = \App\Models\Category::select(['id', 'name', 'sort_order'])
+            ->orderBy('sort_order')
+            ->get();
             
         return response()->json($categories);
     }
