@@ -108,7 +108,7 @@ export const SalesDashboard = () => {
             await enqueueSyncEvent({
                 entity_type: SyncEntityType.SALE,
                 action: SyncAction.VOID,
-                payload: {},
+                payload: { id: sale.id } as any, // Void only needs the sale ID; backend handles the rest
                 tenant_id: sale.storeId,
                 localTable: 'sales',
                 localRecordKey: sale.id,

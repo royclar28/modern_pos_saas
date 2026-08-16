@@ -146,7 +146,8 @@ export const SmartInventoryReceive: React.FC = () => {
                         id: newId,
                         storeId: determinedStoreId,
                         name: item.description,
-                        category: 'Pendiente Categorizar',
+                        category_id: undefined, // Will need to be categorized after import
+                        brand_id: undefined,
                         costPrice: item.unit_cost,
                         unitPrice: item.unit_cost * 1.3,
                         stock: item.quantity,

@@ -12,6 +12,7 @@ import { useAuth } from '../../contexts/AuthProvider';
 import { Link } from 'react-router-dom';
 import { InvoiceScannerModal, ScannedProduct } from '../../components/InvoiceScannerModal';
 import { AppHeader } from '../../components/AppHeader';
+import { api } from '../../lib/api';
 
 // ─── Zod Schema for Validation ──────────────────────────────────────────────
 const parseNumberVal = (val: unknown) => {
@@ -26,7 +27,8 @@ const parseNumberVal = (val: unknown) => {
 const itemSchema = z.object({
     id: z.string().optional(),
     name: z.string().min(2, "El nombre es obligatorio"),
-    category: z.string().min(2, "La categoría es obligatoria"),
+    category_id: z.string().min(1, "La categoría es obligatoria"),
+    brand_id: z.string().optional(),
     itemNumber: z.string().optional(),
     description: z.string().optional(),
     costPrice: z.preprocess(parseNumberVal, z.number({ invalid_type_error: "Costo inválido" }).min(0, "Debe ser mayor o igual a 0")),
@@ -66,10 +68,14 @@ const toast = {
 // ─── Item Modal Form Component ────────────────────────────────────────────────
 const ItemModal = ({
     item,
+    categories,
+    brands,
     onClose,
     onSave
 }: {
     item?: ItemDocType | null;
+    categories: any[];
+    brands: any[];
     onClose: () => void;
     onSave: (data: ItemFormData) => Promise<void>;
 }) => {
@@ -79,7 +85,8 @@ const ItemModal = ({
         defaultValues: item ? {
             id: item.id,
             name: item.name,
-            category: item.category,
+            category_id: item.category_id || '',
+            brand_id: item.brand_id || '',
             itemNumber: item.itemNumber || '',
             description: item.description || '',
             costPrice: item.costPrice,
@@ -110,7 +117,7 @@ const ItemModal = ({
                 </div>
 
                 <div className="p-6 overflow-y-auto flex-1">
-                    <form id="item-form" onSubmit={handleSubmit(onSave)} className="space-y-4">
+                    <form id="item-form" onSubmit={handleSubmit(onSave as any)} className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-1">
                                 <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Nombre *</label>
@@ -119,8 +126,22 @@ const ItemModal = ({
                             </div>
                             <div className="space-y-1">
                                 <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Categoría *</label>
-                                <input {...register('category')} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-violet-400 focus:outline-none" />
-                                {errors.category && <p className="text-xs text-red-500">{errors.category.message}</p>}
+                                <select {...register('category_id')} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-violet-400 focus:outline-none bg-white">
+                                    <option value="">Seleccione una categoría</option>
+                                    {categories.map(c => (
+                                        <option key={c.id} value={c.id}>{c.name}</option>
+                                    ))}
+                                </select>
+                                {errors.category_id && <p className="text-xs text-red-500">{errors.category_id.message}</p>}
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Marca</label>
+                                <select {...register('brand_id')} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-violet-400 focus:outline-none bg-white">
+                                    <option value="">Sin marca</option>
+                                    {brands.map(b => (
+                                        <option key={b.id} value={b.id}>{b.name}</option>
+                                    ))}
+                                </select>
                             </div>
                             <div className="space-y-1">
                                 <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">SKU / ID Producto</label>
@@ -452,7 +473,8 @@ async function upsertScannedProducts(products: ScannedProduct[], tenantId: strin
                 payload: {
                     id: existing.id,
                     name: updatedItem.name,
-                    category: updatedItem.category,
+                    category_id: updatedItem.category_id,
+                    brand_id: updatedItem.brand_id,
                     itemNumber: updatedItem.itemNumber,
                     costPrice: updatedItem.costPrice,
                     unitPrice: updatedItem.unitPrice,
@@ -473,7 +495,8 @@ async function upsertScannedProducts(products: ScannedProduct[], tenantId: strin
                 id,
                 storeId: tenantId,
                 name: product.name,
-                category: product.category || 'General',
+                category_id: undefined,
+                brand_id: undefined,
                 itemNumber: product.sku || '',
                 description: '',
                 costPrice: product.costPrice,
@@ -492,7 +515,8 @@ async function upsertScannedProducts(products: ScannedProduct[], tenantId: strin
                 payload: {
                     id,
                     name: newItem.name,
-                    category: newItem.category,
+                    category_id: newItem.category_id,
+                    brand_id: newItem.brand_id,
                     itemNumber: newItem.itemNumber,
                     costPrice: newItem.costPrice,
                     unitPrice: newItem.unitPrice,
@@ -525,15 +549,47 @@ export const InventoryPage = () => {
     const [scannedProducts, setScannedProducts] = useState<ScannedProduct[] | null>(null);
     const [isSavingUpsert, setIsSavingUpsert] = useState(false);
 
+    // Fetch categories and brands
+    const [categories, setCategories] = useState<any[]>([]);
+    const [brands, setBrands] = useState<any[]>([]);
+
+    useEffect(() => {
+        const fetchMasterData = async () => {
+            try {
+                const [catRes, brandRes] = await Promise.all([
+                    api.get('/categories'), // getCategories now returns Category model rows (id, name, sort_order)
+                    api.get('/brands')
+                ]);
+                setCategories(catRes?.data || catRes || []);
+                setBrands(brandRes?.data || brandRes || []);
+            } catch (error) {
+                console.error('Error fetching master data:', error);
+            }
+        };
+        fetchMasterData();
+    }, []);
+
+    const getCategoryName = (id: string | undefined) => {
+        if (!id) return 'Sin Categoría';
+        const c = categories.find(c => c.id == id);
+        return c ? c.name : 'Desconocida';
+    };
+
+    const getBrandName = (id: string | undefined) => {
+        if (!id) return '';
+        const b = brands.find(b => b.id == id);
+        return b ? b.name : '';
+    };
+
     const filtered = useMemo(() => {
         const q = search.toLowerCase().trim();
         if (!q) return items;
         return items.filter(
             i => i.name.toLowerCase().includes(q) ||
-                i.category.toLowerCase().includes(q) ||
+                getCategoryName(i.category_id).toLowerCase().includes(q) ||
                 (i.itemNumber && i.itemNumber.toLowerCase().includes(q))
         );
-    }, [items, search]);
+    }, [items, search, categories]);
 
     const handleSave = async (data: ItemFormData) => {
         try {
@@ -544,7 +600,8 @@ export const InventoryPage = () => {
                     id,
                     storeId: tenantId,
                     name: data.name,
-                    category: data.category,
+                    category_id: data.category_id,
+                    brand_id: data.brand_id,
                     itemNumber: data.itemNumber,
                     description: data.description,
                     costPrice: data.costPrice,
@@ -564,7 +621,8 @@ export const InventoryPage = () => {
                     payload: {
                         id,
                         name: newItem.name,
-                        category: newItem.category,
+                        category_id: newItem.category_id,
+                        brand_id: newItem.brand_id,
                         itemNumber: newItem.itemNumber,
                         costPrice: newItem.costPrice,
                         unitPrice: newItem.unitPrice,
@@ -582,7 +640,8 @@ export const InventoryPage = () => {
                 const updatedItem: ItemDocType = {
                     ...modalItem,
                     name: data.name,
-                    category: data.category,
+                    category_id: data.category_id,
+                    brand_id: data.brand_id,
                     itemNumber: data.itemNumber,
                     description: data.description,
                     costPrice: data.costPrice,
@@ -599,7 +658,8 @@ export const InventoryPage = () => {
                     payload: {
                         id: modalItem.id,
                         name: updatedItem.name,
-                        category: updatedItem.category,
+                        category_id: updatedItem.category_id,
+                        brand_id: updatedItem.brand_id,
                         itemNumber: updatedItem.itemNumber,
                         costPrice: updatedItem.costPrice,
                         unitPrice: updatedItem.unitPrice,
@@ -629,7 +689,8 @@ export const InventoryPage = () => {
                 payload: {
                     id: item.id,
                     name: item.name,
-                    category: item.category,
+                    category_id: item.category_id,
+                    brand_id: item.brand_id,
                     costPrice: item.costPrice,
                     unitPrice: item.unitPrice,
                     reorderLevel: item.reorderLevel,
@@ -765,7 +826,7 @@ export const InventoryPage = () => {
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <span className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-1 rounded-md text-xs font-medium">
-                                                        {item.category}
+                                                        {getCategoryName(item.category_id)}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 text-right text-slate-500 dark:text-slate-400">
@@ -813,6 +874,8 @@ export const InventoryPage = () => {
             {modalItem && (
                 <ItemModal
                     item={modalItem === 'NEW' ? null : modalItem}
+                    categories={categories}
+                    brands={brands}
                     onClose={() => setModalItem(null)}
                     onSave={handleSave}
                 />

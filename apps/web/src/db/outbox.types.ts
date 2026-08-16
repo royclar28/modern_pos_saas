@@ -12,6 +12,7 @@ export enum SyncAction {
   CREATE = 'CREATE',
   UPDATE = 'UPDATE',
   DELETE = 'DELETE',
+  VOID = 'VOID',
   ADJUST_STOCK = 'ADJUST_STOCK',
   OPEN = 'OPEN',
   CLOSE = 'CLOSE',
@@ -29,15 +30,16 @@ export enum SyncStatus {
 export type ItemPayload = {
   id: string;
   name: string;
-  category: string;
+  category_id?: string;      // FK a categories (3FN)
+  brand_id?: string;         // FK a brands (3FN)
   itemNumber?: string;
   description?: string;
   costPrice: number;
   unitPrice: number;
   reorderLevel: number;
   receivingQuantity: number;
-  sellBy?: 'unit' | 'weight';    // ← NUEVO
-  unitLabel?: string;       // ← NUEVO
+  sellBy?: 'unit' | 'weight';
+  unitLabel?: string;
 };
 
 export type SalePayload = {
