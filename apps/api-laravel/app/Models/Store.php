@@ -32,6 +32,7 @@ class Store extends Model
         'catalog_enabled',
         'trial_ends_at',
         'status',
+        'last_active_at',
     ];
 
     protected function casts(): array
@@ -41,6 +42,7 @@ class Store extends Model
             'catalog_enabled' => 'boolean',
             'trial_ends_at'   => 'datetime',
             'plan_changed_at' => 'datetime',
+            'last_active_at'  => 'datetime',
         ];
     }
 

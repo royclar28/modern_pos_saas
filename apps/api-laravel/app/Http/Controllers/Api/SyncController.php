@@ -40,6 +40,12 @@ class SyncController extends Controller
 
         Log::info("[SyncController] Recibido batch de " . count($events) . " eventos.");
 
+        // Registrar actividad de la tienda
+        $tenantId = auth()->user()?->tenant_id;
+        if ($tenantId && count($events) > 0) {
+            \App\Models\Store::where('id', $tenantId)->update(['last_active_at' => now()]);
+        }
+
         foreach ($events as $event) {
             try {
                 $result = $this->processor->processEvent($event);
