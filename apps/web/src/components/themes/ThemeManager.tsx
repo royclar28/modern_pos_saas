@@ -40,9 +40,6 @@ export const ThemeManager: React.FC = () => {
     }, []);
 
     // Renderizar el componente adecuado según la constante
-    if (activeTheme === 'worldcup') {
-        return <WorldCupTheme />;
-    }
     
     // Aquí puedes agregar más casos para 'christmas', 'halloween', etc. en el futuro.
 

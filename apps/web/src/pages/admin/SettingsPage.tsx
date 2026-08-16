@@ -592,47 +592,6 @@ export const SettingsPage = () => {
                         </div>
                     </Card>
 
-                    {/* ── SECTION: Local (This Device) ───────────────────────── */}
-                    <Card icon="💻" title="Ajustes de Este Equipo" badge="Local">
-                        <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                                <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                                    <span className="text-lg">🏆</span> Tema Estacional (Mundialista)
-                                </h3>
-                                <p className="text-xs text-slate-400 mt-1 leading-relaxed max-w-md">
-                                    Activa o desactiva la decoración del mundial en este equipo. 
-                                    Este ajuste es local y no afecta a las otras cajas registradoras.
-                                </p>
-                            </div>
-                            <button
-                                id="theme-toggle"
-                                onClick={() => {
-                                    const current = localStorage.getItem('pos_seasonal_theme_override');
-                                    if (current === 'disabled') {
-                                        localStorage.removeItem('pos_seasonal_theme_override');
-                                        showToast('Tema Mundialista Activado', 'success');
-                                    } else {
-                                        localStorage.setItem('pos_seasonal_theme_override', 'disabled');
-                                        showToast('Tema Mundialista Desactivado', 'success');
-                                    }
-                                    window.dispatchEvent(new Event('pos_theme_changed'));
-                                    // Forzar renderizado
-                                    setTimeout(() => window.location.reload(), 300);
-                                }}
-                                className={`relative w-14 h-8 rounded-full transition-all duration-300 shadow-inner ${
-                                    localStorage.getItem('pos_seasonal_theme_override') !== 'disabled'
-                                        ? 'bg-primary'
-                                        : 'bg-slate-300 dark:bg-slate-600'
-                                }`}
-                            >
-                                <span
-                                    className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-300 ${
-                                        localStorage.getItem('pos_seasonal_theme_override') !== 'disabled' ? 'translate-x-6' : 'translate-x-0'
-                                    }`}
-                                />
-                            </button>
-                        </div>
-                    </Card>
 
                     {/* ── SECTION 4: Seguridad ─────────────────────────────── */}
                     <Card icon="🔒" title="Seguridad de la Cuenta" badge="Personal">
