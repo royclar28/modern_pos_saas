@@ -226,7 +226,7 @@ export const CatalogPage = () => {
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="block w-full pl-10 pr-3 py-3 border-none rounded-xl bg-white shadow-sm focus:ring-2 focus:ring-opacity-50 transition-shadow"
-                        style={{ focusRingColor: primaryColor }}
+                        style={{ '--tw-ring-color': primaryColor } as React.CSSProperties}
                     />
                 </div>
             </div>
