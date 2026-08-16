@@ -13,6 +13,8 @@ import ResetPassword from './pages/ResetPassword';
 import SetupPasswordPage from './pages/SetupPasswordPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { LandingPage } from './pages/public/LandingPage';
+import { TermsPage } from './pages/public/TermsPage';
+import { PrivacyPage } from './pages/public/PrivacyPage';
 import { ProductsPage } from './pages/ProductsPage';
 import { PosPage } from './pages/PosPage';
 import { InventoryPage } from './pages/admin/InventoryPage';
@@ -467,6 +469,8 @@ const AppInner = () => {
                     <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/setup-password" element={<SetupPasswordPage />} />
                     <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <LandingPage />} />
+                    <Route path="/terminos" element={<TermsPage />} />
+                    <Route path="/privacidad" element={<PrivacyPage />} />
                     <Route path="/raffles/live/:id" element={<LiveRaffle />} />
                     
                     <Route element={<ProtectedRoute />}>

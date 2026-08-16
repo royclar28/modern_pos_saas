@@ -192,7 +192,7 @@ export const LandingPage: React.FC = () => {
                 </section>
 
                 {/* ── Features con screenshots reales ─────────────────────── */}
-                <section className="py-24 max-w-6xl mx-auto px-6 space-y-28">
+                <section id="caracteristicas" className="py-24 max-w-6xl mx-auto px-6 space-y-28">
                     <FeatureCard
                         icon={<><Zap size={16} /> Punto de Venta</>}
                         title="Cobra en segundos, no en minutos."
@@ -286,6 +286,47 @@ export const LandingPage: React.FC = () => {
                     )}
                 </section>
 
+                {/* ── Precios ──────────────────────────────────────────────── */}
+                <section id="precios" className="py-24 bg-white dark:bg-slate-900">
+                    <div className="max-w-4xl mx-auto px-6 text-center">
+                        <h2 className="text-4xl font-black mb-4">Planes Simples y Transparentes</h2>
+                        <p className="text-slate-500 dark:text-slate-400 text-lg mb-14">Empieza gratis por 30 días, luego elige el plan que mejor se adapte a ti.</p>
+                        
+                        <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
+                            {/* Plan Gratis */}
+                            <div className="rounded-3xl border border-slate-200 dark:border-slate-700 p-8 flex flex-col text-left">
+                                <h3 className="text-2xl font-bold mb-2">Prueba Gratis</h3>
+                                <p className="text-slate-500 mb-6">Para explorar el sistema</p>
+                                <div className="mb-6"><span className="text-5xl font-black">$0</span></div>
+                                <ul className="space-y-4 mb-8 flex-grow">
+                                    <li className="flex items-center gap-3"><CheckCircle2 size={20} className="text-emerald-500 shrink-0" /> 30 días de acceso total</li>
+                                    <li className="flex items-center gap-3"><CheckCircle2 size={20} className="text-emerald-500 shrink-0" /> Sin tarjeta de crédito</li>
+                                    <li className="flex items-center gap-3"><CheckCircle2 size={20} className="text-emerald-500 shrink-0" /> 1 Sucursal</li>
+                                </ul>
+                                <Link to="/register" className="w-full py-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">Empezar ahora</Link>
+                            </div>
+                            
+                            {/* Plan Pro */}
+                            <div className="rounded-3xl border-2 border-violet-500 bg-violet-50 dark:bg-violet-900/10 p-8 flex flex-col text-left relative">
+                                <div className="absolute top-0 right-8 -translate-y-1/2 bg-violet-500 text-white px-3 py-1 rounded-full text-xs font-bold tracking-wide">RECOMENDADO</div>
+                                <h3 className="text-2xl font-bold mb-2">Suscripción Pro</h3>
+                                <p className="text-slate-500 mb-6">Todo lo que necesitas para tu tienda</p>
+                                <div className="mb-6">
+                                    <span className="text-5xl font-black">$15</span>
+                                    <span className="text-slate-500">/mes</span>
+                                </div>
+                                <ul className="space-y-4 mb-8 flex-grow">
+                                    <li className="flex items-center gap-3"><CheckCircle2 size={20} className="text-violet-500 shrink-0" /> Usuarios y cajas ilimitadas</li>
+                                    <li className="flex items-center gap-3"><CheckCircle2 size={20} className="text-violet-500 shrink-0" /> Facturación offline</li>
+                                    <li className="flex items-center gap-3"><CheckCircle2 size={20} className="text-violet-500 shrink-0" /> Sorteos en vivo</li>
+                                    <li className="flex items-center gap-3"><CheckCircle2 size={20} className="text-violet-500 shrink-0" /> Soporte prioritario WhatsApp</li>
+                                </ul>
+                                <a href="https://wa.me/584241234567?text=Hola,%20quiero%20más%20información%20sobre%20el%20Plan%20Pro" target="_blank" rel="noopener noreferrer" className="w-full py-3 rounded-xl bg-violet-600 text-white font-bold text-center hover:bg-violet-700 transition-colors shadow-lg shadow-violet-600/30">Contactar Soporte</a>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
                 {/* ── Configuración destacada ──────────────────────────────── */}
                 <section className="py-16 bg-slate-100 dark:bg-slate-800/50">
                     <div className="max-w-6xl mx-auto px-6 flex flex-col lg:flex-row items-center gap-12">
@@ -335,31 +376,30 @@ export const LandingPage: React.FC = () => {
                             <div className="flex gap-4">
                                 <a href="#" className="text-slate-400 hover:text-violet-600 transition-colors"><Twitter size={20} /></a>
                                 <a href="https://github.com/royclar28/modern_pos_saas" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-violet-600 transition-colors"><Github size={20} /></a>
-                                <a href="mailto:soporte@merxpos.com" className="text-slate-400 hover:text-violet-600 transition-colors"><Mail size={20} /></a>
+                                <a href="https://wa.me/584241234567?text=Hola,%20tengo%20una%20consulta%20sobre%20MerxPOS" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-violet-600 transition-colors"><Mail size={20} /></a>
                             </div>
                         </div>
                         <div>
                             <h4 className="font-bold text-slate-900 dark:text-white mb-4">Producto</h4>
                             <ul className="space-y-3 text-sm">
-                                {['Características', 'Precios', 'Descargas'].map(l => (
-                                    <li key={l}><a href="#" className="text-slate-600 dark:text-slate-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors">{l}</a></li>
-                                ))}
+                                <li><a href="#caracteristicas" className="text-slate-600 dark:text-slate-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors">Características</a></li>
+                                <li><a href="#precios" className="text-slate-600 dark:text-slate-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors">Precios</a></li>
+                                <li><a href="https://github.com/royclar28/modern_pos_saas/releases/latest" target="_blank" rel="noopener noreferrer" className="text-slate-600 dark:text-slate-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors">Descargas (.msi)</a></li>
                             </ul>
                         </div>
                         <div>
                             <h4 className="font-bold text-slate-900 dark:text-white mb-4">Recursos</h4>
                             <ul className="space-y-3 text-sm">
-                                {['Centro de Ayuda', 'Guías de inicio', 'Sugerencias'].map(l => (
-                                    <li key={l}><a href="#" className="text-slate-600 dark:text-slate-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors">{l}</a></li>
-                                ))}
+                                <li><a href="https://wa.me/584241234567?text=Hola,%20necesito%20ayuda%20con%20el%20sistema" target="_blank" rel="noopener noreferrer" className="text-slate-600 dark:text-slate-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors">Centro de Ayuda (WhatsApp)</a></li>
+                                <li><a href="https://wa.me/584241234567?text=Hola,%20quisiera%20una%20guía%20de%20inicio" target="_blank" rel="noopener noreferrer" className="text-slate-600 dark:text-slate-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors">Guías de inicio</a></li>
+                                <li><a href="https://wa.me/584241234567?text=Hola,%20tengo%20una%20sugerencia%20para%20MerxPOS" target="_blank" rel="noopener noreferrer" className="text-slate-600 dark:text-slate-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors">Sugerencias</a></li>
                             </ul>
                         </div>
                         <div>
                             <h4 className="font-bold text-slate-900 dark:text-white mb-4">Legal</h4>
                             <ul className="space-y-3 text-sm">
-                                {['Términos de Servicio', 'Política de Privacidad'].map(l => (
-                                    <li key={l}><a href="#" className="text-slate-600 dark:text-slate-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors">{l}</a></li>
-                                ))}
+                                <li><Link to="/terminos" className="text-slate-600 dark:text-slate-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors">Términos de Servicio</Link></li>
+                                <li><Link to="/privacidad" className="text-slate-600 dark:text-slate-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors">Política de Privacidad</Link></li>
                             </ul>
                         </div>
                     </div>
