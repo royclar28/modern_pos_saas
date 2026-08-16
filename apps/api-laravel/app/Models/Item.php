@@ -16,7 +16,8 @@ class Item extends Model
         'id',
         'tenant_id',
         'name',
-        'category',
+        'category_id',
+        'brand_id',
         'item_number',
         'description',
         'cost_price',
@@ -27,7 +28,7 @@ class Item extends Model
         'receiving_quantity',
         'allow_alt_description',
         'is_serialized',
-        'sell_by',            // ← NUEVO
+        'sell_by',
         'unit_label',
     ];
 
@@ -50,6 +51,16 @@ class Item extends Model
     public function saleItems(): HasMany
     {
         return $this->hasMany(SaleItem::class, 'item_id');
+    }
+
+    public function category(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    public function brand(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Brand::class);
     }
 
     // ─── Stock Operations (Atomic) ──────────────────────────────

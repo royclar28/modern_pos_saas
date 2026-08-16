@@ -106,6 +106,7 @@ Route::middleware(['auth:sanctum', 'trial', 'touch.session'])->group(function ()
     Route::get('/customers', [\App\Http\Controllers\Api\SyncReadController::class, 'getCustomers']);
     Route::get('/categories', [\App\Http\Controllers\Api\SyncReadController::class, 'getCategories']);
     Route::get('/categories/table', [\App\Http\Controllers\Api\SyncReadController::class, 'getCategoriesTable']);
+    Route::get('/brands', [\App\Http\Controllers\Api\SyncReadController::class, 'getBrands']);
 
     // Obtener historial de facturas (todos pueden ver)
     Route::get('/sales', [SaleController::class, 'index']);
@@ -115,6 +116,10 @@ Route::middleware(['auth:sanctum', 'trial', 'touch.session'])->group(function ()
 
     // Dashboard — resumen financiero del día
     Route::get('/dashboard/summary', [DashboardController::class, 'summary']);
+
+    // BI & Metrics
+    Route::get('/bi/top-products', [\App\Http\Controllers\Api\BIController::class, 'topProducts']);
+    Route::get('/bi/sales-trend', [\App\Http\Controllers\Api\BIController::class, 'salesTrend']);
 
     // ── Rutas para ADMIN y MANAGER ──────────────────────────────
     Route::middleware('role:ADMIN,MANAGER')->group(function () {

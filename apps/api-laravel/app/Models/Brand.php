@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Category extends Model
+class Brand extends Model
 {
     use HasUuids, HasTenant, SoftDeletes;
 
@@ -17,18 +17,5 @@ class Category extends Model
         'id',
         'tenant_id',
         'name',
-        'sort_order',
     ];
-
-    protected function casts(): array
-    {
-        return [
-            'sort_order' => 'integer',
-        ];
-    }
-
-    public function items()
-    {
-        return $this->hasMany(Item::class);
-    }
 }

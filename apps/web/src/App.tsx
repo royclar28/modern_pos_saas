@@ -28,6 +28,7 @@ import { CustomersPage } from './pages/admin/CustomersPage';
 import { RafflesPage } from './pages/admin/RafflesPage';
 import { RaffleDetailPage } from './pages/admin/RaffleDetailPage';
 import { LiveRaffle } from './pages/public/LiveRaffle';
+import { BIPage } from './pages/admin/BIPage';
 import { useSync } from './hooks/useSync';
 import { useInitialSync } from './hooks/useInitialSync';
 import { useItems } from './hooks/useItems';
@@ -404,6 +405,18 @@ const Dashboard = () => {
                         </Link>
                     )}
 
+                    {/* Inteligencia de Negocios — ADMIN y MANAGER */}
+                    {canAccessAdmin && (
+                        <Link
+                            to="/admin/bi"
+                            className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-violet-400 dark:hover:border-violet-500 text-slate-800 dark:text-white rounded-2xl p-5 sm:p-7 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                        >
+                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">🧠</div>
+                            <div className="font-bold text-base sm:text-lg lg:text-xl">Inteligencia</div>
+                            <div className="text-slate-400 dark:text-slate-400 text-xs sm:text-sm mt-1">Productos más vendidos →</div>
+                        </Link>
+                    )}
+
                     {/* Sugerencias — visible para TODOS los roles */}
                     <a
                         href="https://merx-pos.canny.io/sugerencias-merxpos"
@@ -512,6 +525,11 @@ const AppInner = () => {
                         <Route path="/admin/raffles/:id" element={
                             <RequireRole allowed={['SUPER_ADMIN', 'ADMIN', 'MANAGER']}>
                                 <RaffleDetailPage />
+                            </RequireRole>
+                        } />
+                        <Route path="/admin/bi" element={
+                            <RequireRole allowed={['SUPER_ADMIN', 'ADMIN', 'MANAGER']}>
+                                <BIPage />
                             </RequireRole>
                         } />
                         {/* Settings — Solo ADMIN */}

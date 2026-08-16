@@ -23,7 +23,7 @@ class SyncReadController extends Controller
         $page    = (int) $request->query('page', 1);
 
         $query = Item::select([
-            'id', 'tenant_id', 'name', 'category', 'item_number',
+            'id', 'tenant_id', 'name', 'category_id', 'brand_id', 'item_number',
             'description', 'cost_price', 'unit_price',
             'stock', 'reorder_level', 'min_stock_alert',
             'receiving_quantity', 'allow_alt_description',
@@ -57,6 +57,15 @@ class SyncReadController extends Controller
         $customers = \App\Models\Customer::all();
         
         return response()->json($customers);
+    }
+
+    /**
+     * Devuelve las marcas del tenant actual.
+     */
+    public function getBrands(Request $request): JsonResponse
+    {
+        $brands = \App\Models\Brand::all();
+        return response()->json($brands);
     }
 
     /**
