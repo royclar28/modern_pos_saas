@@ -466,7 +466,7 @@ const AppInner = () => {
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/setup-password" element={<SetupPasswordPage />} />
-                    <Route path="/" element={<LandingPage />} />
+                    <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <LandingPage />} />
                     <Route path="/raffles/live/:id" element={<LiveRaffle />} />
                     
                     <Route element={<ProtectedRoute />}>
@@ -532,7 +532,8 @@ const AppInner = () => {
                         } />
                     </Route>
 
-                    <Route path="*" element={<Navigate to="/" replace />} />
+                    {/* Fallback: si logueado → dashboard, si no → landing */}
+                    <Route path="*" element={user ? <Navigate to="/dashboard" replace /> : <Navigate to="/" replace />} />
                 </Routes>
             </TrialExpiredGuard>
 
