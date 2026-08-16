@@ -97,10 +97,10 @@ const Dashboard = () => {
     useEffect(() => {
         // Auto-hydrate if DB is empty and not already hydrating
         if (!isLoading && items.length === 0 && !isHydrating) {
-            const hasHydrated = localStorage.getItem(`hydrated_${user?.id}`);
+            const hasHydrated = localStorage.getItem(`hydrated_${user?.sub}`);
             if (!hasHydrated) {
                 hydrateLocalDB().then(() => {
-                    if (user?.id) localStorage.setItem(`hydrated_${user.id}`, 'true');
+                    if (user?.sub) localStorage.setItem(`hydrated_${user.sub}`, 'true');
                 });
             }
         }
