@@ -9,12 +9,12 @@ import { useAuth } from '../contexts/AuthProvider';
  *
  * Uso: Envuelve el árbol de la app (ya autenticado) en App.tsx.
  *
- * <TrialExpiredGuard whatsappNumber="584241234567">
+ * <TrialExpiredGuard whatsappNumber="584124714797">
  *   {children}
  * </TrialExpiredGuard>
  */
 
-const WHATSAPP_NUMBER = import.meta.env.VITE_SUPPORT_WHATSAPP || '584241234567';
+const WHATSAPP_NUMBER = import.meta.env.VITE_SUPPORT_WHATSAPP || '584124714797';
 
 // ─── Animación de partículas decorativa ───────────────────────────────────────
 const FloatingOrb = ({ className }: { className: string }) => (

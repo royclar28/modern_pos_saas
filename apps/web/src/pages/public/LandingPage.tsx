@@ -321,7 +321,7 @@ export const LandingPage: React.FC = () => {
                                     <li className="flex items-center gap-3"><CheckCircle2 size={20} className="text-violet-500 shrink-0" /> Sorteos en vivo</li>
                                     <li className="flex items-center gap-3"><CheckCircle2 size={20} className="text-violet-500 shrink-0" /> Soporte prioritario WhatsApp</li>
                                 </ul>
-                                <a href="https://wa.me/584241234567?text=Hola,%20quiero%20más%20información%20sobre%20el%20Plan%20Pro" target="_blank" rel="noopener noreferrer" className="w-full py-3 rounded-xl bg-violet-600 text-white font-bold text-center hover:bg-violet-700 transition-colors shadow-lg shadow-violet-600/30">Contactar Soporte</a>
+                                <a href="https://wa.me/584124714797?text=Hola,%20quiero%20más%20información%20sobre%20el%20Plan%20Pro" target="_blank" rel="noopener noreferrer" className="w-full py-3 rounded-xl bg-violet-600 text-white font-bold text-center hover:bg-violet-700 transition-colors shadow-lg shadow-violet-600/30">Contactar Soporte</a>
                             </div>
                         </div>
                     </div>
