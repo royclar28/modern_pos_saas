@@ -46,8 +46,15 @@ export const CatalogPage = () => {
                     throw new Error('Catálogo no encontrado o no disponible.');
                 }
                 const data = await res.json();
+                
+                // Ensure unit_price is a number (Laravel may return numeric columns as strings)
+                const parsedItems = data.items.map((item: any) => ({
+                    ...item,
+                    unit_price: Number(item.unit_price) || 0
+                }));
+                
                 setStore(data.store);
-                setItems(data.items);
+                setItems(parsedItems);
             } catch (err: any) {
                 setError(err.message);
             } finally {
