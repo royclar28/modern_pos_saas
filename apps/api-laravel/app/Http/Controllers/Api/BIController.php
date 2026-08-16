@@ -55,46 +55,67 @@ class BIController extends Controller
         $tenantId = Auth::user()->tenant_id;
         $tz       = config('app.timezone', 'America/Caracas');
         $days     = (int) $request->query('period', 30);
+        $itemId   = $request->query('item_id');
         $start    = Carbon::today($tz)->subDays($days);
         $end      = Carbon::tomorrow($tz);
 
-        // Sales direct revenue per day
-        $sales = DB::table('sales')
-            ->where('tenant_id', $tenantId)
-            ->whereNull('deleted_at')
-            ->where('status', 'PAGADO')
-            ->whereBetween('sale_time', [$start, $end])
-            ->select(
-                DB::raw('DATE(sale_time) as date'),
-                DB::raw('SUM(total) as revenue')
-            )
-            ->groupBy(DB::raw('DATE(sale_time)'))
-            ->get();
-
-        // Debt payments per day
-        $payments = DB::table('sale_payments')
-            ->where('tenant_id', $tenantId)
-            ->whereNull('deleted_at')
-            ->whereBetween('paid_at', [$start, $end])
-            ->select(
-                DB::raw('DATE(paid_at) as date'),
-                DB::raw('SUM(amount) as revenue')
-            )
-            ->groupBy(DB::raw('DATE(paid_at)'))
-            ->get();
-
-        // Merge by date
         $trend = [];
         for ($i = $days; $i >= 0; $i--) {
             $d = Carbon::today($tz)->subDays($i)->format('Y-m-d');
             $trend[$d] = 0.0;
         }
 
-        foreach ($sales as $s) {
-            if (isset($trend[$s->date])) $trend[$s->date] += (float)$s->revenue;
-        }
-        foreach ($payments as $p) {
-            if (isset($trend[$p->date])) $trend[$p->date] += (float)$p->revenue;
+        if ($itemId) {
+            // Filtrar solo por el producto específico (ignora pagos directos de deudas)
+            $sales = DB::table('sale_items')
+                ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+                ->where('sale_items.tenant_id', $tenantId)
+                ->where('sale_items.item_id', $itemId)
+                ->whereNull('sale_items.deleted_at')
+                ->whereNull('sales.deleted_at')
+                ->whereNotIn('sales.status', ['ANULADO'])
+                ->whereBetween('sales.sale_time', [$start, $end])
+                ->select(
+                    DB::raw('DATE(sales.sale_time) as date'),
+                    DB::raw('SUM(sale_items.quantity_purchased * sale_items.item_unit_price * (1 - sale_items.discount_percent/100)) as revenue')
+                )
+                ->groupBy(DB::raw('DATE(sales.sale_time)'))
+                ->get();
+
+            foreach ($sales as $s) {
+                if (isset($trend[$s->date])) $trend[$s->date] += (float)$s->revenue;
+            }
+        } else {
+            // Comportamiento normal: ventas pagadas + abonos de deudas
+            $sales = DB::table('sales')
+                ->where('tenant_id', $tenantId)
+                ->whereNull('deleted_at')
+                ->where('status', 'PAGADO')
+                ->whereBetween('sale_time', [$start, $end])
+                ->select(
+                    DB::raw('DATE(sale_time) as date'),
+                    DB::raw('SUM(total) as revenue')
+                )
+                ->groupBy(DB::raw('DATE(sale_time)'))
+                ->get();
+
+            $payments = DB::table('sale_payments')
+                ->where('tenant_id', $tenantId)
+                ->whereNull('deleted_at')
+                ->whereBetween('paid_at', [$start, $end])
+                ->select(
+                    DB::raw('DATE(paid_at) as date'),
+                    DB::raw('SUM(amount) as revenue')
+                )
+                ->groupBy(DB::raw('DATE(paid_at)'))
+                ->get();
+
+            foreach ($sales as $s) {
+                if (isset($trend[$s->date])) $trend[$s->date] += (float)$s->revenue;
+            }
+            foreach ($payments as $p) {
+                if (isset($trend[$p->date])) $trend[$p->date] += (float)$p->revenue;
+            }
         }
 
         $result = [];

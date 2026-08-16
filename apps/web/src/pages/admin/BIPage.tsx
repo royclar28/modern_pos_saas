@@ -4,6 +4,7 @@ import { AppHeader } from '../../components/AppHeader';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { ArrowLeft, TrendingUp, BarChart3, Package, Calendar } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useItems } from '../../hooks/useItems';
 
 type SalesTrend = { date: string; revenue: number };
 type TopProduct = {
@@ -16,7 +17,9 @@ type TopProduct = {
 
 export const BIPage = () => {
     const { token } = useAuth();
+    const { items } = useItems();
     const [period, setPeriod] = useState<number>(30);
+    const [selectedItemId, setSelectedItemId] = useState<string>('');
     const [trendData, setTrendData] = useState<SalesTrend[]>([]);
     const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
     const [loading, setLoading] = useState(true);
@@ -26,8 +29,14 @@ export const BIPage = () => {
             if (!token) return;
             setLoading(true);
             try {
+                const url = new URL(`${import.meta.env.VITE_API_URL}/bi/sales-trend`);
+                url.searchParams.append('period', period.toString());
+                if (selectedItemId) {
+                    url.searchParams.append('item_id', selectedItemId);
+                }
+
                 const [trendRes, topRes] = await Promise.all([
-                    fetch(`${import.meta.env.VITE_API_URL}/bi/sales-trend?period=${period}`, {
+                    fetch(url.toString(), {
                         headers: { Authorization: `Bearer ${token}` }
                     }),
                     fetch(`${import.meta.env.VITE_API_URL}/bi/top-products?period=${period}`, {
@@ -46,7 +55,7 @@ export const BIPage = () => {
             }
         };
         fetchBI();
-    }, [token, period]);
+    }, [token, period, selectedItemId]);
 
     const fmtMoney = (n: number) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'USD' }).format(n);
 
@@ -75,18 +84,38 @@ export const BIPage = () => {
                         </h2>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                        <Calendar size={18} className="text-slate-400" />
-                        <select 
-                            value={period}
-                            onChange={(e) => setPeriod(Number(e.target.value))}
-                            className="bg-slate-100 dark:bg-slate-900 border-none rounded-lg py-2 px-4 font-semibold text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-violet-500"
-                        >
-                            <option value={7}>Últimos 7 días</option>
-                            <option value={30}>Últimos 30 días</option>
-                            <option value={90}>Últimos 90 días</option>
-                            <option value={365}>Último Año</option>
-                        </select>
+                    <div className="flex flex-wrap items-center gap-2">
+                        {/* Filtro de Producto */}
+                        <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-900 rounded-lg px-2">
+                            <Package size={16} className="text-slate-400" />
+                            <select 
+                                value={selectedItemId}
+                                onChange={(e) => setSelectedItemId(e.target.value)}
+                                className="bg-transparent border-none py-2 px-2 font-semibold text-slate-700 dark:text-slate-300 focus:ring-0 max-w-[200px] truncate"
+                            >
+                                <option value="">Todos los Productos</option>
+                                {items.map(item => (
+                                    <option key={item.id} value={item.id}>
+                                        {item.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Filtro de Período */}
+                        <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-900 rounded-lg px-2">
+                            <Calendar size={16} className="text-slate-400" />
+                            <select 
+                                value={period}
+                                onChange={(e) => setPeriod(Number(e.target.value))}
+                                className="bg-transparent border-none py-2 px-2 font-semibold text-slate-700 dark:text-slate-300 focus:ring-0"
+                            >
+                                <option value={7}>Últimos 7 días</option>
+                                <option value={30}>Últimos 30 días</option>
+                                <option value={90}>Últimos 90 días</option>
+                                <option value={365}>Último Año</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
