@@ -2,7 +2,6 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { ShoppingCart, Search, Store as StoreIcon, MessageCircle } from 'lucide-react';
 import { clsx } from 'clsx';
-import { env } from '../../env';
 
 interface CatalogItem {
     id: string;
@@ -41,7 +40,8 @@ export const CatalogPage = () => {
     useEffect(() => {
         const fetchCatalog = async () => {
             try {
-                const res = await fetch(`${env.API_URL}/api/catalog/${tenantId}`);
+                const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+                const res = await fetch(`${apiUrl}/catalog/${tenantId}`);
                 if (!res.ok) {
                     throw new Error('Catálogo no encontrado o no disponible.');
                 }
