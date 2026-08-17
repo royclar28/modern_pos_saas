@@ -367,7 +367,7 @@ class SyncEventProcessor
             'description'          => $p['description'] ?? null,
             'cost_price'           => $p['costPrice'] ?? 0,
             'unit_price'           => $p['unitPrice'] ?? 0,
-            'stock'                => $p['stock'] ?? 0,
+            'stock'                => $p['stock'] ?? $p['receivingQuantity'] ?? 0,
             'reorder_level'         => $p['reorderLevel'] ?? 0,
             'min_stock_alert'        => $p['minStockAlert'] ?? null,
             'receiving_quantity'     => $p['receivingQuantity'] ?? 1,
