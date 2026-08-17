@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\TenantRegistrationController;
 use App\Http\Controllers\Api\SaasMetricsController;
+use App\Http\Controllers\Api\FiscalResolutionController;
 
 // ── Rutas Públicas ──────────────────────────────────────────────
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
@@ -150,6 +151,11 @@ Route::middleware(['auth:sanctum', 'trial', 'touch.session'])->group(function ()
     Route::middleware('role:ADMIN')->group(function () {
         // Configuración de la tienda (escritura)
         Route::patch('/settings', [SettingsController::class, 'updateSettings']);
+
+        // ── Facturación Fiscal (SENIAT) ──────────────────────────
+        Route::get('/fiscal/document-types', [FiscalResolutionController::class, 'getDocumentTypes']);
+        Route::get('/fiscal/resolutions', [FiscalResolutionController::class, 'index']);
+        Route::post('/fiscal/resolutions', [FiscalResolutionController::class, 'store']);
 
         // SaaS routes (gestión de tiendas)
         Route::get('/saas/stores', [\App\Http\Controllers\Api\SaasController::class, 'index']);
