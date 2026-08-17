@@ -12,6 +12,7 @@ import { useState, useEffect } from 'react';
 import { useTerminal } from '../../hooks/useTerminal';
 import { useSettingsContext as useSettings } from '../../contexts/SettingsProvider';
 import { useHighVisibility } from '../../hooks/useHighVisibility';
+import { useFiscalPrinter } from '../../hooks/useFiscalPrinter';
 import { AppHeader } from '../../components/AppHeader';
 
 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001/api';
@@ -72,6 +73,7 @@ export const SettingsPage = () => {
     const { getTerminalId, setTerminalId } = useTerminal();
     const { raw, taxRate, isLoading, error, refetch, setCompany, setPrimaryColor, toggleDarkMode, darkMode } = useSettings();
     const { isHighVis, toggleHighVis } = useHighVisibility();
+    const { port, connect, testPrinter } = useFiscalPrinter();
 
     const [activeTab, setActiveTab] = useState<Tab>('negocio');
     const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
@@ -352,6 +354,42 @@ export const SettingsPage = () => {
                         {activeTab === 'fiscal' && (
                             <>
                                 <SectionHeader title="Facturación Fiscal (SENIAT)" subtitle="Gestiona los lotes de números de control autorizados por el SENIAT para emitir documentos fiscales." />
+
+                                {/* Impresora Fiscal (Web Serial) */}
+                                <div className="mb-6 p-4 bg-violet-50 dark:bg-slate-800 rounded-2xl border border-violet-100 dark:border-slate-700">
+                                    <h3 className="font-bold text-slate-800 dark:text-white mb-2 flex items-center gap-2">🖨️ Impresora Fiscal Física</h3>
+                                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                                        Conecta tu impresora fiscal (Ej. The Factory HKA) directamente por USB/COM usando Web Serial.
+                                    </p>
+                                    <div className="flex items-center gap-3">
+                                        <button type="button" onClick={async () => {
+                                            try {
+                                                await connect();
+                                                showToast('Impresora conectada exitosamente', 'success');
+                                            } catch (e: any) {
+                                                showToast(e.message || 'Error al conectar', 'error');
+                                            }
+                                        }} className="px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-bold rounded-lg shadow-sm hover:scale-105 active:scale-95 transition-all">
+                                            {port ? 'Reconectar Puerto' : 'Conectar Impresora'}
+                                        </button>
+                                        <button type="button" onClick={async () => {
+                                            try {
+                                                await testPrinter();
+                                                showToast('Comando de prueba enviado', 'success');
+                                            } catch (e: any) {
+                                                showToast('Error de comunicación: ' + e.message, 'error');
+                                            }
+                                        }} className="px-4 py-2 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 text-sm font-bold rounded-lg hover:bg-slate-50 transition-all">
+                                            Test de Conexión
+                                        </button>
+                                    </div>
+                                    {port && (
+                                        <div className="mt-3 flex items-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                            Puerto autorizado. Listo para facturar en la Caja.
+                                        </div>
+                                    )}
+                                </div>
 
                                 {isLoadingFiscal ? (
                                     <div className="space-y-3">{[1,2].map(i => <div key={i} className="h-16 bg-slate-100 dark:bg-slate-700 rounded-xl animate-pulse" />)}</div>

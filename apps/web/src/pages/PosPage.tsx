@@ -7,6 +7,7 @@ import { useSettingsContext as useSettings } from '../contexts/SettingsProvider'
 import { useAuth } from '../contexts/AuthProvider';
 import { useHighVisibility } from '../hooks/useHighVisibility';
 import { useCashShift } from '../hooks/useCashShift';
+import { useFiscalPrinter } from '../hooks/useFiscalPrinter';
 import { ItemDocType } from '../db/schemas/item.schema';
 import { SaleDocType } from '../db/schemas/sale.schema';
 import { Receipt } from '../components/Receipt';
@@ -232,47 +233,61 @@ const CartRow = ({
 };
 
 // ─── Success Modal ────────────────────────────────────────────────────────────
-const SuccessModal = ({ sale, onClose, exchangeRate }: { sale: SaleDocType; onClose: () => void; exchangeRate: number }) => (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[70] p-4 print:bg-transparent print:backdrop-blur-none print:p-0">
-        <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 text-center print:hidden animate-in zoom-in-95 duration-300">
-            <div className="text-6xl mb-4 animate-bounce">✅</div>
-            <h2 className="text-2xl font-black text-slate-800 mb-1 tracking-tight">¡Venta Exitosa!</h2>
-            <p className="text-slate-500 text-sm mb-6 font-medium">Guardada en local, sincronización en cola.</p>
-            <div className="bg-slate-50 rounded-2xl p-5 mb-6 text-left space-y-2 border border-slate-100 shadow-inner">
-                <div className="flex justify-between text-sm">
-                    <span className="text-slate-500 font-medium">Ticket ID</span>
-                    <span className="font-mono text-xs font-bold text-slate-700 bg-white px-2 py-0.5 rounded-md border border-slate-200">{sale.id.slice(-8).toUpperCase()}</span>
-                </div>
-                <div className="flex justify-between text-sm pt-2">
-                    <span className="text-slate-500 font-medium">Subtotal</span>
-                    <span className="font-bold text-slate-700">${formatCurrency(sale.subtotal)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                    <span className="text-slate-500 font-medium">IVA ({sale.taxPercent}%)</span>
-                    <span className="font-bold text-slate-700">${formatCurrency(sale.taxAmount)}</span>
-                </div>
-                <div className="flex justify-between items-center font-bold border-t border-slate-200 pt-3 mt-3">
-                    <span className="text-slate-600">Total Pagado</span>
-                    <div className="text-right">
-                        <div className="text-xl text-violet-700 font-black">${formatCurrency(sale.total)}</div>
-                        <div className="text-xs text-slate-500 font-medium">Bs. {formatCurrency(sale.total * exchangeRate)}</div>
+const SuccessModal = ({ sale, onClose, exchangeRate }: { sale: SaleDocType; onClose: () => void; exchangeRate: number }) => {
+    const { getStoredPort, printFiscalSale, isPrinting } = useFiscalPrinter();
+
+    return (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[70] p-4 print:bg-transparent print:backdrop-blur-none print:p-0">
+            <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 text-center print:hidden animate-in zoom-in-95 duration-300">
+                <div className="text-6xl mb-4 animate-bounce">✅</div>
+                <h2 className="text-2xl font-black text-slate-800 mb-1 tracking-tight">¡Venta Exitosa!</h2>
+                <p className="text-slate-500 text-sm mb-6 font-medium">Guardada en local, sincronización en cola.</p>
+                <div className="bg-slate-50 rounded-2xl p-5 mb-6 text-left space-y-2 border border-slate-100 shadow-inner">
+                    <div className="flex justify-between text-sm">
+                        <span className="text-slate-500 font-medium">Ticket ID</span>
+                        <span className="font-mono text-xs font-bold text-slate-700 bg-white px-2 py-0.5 rounded-md border border-slate-200">{sale.id.slice(-8).toUpperCase()}</span>
+                    </div>
+                    <div className="flex justify-between text-sm pt-2">
+                        <span className="text-slate-500 font-medium">Subtotal</span>
+                        <span className="font-bold text-slate-700">${formatCurrency(sale.subtotal)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                        <span className="text-slate-500 font-medium">IVA ({sale.taxPercent}%)</span>
+                        <span className="font-bold text-slate-700">${formatCurrency(sale.taxAmount)}</span>
+                    </div>
+                    <div className="flex justify-between items-center font-bold border-t border-slate-200 pt-3 mt-3">
+                        <span className="text-slate-600">Total Pagado</span>
+                        <div className="text-right">
+                            <div className="text-xl text-violet-700 font-black">${formatCurrency(sale.total)}</div>
+                            <div className="text-xs text-slate-500 font-medium">Bs. {formatCurrency(sale.total * exchangeRate)}</div>
+                        </div>
                     </div>
                 </div>
+                <div className="flex flex-col gap-3">
+                    <button onClick={async () => {
+                        try {
+                            await printFiscalSale(sale);
+                            toast.success("Factura fiscal enviada");
+                        } catch (e: any) {
+                            toast.error(e.message || "Error al imprimir en fiscal");
+                        }
+                    }} disabled={isPrinting} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-2xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50">
+                        {isPrinting ? "⏳ Enviando Ráfaga..." : "🧾 Facturar en Fiscal"}
+                    </button>
+                    <button onClick={() => window.print()} className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-2xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
+                        🖨️ Imprimir Ticket (Térmico)
+                    </button>
+                    <button onClick={onClose} className="w-full bg-violet-100 hover:bg-violet-200 text-violet-800 font-bold py-4 rounded-2xl transition-all active:scale-95">
+                        Nueva Venta [Enter]
+                    </button>
+                </div>
             </div>
-            <div className="flex flex-col gap-3">
-                <button onClick={() => window.print()} className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-2xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
-                    🖨️ Imprimir Ticket
-                </button>
-                <button onClick={onClose} className="w-full bg-violet-100 hover:bg-violet-200 text-violet-800 font-bold py-4 rounded-2xl transition-all active:scale-95">
-                    Nueva Venta [Enter]
-                </button>
+            <div className="hidden print:block absolute inset-0 bg-white">
+                <Receipt sale={sale} />
             </div>
         </div>
-        <div className="hidden print:block absolute inset-0 bg-white">
-            <Receipt sale={sale} />
-        </div>
-    </div>
-);
+    );
+};
 
 // ─── POS Page ─────────────────────────────────────────────────────────────────
 

@@ -223,11 +223,12 @@ class SyncEventProcessor
         $p = $event['payload'];
 
         // ── Pre-validación de stock (defensa en profundidad) ─────────────────
-        // El ITEM:ADJUST_STOCK volverá a validar atómicamente, pero esta
-        // pre-validación aborta la venta entera antes de crear cabecera.
         if (!empty($p['items'])) {
             foreach ($p['items'] as $lineItem) {
-                $item = Item::where('id', $lineItem['item_id'])
+                $itemId = $lineItem['item_id'] ?? $lineItem['itemId'] ?? null;
+                if (!$itemId) continue;
+
+                $item = Item::where('id', $itemId)
                     ->lockForUpdate()
                     ->first();
 
@@ -245,43 +246,46 @@ class SyncEventProcessor
         }
 
         // Crear la cabecera de la venta
+        $saleTime = $p['sale_time'] ?? $p['saleTime'] ?? now();
+        
         $sale = Sale::create([
             'id'              => $p['id'],
             'tenant_id'       => $event['tenant_id'],
-            'customer_id'     => $p['customer_id'] ?? null,
-            'employee_id'     => $p['employee_id'],
-            'terminal_id'     => $p['terminal_id'] ?? 'CAJA_01',
-            'sale_time'       => $p['sale_time'],
-            'invoice_number'  => $p['invoice_number'] ?? null,
+            'customer_id'     => $p['customer_id'] ?? $p['customerId'] ?? null,
+            'employee_id'     => $p['employee_id'] ?? $p['employeeId'] ?? null,
+            'terminal_id'     => $p['terminal_id'] ?? $p['terminalId'] ?? 'CAJA_01',
+            'sale_time'       => is_numeric($saleTime) ? date('Y-m-d H:i:s', $saleTime/1000) : $saleTime,
+            'invoice_number'  => $p['invoice_number'] ?? $p['invoiceNumber'] ?? null,
             'comment'         => $p['comment'] ?? null,
             'status'          => $p['status'] ?? 'PAGADO',
-            'payment_method'  => $p['payment_method'] ?? 'DIVISA',
-            'subtotal'        => $p['subtotal'],
-            'tax_percent'     => $p['tax_percent'],
-            'tax_amount'      => $p['tax_amount'],
-            'total'           => $p['total'],
-            'paid_amount'     => $p['paid_amount'] ?? 0,
-            'amount_received' => $p['amount_received'] ?? 0,
-            'change_amount'   => $p['change_amount'] ?? 0,
+            'payment_method'  => $p['payment_method'] ?? $p['paymentMethod'] ?? 'DIVISA',
+            'subtotal'        => $p['subtotal'] ?? 0,
+            'tax_percent'     => $p['tax_percent'] ?? $p['taxPercent'] ?? 0,
+            'tax_amount'      => $p['tax_amount'] ?? $p['taxAmount'] ?? 0,
+            'total'           => $p['total'] ?? 0,
+            'paid_amount'     => $p['paid_amount'] ?? $p['paidAmount'] ?? $p['amountReceived'] ?? 0,
+            'amount_received' => $p['amount_received'] ?? $p['amountReceived'] ?? 0,
+            'change_amount'   => $p['change_amount'] ?? $p['changeAmount'] ?? 0,
             'reference'       => $p['reference'] ?? null,
-            'due_date'        => $p['due_date'] ?? null,
+            'due_date'        => $p['due_date'] ?? $p['dueDate'] ?? null,
         ]);
 
         // Crear las líneas de detalle (items de la venta)
         if (!empty($p['items'])) {
+            $line = 1;
             foreach ($p['items'] as $lineItem) {
                 SaleItem::create([
                     'id'                => $lineItem['id'] ?? (string) \Illuminate\Support\Str::uuid(),
                     'tenant_id'         => $event['tenant_id'],
                     'sale_id'           => $sale->id,
-                    'item_id'           => $lineItem['item_id'],
-                    'line'              => $lineItem['line'],
+                    'item_id'           => $lineItem['item_id'] ?? $lineItem['itemId'] ?? null,
+                    'line'              => $lineItem['line'] ?? $line++,
                     'description'       => $lineItem['description'] ?? null,
-                    'serial_number'     => $lineItem['serial_number'] ?? null,
-                    'quantity_purchased'=> $lineItem['quantity_purchased'],
-                    'item_cost_price'   => $lineItem['item_cost_price'],
-                    'item_unit_price'   => $lineItem['item_unit_price'],
-                    'discount_percent'  => $lineItem['discount_percent'] ?? 0,
+                    'serial_number'     => $lineItem['serial_number'] ?? $lineItem['serialNumber'] ?? null,
+                    'quantity_purchased'=> $lineItem['quantity_purchased'] ?? $lineItem['quantity'] ?? 0,
+                    'item_cost_price'   => $lineItem['item_cost_price'] ?? $lineItem['costPrice'] ?? 0,
+                    'item_unit_price'   => $lineItem['item_unit_price'] ?? $lineItem['unitPrice'] ?? 0,
+                    'discount_percent'  => $lineItem['discount_percent'] ?? $lineItem['discountPercent'] ?? 0,
                 ]);
             }
         }
@@ -424,11 +428,17 @@ class SyncEventProcessor
     {
         $p = $event['payload'];
 
-        $item = Item::where('id', $p['item_id'])
+        $itemId = $p['item_id'] ?? $p['itemId'] ?? $p['id'] ?? null;
+        $delta  = (float) ($p['delta'] ?? $p['receivingQuantity'] ?? 0);
+
+        if (!$itemId) {
+            throw new \InvalidArgumentException("Missing item id in ADJUST_STOCK payload.");
+        }
+
+        $item = Item::where('id', $itemId)
             ->lockForUpdate()
             ->firstOrFail();
 
-        $delta    = (float) $p['delta'];
         $newStock = (float) $item->stock + $delta;
 
         if ($newStock < 0) {
