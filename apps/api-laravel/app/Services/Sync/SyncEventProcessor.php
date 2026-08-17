@@ -285,6 +285,27 @@ class SyncEventProcessor
                 ]);
             }
         }
+
+        // ── Generar documento fiscal si aplica ──────────────────────
+        $activeResolution = \App\Models\FiscalResolution::where('tenant_id', $event['tenant_id'])
+            ->where('is_active', true)
+            ->lockForUpdate()
+            ->first();
+
+        if ($activeResolution && $activeResolution->current_number <= $activeResolution->to_number) {
+            $controlNumber = $activeResolution->prefix . str_pad($activeResolution->current_number, 8, '0', STR_PAD_LEFT);
+
+            \App\Models\SaleFiscalDocument::create([
+                'tenant_id' => $event['tenant_id'],
+                'sale_id' => $sale->id,
+                'document_type_id' => $activeResolution->document_type_id,
+                'resolution_id' => $activeResolution->id,
+                'control_number' => $controlNumber,
+                'status' => 'EMITIDO',
+            ]);
+
+            $activeResolution->increment('current_number');
+        }
     }
 
     private function handleSaleVoid(array $event): void
