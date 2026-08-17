@@ -361,7 +361,8 @@ class SyncEventProcessor
             'id'                   => $p['id'],
             'tenant_id'            => $event['tenant_id'],
             'name'                 => $p['name'],
-            'category'             => $p['category'],
+            'category_id'          => $p['category_id'] ?? null,
+            'brand_id'             => $p['brand_id'] ?? null,
             'item_number'          => $p['itemNumber'] ?? null,
             'description'          => $p['description'] ?? null,
             'cost_price'           => $p['costPrice'] ?? 0,
@@ -385,7 +386,8 @@ class SyncEventProcessor
         // Construir array de campos a actualizar
         $fields = array_filter([
             'name'                 => $p['name'] ?? null,
-            'category'             => $p['category'] ?? null,
+            'category_id'          => $p['category_id'] ?? null,
+            'brand_id'             => $p['brand_id'] ?? null,
             'item_number'          => $p['itemNumber'] ?? null,
             'description'          => $p['description'] ?? null,
             'cost_price'           => $p['costPrice'] ?? null,
