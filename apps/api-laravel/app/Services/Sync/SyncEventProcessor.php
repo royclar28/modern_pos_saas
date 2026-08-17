@@ -394,6 +394,7 @@ class SyncEventProcessor
             'unit_price'           => $p['unitPrice'] ?? null,
             'reorder_level'        => $p['reorderLevel'] ?? null,
             'receiving_quantity'   => $p['receivingQuantity'] ?? null,
+            'stock'                => $p['receivingQuantity'] ?? null, // Sincroniza el stock real con la cantidad del frontend
             'allow_alt_description'=> $p['allowAltDescription'] ?? null,
             'is_serialized'        => $p['isSerialized'] ?? null,
             'sell_by'              => $p['sellBy'] ?? null,     // ← NUEVO
