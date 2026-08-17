@@ -164,12 +164,15 @@ export const RaffleDetailPage: React.FC = () => {
             return;
         }
         const msg = encodeURIComponent(`¡Hola! El sorteo "${raffle.name}" está a punto de comenzar. Únete en vivo aquí: ${publicUrl}`);
+        
+        toast('Asegúrate de PERMITIR VENTANAS EMERGENTES (pop-ups) en tu navegador para que se abran todos los chats.', { icon: '⚠️', duration: 6000 });
+        
         participants.forEach((p: any, i: number) => {
             setTimeout(() => {
                 window.open(`https://wa.me/${cleanPhone(p.phone)}?text=${msg}`, '_blank');
-            }, i * 500); // Pequeño delay entre cada apertura
+            }, i * 1000); // 1 segundo entre cada apertura para reducir bloqueos
         });
-        toast.success(`Abriendo WhatsApp para ${participants.length} participante(s)...`);
+        toast.success(`Intentando abrir WhatsApp para ${participants.length} participante(s)...`);
     };
 
     const cleanPhone = (phone: string) => phone.replace(/\D/g, '');
@@ -395,7 +398,7 @@ export const RaffleDetailPage: React.FC = () => {
 
                         {/* Notificar a todos */}
                         <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
-                            <h3 className="font-bold text-lg mb-1 flex items-center gap-2"><Bell size={20} className="text-emerald-500"/> Recordar a Participantes</h3>
+                            <h3 className="font-bold text-lg mb-1 flex items-center gap-2"><Bell size={20} className="text-emerald-500"/> Notificar a todos</h3>
                             <p className="text-xs text-slate-400 mb-6">Envía un mensaje de WhatsApp a todos los participantes con teléfono registrado, avisándoles que el sorteo está por comenzar.</p>
 
                             <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4 mb-4 text-sm">

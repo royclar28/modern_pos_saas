@@ -229,7 +229,7 @@ export const LiveRaffle: React.FC = () => {
     // Montar polling
     useEffect(() => {
         fetchRaffle();
-        pollIntervalRef.current = window.setInterval(() => fetchRaffle(true), 3000);
+        pollIntervalRef.current = window.setInterval(() => fetchRaffle(true), 1000);
 
         return () => {
             if (intervalRef.current) clearInterval(intervalRef.current);
@@ -480,8 +480,11 @@ export const LiveRaffle: React.FC = () => {
                                 <div className="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-20 transition-opacity" />
                             </button>
                         ) : (
-                            <div className="text-xl md:text-2xl font-bold text-white/50 bg-black/30 px-8 py-4 rounded-full backdrop-blur-sm border border-white/10 animate-pulse">
-                                Esperando que inicie el sorteo...
+                            <div className="text-xl md:text-2xl font-bold text-white/50 bg-black/30 px-8 py-4 rounded-full backdrop-blur-sm border border-white/10 animate-pulse flex flex-col items-center gap-2">
+                                <span>Esperando que inicie el sorteo...</span>
+                                {startCountdown !== null && startCountdown > 0 && (
+                                    <span className="text-4xl text-white font-black tabular-nums">{formatCountdown(startCountdown)}</span>
+                                )}
                             </div>
                         )
                     )}
