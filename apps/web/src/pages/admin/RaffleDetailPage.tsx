@@ -157,22 +157,29 @@ export const RaffleDetailPage: React.FC = () => {
         } catch { toast.error('Error de red'); }
     };
 
+    const [notificationQueue, setNotificationQueue] = useState<any[]>([]);
+
     const remindAll = () => {
         const participants = raffle?.participants?.filter((p: any) => p.phone) || [];
         if (participants.length === 0) {
             toast.error('Ningún participante tiene teléfono registrado.');
             return;
         }
+        
+        // Almacenar en la cola para que el usuario pueda darle click 1 por 1 y evitar bloqueos de navegador
+        setNotificationQueue(participants);
+    };
+
+    const notifyNext = () => {
+        if (notificationQueue.length === 0) return;
+        
+        const p = notificationQueue[0];
+        const publicUrl = `${window.location.origin}/raffles/live/${raffle.id}`;
         const msg = encodeURIComponent(`¡Hola! El sorteo "${raffle.name}" está a punto de comenzar. Únete en vivo aquí: ${publicUrl}`);
         
-        toast('Asegúrate de PERMITIR VENTANAS EMERGENTES (pop-ups) en tu navegador para que se abran todos los chats.', { icon: '⚠️', duration: 6000 });
+        window.open(`https://wa.me/${cleanPhone(p.phone)}?text=${msg}`, '_blank');
         
-        participants.forEach((p: any, i: number) => {
-            setTimeout(() => {
-                window.open(`https://wa.me/${cleanPhone(p.phone)}?text=${msg}`, '_blank');
-            }, i * 1000); // 1 segundo entre cada apertura para reducir bloqueos
-        });
-        toast.success(`Intentando abrir WhatsApp para ${participants.length} participante(s)...`);
+        setNotificationQueue(prev => prev.slice(1));
     };
 
     const cleanPhone = (phone: string) => phone.replace(/\D/g, '');
@@ -416,13 +423,27 @@ export const RaffleDetailPage: React.FC = () => {
                                 })()}
                             </div>
 
-                            <button
-                                onClick={remindAll}
-                                className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors shadow-md"
-                            >
-                                <Bell size={20} /> Notificar a Todos por WhatsApp
-                            </button>
-                            <p className="text-[10px] text-slate-400 mt-2 text-center">Se abrirá WhatsApp con un mensaje por cada participante.</p>
+                            {notificationQueue.length > 0 ? (
+                                <div className="bg-amber-50 dark:bg-amber-900/30 p-4 rounded-xl border border-amber-200 dark:border-amber-700 mb-4">
+                                    <p className="font-bold text-amber-800 dark:text-amber-200 mb-3 text-sm">
+                                        Quedan {notificationQueue.length} por notificar. Haz clic para enviar el siguiente:
+                                    </p>
+                                    <button
+                                        onClick={notifyNext}
+                                        className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors shadow-md"
+                                    >
+                                        <Bell size={20} /> Enviar a {notificationQueue[0].name || 'Siguiente'}
+                                    </button>
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={remindAll}
+                                    className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors shadow-md"
+                                >
+                                    <Bell size={20} /> Notificar a Todos por WhatsApp
+                                </button>
+                            )}
+                            <p className="text-[10px] text-slate-400 mt-2 text-center">Abrirá WhatsApp una por una para evitar bloqueos del navegador.</p>
                         </div>
 
                     </div>

@@ -75,8 +75,20 @@ export const LiveRaffle: React.FC = () => {
     const startStartCountdown = useCallback((startsAt: string) => {
         if (startCountdownIntervalRef.current) clearInterval(startCountdownIntervalRef.current);
 
+        const parseDate = (dateStr: string) => {
+            if (!dateStr) return null;
+            const safeStr = dateStr.includes('T') ? dateStr : dateStr.replace(' ', 'T');
+            const d = new Date(safeStr);
+            if (isNaN(d.getTime()) && !safeStr.endsWith('Z')) {
+                return new Date(safeStr + 'Z');
+            }
+            return d;
+        };
+
         const tick = () => {
-            const diff = Math.floor((new Date(startsAt).getTime() - Date.now()) / 1000);
+            const target = parseDate(startsAt);
+            if (!target) return;
+            const diff = Math.floor((target.getTime() - Date.now()) / 1000);
             if (diff <= 0) {
                 setStartCountdown(null);
                 if (startCountdownIntervalRef.current) clearInterval(startCountdownIntervalRef.current);
@@ -147,6 +159,17 @@ export const LiveRaffle: React.FC = () => {
         }, 4000);
     }, [startClaimCountdown]);
 
+    const parseSafeDate = (dateStr: string) => {
+        if (!dateStr) return null;
+        const safeStr = dateStr.includes('T') ? dateStr : dateStr.replace(' ', 'T');
+        const d = new Date(safeStr);
+        // Fallback for Safari if Z is missing and it parses as invalid
+        if (isNaN(d.getTime()) && !safeStr.endsWith('Z')) {
+            return new Date(safeStr + 'Z');
+        }
+        return d;
+    };
+
     // ─── Fetch del sorteo ─────────────────────────────────────────
     const fetchRaffle = useCallback(async (silent = false) => {
         try {
@@ -158,8 +181,14 @@ export const LiveRaffle: React.FC = () => {
             const data = await res.json();
 
             // Actualizar countdown de inicio si hay hora programada
-            if (data.starts_at && new Date(data.starts_at) > new Date()) {
-                startStartCountdown(data.starts_at);
+            if (data.starts_at) {
+                const d = parseSafeDate(data.starts_at);
+                if (d && d > new Date()) {
+                    startStartCountdown(data.starts_at);
+                } else {
+                    setStartCountdown(null);
+                    if (startCountdownIntervalRef.current) clearInterval(startCountdownIntervalRef.current);
+                }
             } else {
                 setStartCountdown(null);
                 if (startCountdownIntervalRef.current) clearInterval(startCountdownIntervalRef.current);
