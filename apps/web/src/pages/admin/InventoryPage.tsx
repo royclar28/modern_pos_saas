@@ -461,6 +461,7 @@ async function upsertScannedProducts(products: ScannedProduct[], tenantId: strin
             const updatedItem: ItemDocType = {
                 ...existing,
                 receivingQuantity: (existing.receivingQuantity || 0) + product.quantity,
+                stock: (existing.receivingQuantity || 0) + product.quantity,
                 costPrice: product.costPrice,
                 unitPrice: product.unitPrice > existing.unitPrice
                     ? product.unitPrice
@@ -648,6 +649,7 @@ export const InventoryPage = () => {
                     unitPrice: data.unitPrice,
                     reorderLevel: data.reorderLevel ?? 0,
                     receivingQuantity: data.receivingQuantity ?? 1,
+                    stock: data.receivingQuantity ?? 1, // Sincroniza localmente
                     sellBy: data.sellBy,        // ← NUEVO
                     unitLabel: data.unitLabel || 'und',
                     updatedAt: now,
