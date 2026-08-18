@@ -22,6 +22,7 @@ interface RecentStore {
     trialDaysLeft: number | null;
     trialEndsAt: string | null;
     registeredAt: string;
+    lastActivityAt?: string | null;
 }
 
 interface MetricsData {
@@ -399,6 +400,18 @@ export const MasterDashboard = () => {
                                         'bg-amber-600',  'bg-blue-600',
                                     ];
 
+                                    let lastActivityStr = 'Sin ventas';
+                                    if (store.lastActivityAt) {
+                                        const laDate = new Date(store.lastActivityAt);
+                                        const now = new Date();
+                                        const diffHours = Math.floor((now.getTime() - laDate.getTime()) / (1000 * 60 * 60));
+                                        const diffDays = Math.floor(diffHours / 24);
+                                        if (diffHours === 0) lastActivityStr = 'Hace min';
+                                        else if (diffHours < 24) lastActivityStr = `Hace ${diffHours}h`;
+                                        else if (diffDays === 1) lastActivityStr = 'Ayer';
+                                        else lastActivityStr = laDate.toLocaleDateString('es-VE', { day: '2-digit', month: 'short' });
+                                    }
+
                                     return (
                                         <div key={store.id} className="px-4 sm:px-6 py-4 flex items-center gap-4 hover:bg-slate-800/40 transition-colors group">
                                             {/* Avatar */}
@@ -425,9 +438,15 @@ export const MasterDashboard = () => {
                                             </div>
 
                                             {/* Date */}
-                                            <div className="text-right shrink-0 hidden md:block">
+                                            <div className="text-right shrink-0 hidden md:block w-20">
+                                                <p className="text-[10px] text-slate-500 mb-0.5 uppercase tracking-wider">Registro</p>
                                                 <p className="text-xs font-semibold text-slate-300">{dateStr}</p>
-                                                <p className="text-[10px] text-slate-600">{timeStr}</p>
+                                            </div>
+
+                                            {/* Last Activity */}
+                                            <div className="text-right shrink-0 hidden md:block w-20">
+                                                <p className="text-[10px] text-slate-500 mb-0.5 uppercase tracking-wider">Actividad</p>
+                                                <p className="text-xs font-semibold text-emerald-400">{lastActivityStr}</p>
                                             </div>
                                         </div>
                                     );
