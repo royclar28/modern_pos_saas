@@ -65,6 +65,12 @@ class SaasMetricsController extends Controller
                     }
                 }
 
+                // Última actividad (basada en la última venta)
+                $lastSale = \App\Models\Sale::where('tenant_id', $store->id)
+                    ->orderBy('sale_time', 'desc')
+                    ->first();
+                $lastActivityAt = $lastSale ? $lastSale->sale_time->toISOString() : null;
+
                 return [
                     'id'            => $store->id,
                     'name'          => $store->name,
@@ -76,6 +82,7 @@ class SaasMetricsController extends Controller
                     'trialDaysLeft' => $trialDaysLeft,
                     'trialEndsAt'   => $store->trial_ends_at?->toISOString(),
                     'registeredAt'  => $store->created_at->toISOString(),
+                    'lastActivityAt'=> $lastActivityAt,
                 ];
             });
 
