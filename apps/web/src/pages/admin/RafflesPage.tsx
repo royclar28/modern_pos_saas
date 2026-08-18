@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Gift, Plus, Calendar, Settings, Play } from 'lucide-react';
+import { Gift, Plus, Calendar, Settings, Play, Trash2 } from 'lucide-react';
 import { AppHeader } from '../../components/AppHeader';
 import { useAuth } from '../../contexts/AuthProvider';
 import toast from 'react-hot-toast';
@@ -39,6 +39,26 @@ export const RafflesPage: React.FC = () => {
             toast.error('Error al cargar sorteos');
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleDeleteRaffle = async (id: string) => {
+        if (!window.confirm('¿Estás seguro de eliminar este sorteo? Esta acción no se puede deshacer.')) return;
+        
+        try {
+            const res = await fetch(`${apiUrl}/raffles/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (!res.ok) throw new Error('Error al eliminar');
+            
+            toast.success('Sorteo eliminado');
+            fetchRaffles();
+        } catch (error) {
+            console.error(error);
+            toast.error('Error al eliminar el sorteo');
         }
     };
 
@@ -124,13 +144,22 @@ export const RafflesPage: React.FC = () => {
                             <div key={raffle.id} className="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col">
                                 <div className="flex justify-between items-start mb-4">
                                     <h3 className="font-bold text-lg text-slate-800 dark:text-white line-clamp-2">{raffle.name}</h3>
-                                    <span className={`text-xs px-2 py-1 rounded-lg font-bold ${
-                                        raffle.status === 'active' ? 'bg-emerald-100 text-emerald-700' :
-                                        raffle.status === 'completed' ? 'bg-slate-100 text-slate-600' :
-                                        'bg-amber-100 text-amber-700'
-                                    }`}>
-                                        {raffle.status.toUpperCase()}
-                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <span className={`text-xs px-2 py-1 rounded-lg font-bold ${
+                                            raffle.status === 'active' ? 'bg-emerald-100 text-emerald-700' :
+                                            raffle.status === 'completed' ? 'bg-slate-100 text-slate-600' :
+                                            'bg-amber-100 text-amber-700'
+                                        }`}>
+                                            {raffle.status.toUpperCase()}
+                                        </span>
+                                        <button 
+                                            onClick={() => handleDeleteRaffle(raffle.id)}
+                                            className="text-slate-400 hover:text-red-500 transition-colors"
+                                            title="Eliminar Sorteo"
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-2 mb-6">
                                     <Calendar size={14} /> 
