@@ -26,6 +26,7 @@ class SettingsController extends Controller
         'language'            => 'es',
         'enable_credit_sales' => 'false',
         'primaryColor'        => '#7C3AED',
+        'rif'                 => '',
     ];
 
     /**
@@ -43,8 +44,11 @@ class SettingsController extends Controller
 
         // Pull store name from the stores table as authoritative source for 'company'
         $store = Store::find(Auth::user()->tenant_id);
-        if ($store && !isset($dbRows['company'])) {
-            $settings['company'] = $store->name;
+        if ($store) {
+            if (!isset($dbRows['company'])) {
+                $settings['company'] = $store->name;
+            }
+            $settings['logo_url'] = $store->logo_url;
         }
 
         // Append live BCV exchange rate
@@ -71,6 +75,7 @@ class SettingsController extends Controller
             'language'            => 'sometimes|string|max:10',
             'enable_credit_sales' => 'sometimes|in:true,false',
             'primaryColor'        => ['sometimes', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/'],
+            'rif'                 => 'sometimes|string|max:50',
         ]);
 
         $tenantId = Auth::user()->tenant_id;

@@ -10,6 +10,9 @@ import { useCashShift } from '../hooks/useCashShift';
 import { useFiscalPrinter } from '../hooks/useFiscalPrinter';
 import { ItemDocType } from '../db/schemas/item.schema';
 import { SaleDocType } from '../db/schemas/sale.schema';
+import { NumericKeypad } from '../components/NumericKeypad';
+import { PrintLogo } from '../components/PrintLogo';
+import { FiscalInvoice } from '../components/FiscalInvoice';
 import { Receipt } from '../components/Receipt';
 import { CheckoutModal } from '../components/CheckoutModal';
 import { PaymentData } from '../components/CheckoutModal';
@@ -233,8 +236,10 @@ const CartRow = ({
 };
 
 // ─── Success Modal ────────────────────────────────────────────────────────────
-const SuccessModal = ({ sale, onClose, exchangeRate }: { sale: SaleDocType; onClose: () => void; exchangeRate: number }) => {
-    const { getStoredPort, printFiscalSale, isPrinting } = useFiscalPrinter();
+const SaleCompleteModal = ({ sale, onClose, exchangeRate }: { sale: SaleDocType, onClose: () => void, exchangeRate: number }) => {
+    const [isPrinting, setIsPrinting] = useState(false);
+    const [printMode, setPrintMode] = useState<'thermal' | 'fiscal'>('thermal');
+    const { printFiscalSale } = useFiscalPrinter();
 
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[70] p-4 print:bg-transparent print:backdrop-blur-none print:p-0">
@@ -274,7 +279,12 @@ const SuccessModal = ({ sale, onClose, exchangeRate }: { sale: SaleDocType; onCl
                     }} disabled={isPrinting} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-2xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50">
                         {isPrinting ? "⏳ Enviando Ráfaga..." : "🧾 Facturar en Fiscal"}
                     </button>
-                    <button onClick={() => window.print()} className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-2xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
+                    
+                    <button onClick={() => { setPrintMode('fiscal'); setTimeout(() => window.print(), 50); }} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
+                        📄 Imprimir Factura Fiscal (A4)
+                    </button>
+
+                    <button onClick={() => { setPrintMode('thermal'); setTimeout(() => window.print(), 50); }} className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-2xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
                         🖨️ Imprimir Ticket (Térmico)
                     </button>
                     <button onClick={onClose} className="w-full bg-violet-100 hover:bg-violet-200 text-violet-800 font-bold py-4 rounded-2xl transition-all active:scale-95">
@@ -283,7 +293,7 @@ const SuccessModal = ({ sale, onClose, exchangeRate }: { sale: SaleDocType; onCl
                 </div>
             </div>
             <div className="hidden print:block absolute inset-0 bg-white">
-                <Receipt sale={sale} />
+                {printMode === 'fiscal' ? <FiscalInvoice sale={sale} /> : <Receipt sale={sale} />}
             </div>
         </div>
     );
@@ -752,7 +762,7 @@ export const PosPage = () => {
             />
 
             {completedSale && (
-                <SuccessModal sale={completedSale} onClose={() => setCompletedSale(null)} exchangeRate={exchangeRate} />
+                <SaleCompleteModal sale={completedSale} onClose={() => setCompletedSale(null)} exchangeRate={exchangeRate} />
             )}
 
             <ShiftManagerModal

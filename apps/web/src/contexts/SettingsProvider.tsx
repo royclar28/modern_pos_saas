@@ -10,6 +10,8 @@ export type StoreSettings = {
     language: string;
     enable_credit_sales: string; // "true" | "false"
     primaryColor?: string;
+    rif?: string;
+    logo_url?: string;
 };
 
 export type ParsedSettings = {
@@ -18,6 +20,8 @@ export type ParsedSettings = {
     exchangeRate: number;   
     currencySymbol: string;
     company: string;
+    rif: string;
+    logoUrl: string | null;
     enableCreditSales: boolean;
     primaryColor: string;
     darkMode: boolean;
@@ -38,6 +42,7 @@ const DEFAULTS: StoreSettings = {
     language: 'es',
     enable_credit_sales: 'false',
     primaryColor: '#7C3AED',
+    rif: '',
 };
 
 const SettingsContext = createContext<ParsedSettings | undefined>(undefined);
@@ -144,6 +149,8 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         exchangeRate: Math.max(1, Number(raw.exchange_rate) || 1),
         currencySymbol: raw.currency_symbol || '$',
         company: raw.company || 'Mi Negocio',
+        rif: raw.rif || '',
+        logoUrl: raw.logo_url || null,
         enableCreditSales: raw.enable_credit_sales === 'true',
         primaryColor: raw.primaryColor || '#7C3AED',
         darkMode,
