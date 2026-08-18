@@ -248,11 +248,20 @@ class SyncEventProcessor
         // Crear la cabecera de la venta
         $saleTime = $p['sale_time'] ?? $p['saleTime'] ?? now();
         
+        // Resolver employee_id si viene como string (username) en lugar de ID numérico
+        $employeeId = $p['employee_id'] ?? $p['employeeId'] ?? null;
+        if ($employeeId && !is_numeric($employeeId)) {
+            $user = \App\Models\User::where('username', $employeeId)
+                ->where('tenant_id', $event['tenant_id'])
+                ->first();
+            $employeeId = $user ? $user->id : null;
+        }
+
         $sale = Sale::create([
             'id'              => $p['id'],
             'tenant_id'       => $event['tenant_id'],
             'customer_id'     => $p['customer_id'] ?? $p['customerId'] ?? null,
-            'employee_id'     => $p['employee_id'] ?? $p['employeeId'] ?? null,
+            'employee_id'     => $employeeId,
             'terminal_id'     => $p['terminal_id'] ?? $p['terminalId'] ?? 'CAJA_01',
             'sale_time'       => is_numeric($saleTime) ? date('Y-m-d H:i:s', $saleTime/1000) : $saleTime,
             'invoice_number'  => $p['invoice_number'] ?? $p['invoiceNumber'] ?? null,
@@ -573,10 +582,18 @@ class SyncEventProcessor
     {
         $p = $event['payload'];
 
+        $userId = $p['user_id'] ?? null;
+        if ($userId && !is_numeric($userId)) {
+            $user = \App\Models\User::where('username', $userId)
+                ->where('tenant_id', $event['tenant_id'])
+                ->first();
+            $userId = $user ? $user->id : null;
+        }
+
         CashShift::create([
             'id'            => $p['id'],
             'tenant_id'     => $event['tenant_id'],
-            'user_id'       => $p['user_id'],
+            'user_id'       => $userId ?? $p['user_id'],
             'terminal_id'   => $p['terminal_id'] ?? 'CAJA_01',
             'opened_at'     => $p['opened_at'],
             'starting_cash' => $p['starting_cash'],
