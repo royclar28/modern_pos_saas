@@ -329,7 +329,7 @@ export const PosPage = () => {
         const q = search.toLowerCase().trim();
         let result = items;
         if (categoryFilter) {
-            result = result.filter(i => i.category === categoryFilter);
+            result = result.filter(i => i.category_id === categoryFilter);
         }
         if (inStockOnly) {
             result = result.filter(i => (i.stock ?? 0) > 0);
@@ -337,14 +337,14 @@ export const PosPage = () => {
         if (!q) return result;
         return result.filter(
             i => i.name.toLowerCase().includes(q) ||
-                 i.category.toLowerCase().includes(q) ||
+                 (i.category_id && i.category_id.toLowerCase().includes(q)) ||
                  (i.itemNumber && i.itemNumber.toLowerCase().includes(q))
         );
     }, [items, search, categoryFilter]);
 
     // ── Unique categories for filter ─────────────────────────
     const categories = useMemo(() => {
-        const cats = new Set(items.map(i => i.category).filter(Boolean));
+        const cats = new Set(items.map(i => i.category_id).filter(Boolean) as string[]);
         return Array.from(cats).sort();
     }, [items]);
 
