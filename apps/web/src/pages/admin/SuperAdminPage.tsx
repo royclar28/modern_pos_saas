@@ -83,6 +83,11 @@ export const SuperAdminPage = () => {
     const [formOwnerName, setFormOwnerName] = useState('');
     const [creating, setCreating] = useState(false);
 
+    const [editingStore, setEditingStore] = useState<Store | null>(null);
+    const [editFormName, setEditFormName] = useState('');
+    const [editFormRif, setEditFormRif] = useState('');
+    const [editFormEmail, setEditFormEmail] = useState('');
+
     const fetchStores = useCallback(async () => {
         setLoading(true);
         try {
@@ -147,6 +152,48 @@ export const SuperAdminPage = () => {
             toast.success(`Plan cambiado a ${newPlan}`);
             fetchStores();
         } catch (e: any) { toast.error(e.message); }
+    };
+
+    const handleDeleteStore = async (storeId: string, storeName: string) => {
+        if (!confirm('¿Estás absolutamente seguro de que quieres eliminar la tienda "' + storeName + '"? Esto no se puede deshacer.')) return;
+        try {
+            const res = await fetch(`${apiUrl}/saas/stores/${storeId}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) throw new Error('Error al eliminar tienda');
+            toast.success(`Tienda ${storeName} eliminada`);
+            fetchStores();
+        } catch (e: any) { toast.error(e.message); }
+    };
+
+    const handleEditClick = (store: Store) => {
+        setEditingStore(store);
+        setEditFormName(store.name);
+        setEditFormRif(store.rif || '');
+        setEditFormEmail(store.ownerEmail || '');
+    };
+
+    const handleUpdateStore = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingStore || !editFormName || !editFormEmail) return toast.error('Nombre y correo son obligatorios');
+        try {
+            const res = await fetch(`${apiUrl}/saas/stores/${editingStore.id}`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    Authorization: `Bearer ${token}`,
+                    Accept: 'application/json'
+                },
+                body: JSON.stringify({ name: editFormName, rif: editFormRif, ownerEmail: editFormEmail })
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            toast.success('Tienda actualizada');
+            setEditingStore(null);
+            fetchStores();
+        } catch (err: any) {
+            toast.error('Error actualizando tienda: ' + err.message);
+        }
     };
 
     const handleExtendTrial = async (storeId: string, storeName: string) => {
@@ -331,6 +378,16 @@ export const SuperAdminPage = () => {
                                                         className="text-[10px] font-bold bg-violet-50 hover:bg-violet-100 text-violet-600 px-2 py-1.5 rounded-lg transition-colors"
                                                         title="Extender trial +15 días"
                                                     >+15d</button>
+                                                    <button
+                                                        onClick={() => handleEditClick(store)}
+                                                        className="text-[10px] font-bold bg-blue-50 hover:bg-blue-100 text-blue-600 px-2 py-1.5 rounded-lg transition-colors"
+                                                        title="Editar tienda"
+                                                    >✎</button>
+                                                    <button
+                                                        onClick={() => handleDeleteStore(store.id, store.name)}
+                                                        className="text-[10px] font-bold bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1.5 rounded-lg transition-colors"
+                                                        title="Eliminar tienda"
+                                                    >🗑</button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -375,6 +432,38 @@ export const SuperAdminPage = () => {
                                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800 transition-colors">Cancelar</button>
                                 <button type="submit" disabled={creating} className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-sm font-bold rounded-lg shadow-md transition-all disabled:opacity-50">
                                     {creating ? '⟳ Creando...' : '🏪 Crear Tienda'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal Editar Tienda */}
+            {editingStore && (
+                <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
+                        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50">
+                            <h2 className="text-xl font-black text-slate-800">✎ Editar Tienda</h2>
+                            <button onClick={() => setEditingStore(null)} className="text-slate-400 hover:text-slate-600 text-2xl leading-none">&times;</button>
+                        </div>
+                        <form onSubmit={handleUpdateStore} className="p-6 space-y-4">
+                            <div className="space-y-1">
+                                <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Nombre del Negocio *</label>
+                                <input value={editFormName} onChange={e => setEditFormName(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none" />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">RIF / Documento</label>
+                                <input value={editFormRif} onChange={e => setEditFormRif(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none" />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Correo del Dueño *</label>
+                                <input type="email" value={editFormEmail} onChange={e => setEditFormEmail(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none" />
+                            </div>
+                            <div className="flex justify-end gap-3 pt-2">
+                                <button type="button" onClick={() => setEditingStore(null)} className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800 transition-colors">Cancelar</button>
+                                <button type="submit" className="px-6 py-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-sm font-bold rounded-lg shadow-md transition-all">
+                                    Guardar Cambios
                                 </button>
                             </div>
                         </form>
