@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getOutboxDB } from '../db/outbox';
 
 interface User {
     username: string;
@@ -77,6 +78,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         localStorage.removeItem('pos_user');
         setToken(null);
         setUser(null);
+        
+        // Clear offline Dexie database on logout to prevent cross-tenant data leaks
+        try {
+            const db = getOutboxDB();
+            await Promise.all(db.tables.map(table => table.clear()));
+        } catch (e) {
+            console.error('Failed to clear IndexedDB on logout', e);
+        }
         // Reset theme CSS variables on logout
         document.documentElement.style.removeProperty('--color-primary');
         document.documentElement.style.removeProperty('--color-primary-hover');
