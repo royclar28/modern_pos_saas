@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getOutboxDB } from '../db/outbox';
+import { registerLogoutHandler } from '../lib/api';
 
 interface User {
     username: string;
@@ -41,26 +42,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const navigate = useNavigate();
 
-    useEffect(() => {
-        if (token && !user) {
-            const storedUser = localStorage.getItem('pos_user');
-            if (storedUser) {
-                setUser(JSON.parse(storedUser));
-            } else {
-                logout();
-            }
-        }
-    }, [token]);
-
-    const login = (newToken: string, userData: User) => {
-        localStorage.setItem('pos_token', newToken);
-        localStorage.setItem('pos_user', JSON.stringify(userData));
-        setToken(newToken);
-        setUser(userData);
-        navigate('/dashboard');
-    };
-
-    const logout = async () => {
+    const logout = useCallback(async () => {
         if (token) {
             try {
                 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
@@ -91,7 +73,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         document.documentElement.style.removeProperty('--color-primary-hover');
         document.documentElement.style.removeProperty('--color-primary-light');
         navigate('/login');
+    }, [token, navigate]);
+
+    useEffect(() => {
+        // Registramos el manejador global para los errores 401 de Axios/Fetch
+        registerLogoutHandler(() => {
+            logout();
+        });
+    }, [logout]);
+
+    useEffect(() => {
+        if (token && !user) {
+            const storedUser = localStorage.getItem('pos_user');
+            if (storedUser) {
+                setUser(JSON.parse(storedUser));
+            } else {
+                logout();
+            }
+        }
+    }, [token]);
+
+    const login = (newToken: string, userData: User) => {
+        localStorage.setItem('pos_token', newToken);
+        localStorage.setItem('pos_user', JSON.stringify(userData));
+        setToken(newToken);
+        setUser(userData);
+        navigate('/dashboard');
     };
+
+
 
     return (
         <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated: !!token }}>
