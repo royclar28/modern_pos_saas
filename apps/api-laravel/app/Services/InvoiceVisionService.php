@@ -49,8 +49,8 @@ PROMPT;
         try {
             $response = Http::withToken($apiKey)
                 ->timeout(60) 
-                ->post('https://api.groq.com/openai/v1/chat/completions', [
-                    'model' => 'llama-3.2-90b-vision-preview',
+                ->post('https://api.openai.com/v1/chat/completions', [
+                    'model' => 'gpt-4o-mini',
                     'messages' => [
                         [
                             'role' => 'system',
@@ -77,7 +77,7 @@ PROMPT;
                 ]);
 
             if ($response->failed()) {
-                throw new Exception("Error HTTP Groq: " . $response->body());
+                throw new Exception("Error HTTP OpenAI: " . $response->body());
             }
         } catch (Exception $e) {
             // Rethrow si ya era una Exception nuestra (ej. de fallos HTTP), o si es de cURL guardamos su mensaje original
