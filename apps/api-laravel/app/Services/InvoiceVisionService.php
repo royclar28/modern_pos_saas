@@ -46,31 +46,51 @@ Si la imagen NO es una factura o es ilegible, responde exactamente: []
 PROMPT;
 
         try {
-            $response = Http::timeout(60)
-                ->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={$apiKey}", [
-                    'system_instruction' => [
-                        'parts' => [
-                            ['text' => $systemPrompt]
-                        ]
-                    ],
-                    'contents' => [
-                        [
+            $maxRetries = 3;
+            $attempt = 0;
+            $response = null;
+
+            while ($attempt < $maxRetries) {
+                $response = Http::timeout(60)
+                    ->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={$apiKey}", [
+                        'system_instruction' => [
                             'parts' => [
-                                ['text' => 'Analiza esta factura de proveedor y extrae todos los productos. Devuelve SOLO el arreglo JSON puro como indicaste en las instrucciones.'],
-                                [
-                                    'inline_data' => [
-                                        'mime_type' => $mimeType,
-                                        'data' => $base64String
+                                ['text' => $systemPrompt]
+                            ]
+                        ],
+                        'contents' => [
+                            [
+                                'parts' => [
+                                    ['text' => 'Analiza esta factura de proveedor y extrae todos los productos. Devuelve SOLO el arreglo JSON puro como indicaste en las instrucciones.'],
+                                    [
+                                        'inline_data' => [
+                                            'mime_type' => $mimeType,
+                                            'data' => $base64String
+                                        ]
                                     ]
                                 ]
                             ]
+                        ],
+                        'generationConfig' => [
+                            'temperature' => 0.1,
+                            'responseMimeType' => 'application/json'
                         ]
-                    ],
-                    'generationConfig' => [
-                        'temperature' => 0.1,
-                        'responseMimeType' => 'application/json'
-                    ]
-                ]);
+                    ]);
+
+                if ($response->successful()) {
+                    break;
+                }
+
+                if ($response->status() === 503) {
+                    $attempt++;
+                    if ($attempt >= $maxRetries) break;
+                    sleep(2); // Esperar 2 segundos antes de reintentar
+                    continue;
+                }
+
+                // Si es otro error, salimos del loop
+                break;
+            }
 
             if ($response->failed()) {
                 throw new Exception("Error HTTP Gemini: " . $response->body());
