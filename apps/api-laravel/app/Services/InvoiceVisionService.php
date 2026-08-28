@@ -13,15 +13,15 @@ class InvoiceVisionService
      */
     public function extractInvoiceData(UploadedFile $invoiceImage): array
     {
-        // Obtenemos del .env o de config. Por defecto, usa getenv para asegurar fallback.
-        $apiKey = config('services.openai.key');
+        // Obtenemos del .env o de config.
+        $apiKey = config('services.gemini.key') ?? env('GEMINI_API_KEY');
         
         if (!$apiKey) {
-            throw new Exception("La clave OPENAI_API_KEY no está configurada en el servidor.");
+            throw new Exception("La clave GEMINI_API_KEY no está configurada en el servidor.");
         }
 
         $mimeType = $invoiceImage->getMimeType();
-        $base64String = "data:" . $mimeType . ";base64," . base64_encode(file_get_contents($invoiceImage->path()));
+        $base64String = base64_encode(file_get_contents($invoiceImage->path()));
 
         $systemPrompt = <<<PROMPT
 Eres un asistente experto en lectura de facturas de proveedores para bodegas y abastos en Latinoamérica.
@@ -30,11 +30,10 @@ INSTRUCCIONES ESTRICTAS:
 1. Analiza la imagen de la factura adjunta.
 2. Extrae TODOS los productos/ítems que aparezcan como líneas de la factura.
 3. Para cada producto identifica: nombre, cantidad, costo unitario.
-4. Si el código de barras es visible o está impreso en la factura, inclúyelo. Si no, pon null.
-5. Calcula un "suggestedPrice" (precio de venta sugerido) aplicando un margen de ganancia razonable de ~30-40% sobre el costo.
-6. Responde ÚNICAMENTE con un arreglo JSON válido. SIN texto adicional, SIN Markdown, SIN explicaciones.
+4. Calcula un "suggestedPrice" (precio de venta sugerido) aplicando un margen de ganancia razonable de ~30-40% sobre el costo.
+5. Responde ÚNICAMENTE con un arreglo JSON válido.
 
-FORMATO DE RESPUESTA OBLIGATORIO (JSON puro):
+FORMATO DE RESPUESTA OBLIGATORIO:
 [
   {
     "name": "string (nombre del producto)",
@@ -47,58 +46,42 @@ Si la imagen NO es una factura o es ilegible, responde exactamente: []
 PROMPT;
 
         try {
-            $response = Http::withToken($apiKey)
-                ->timeout(60) 
-                ->post('https://api.openai.com/v1/chat/completions', [
-                    'model' => 'gpt-4o-mini',
-                    'messages' => [
+            $response = Http::timeout(60)
+                ->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$apiKey}", [
+                    'system_instruction' => [
+                        'parts' => [
+                            ['text' => $systemPrompt]
+                        ]
+                    ],
+                    'contents' => [
                         [
-                            'role' => 'system',
-                            'content' => $systemPrompt
-                        ],
-                        [
-                            'role' => 'user',
-                            'content' => [
+                            'parts' => [
+                                ['text' => 'Analiza esta factura de proveedor y extrae todos los productos. Devuelve SOLO el arreglo JSON puro como indicaste en las instrucciones.'],
                                 [
-                                    'type' => 'text',
-                                    'text' => 'Analiza esta factura de proveedor y extrae todos los productos. Devuelve SOLO el arreglo JSON puro.'
-                                ],
-                                [
-                                    'type' => 'image_url',
-                                    'image_url' => [
-                                        'url' => $base64String
+                                    'inline_data' => [
+                                        'mime_type' => $mimeType,
+                                        'data' => $base64String
                                     ]
                                 ]
                             ]
                         ]
-                    ], 
-                    'temperature' => 0.1,
-                    'max_tokens' => 4096
+                    ],
+                    'generationConfig' => [
+                        'temperature' => 0.1,
+                        'responseMimeType' => 'application/json'
+                    ]
                 ]);
 
             if ($response->failed()) {
-                throw new Exception("Error HTTP OpenAI: " . $response->body());
+                throw new Exception("Error HTTP Gemini: " . $response->body());
             }
         } catch (Exception $e) {
-            // Rethrow si ya era una Exception nuestra (ej. de fallos HTTP), o si es de cURL guardamos su mensaje original
             throw new Exception($e->getMessage());
         }
 
-        $content = $response->json('choices.0.message.content') ?? '';
+        $content = $response->json('candidates.0.content.parts.0.text') ?? '';
         
-        // 1. Regex Robusto para extraer mágicamente el JSON Array, ignorando la charlatanería de Llama-4
-        if (preg_match('/\[[\s\S]*\]/', $content, $matches)) {
-            $jsonString = $matches[0];
-        } else {
-            // Plan B: Buscar un objeto en caso de que Llama se ponga terco
-            if (preg_match('/\{[\s\S]*\}/', $content, $matches)) {
-                $jsonString = $matches[0];
-            } else {
-                $jsonString = $content;
-            }
-        }
-
-        $parsed = json_decode($jsonString, true);
+        $parsed = json_decode($content, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
             throw new Exception("La respuesta de la IA no pudo parsearse como JSON válido. Raw: " . substr($content, 0, 100));
@@ -112,10 +95,9 @@ PROMPT;
             $items = $parsed; // ya es el arreglo de productos
         }
 
-        // 2. Normalizar las keys de salida porque Llama puede devolver "nombre", "name", "description"...
+        // Normalizar las keys de salida
         $normalizedItems = [];
         foreach ($items as $item) {
-            // Mapeo defensivo de cualquier variante que se le ocurra a Llama
             $desc = $item['description'] ?? $item['name'] ?? $item['nombre'] ?? $item['producto'] ?? 'Producto detectado sin nombre';
             $qty = $item['quantity'] ?? $item['cantidad'] ?? 1;
             $cost = $item['unitCost'] ?? $item['unit_cost'] ?? $item['costo'] ?? $item['precio'] ?? 0;
