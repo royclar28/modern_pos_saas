@@ -48,14 +48,14 @@ class TenantRegistrationController extends Controller
 
         $user = DB::transaction(function () use ($request) {
 
-            // ── 1. Crear el Tenant (Store) con trial de 30 días ───────────
+            // ── 1. Crear el Tenant (Store) en Plan Inicial (Gratis) ────────
             $store = Store::create([
                 'id'            => Str::uuid()->toString(),
                 'name'          => $request->store_name,
                 'owner_email'   => $request->email,
-                'plan'          => 'TRIAL',
+                'plan'          => 'FREE',
                 'is_active'     => true,
-                'trial_ends_at' => Carbon::now()->addDays(30),
+                'trial_ends_at' => null,
                 'status'        => 'active',
             ]);
 

@@ -7,6 +7,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { RequireRole } from './components/RequireRole';
 import { ReloadPrompt } from './components/ReloadPrompt';
 import { TrialExpiredGuard } from './components/TrialExpiredGuard';
+import { PlanLimitGuard } from './components/PlanLimitGuard';
 import { LoginPage } from './pages/LoginPage';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
@@ -476,6 +477,7 @@ const AppInner = () => {
         <>
             <ThemeManager />
             <TrialExpiredGuard storeName={company}>
+                <PlanLimitGuard />
                 <Routes>
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/register" element={<RegisterPage />} />

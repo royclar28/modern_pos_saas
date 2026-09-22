@@ -122,8 +122,17 @@ async function drainOutbox(): Promise<number> {
                 });
                 synced++;
             } else if (result.status === 'failed') {
-                const retryCount = (localEvent.retry_count || 0) + 1;
-                const newStatus = retryCount >= MAX_RETRIES ? SyncStatus.FAILED : SyncStatus.PENDING;
+                let newStatus = SyncStatus.PENDING;
+                let retryCount = (localEvent.retry_count || 0) + 1;
+
+                if (result.type === 'PLAN_LIMIT_EXCEEDED') {
+                    // Limite del plan alcanzado: No reintentar y notificar a la UI
+                    newStatus = SyncStatus.FAILED;
+                    retryCount = MAX_RETRIES; // Forzar límite
+                    window.dispatchEvent(new CustomEvent('plan:limit_exceeded', { detail: result.error }));
+                } else {
+                    newStatus = retryCount >= MAX_RETRIES ? SyncStatus.FAILED : SyncStatus.PENDING;
+                }
 
                 await db.sync_queue.update(localEvent.event_id!, {
                     sync_status: newStatus,
@@ -136,7 +145,7 @@ async function drainOutbox(): Promise<number> {
                     result.error
                 );
 
-                if (newStatus === SyncStatus.FAILED) {
+                if (newStatus === SyncStatus.FAILED && result.type !== 'PLAN_LIMIT_EXCEEDED') {
                     toast.error(
                         `Sincronización fallida tras ${MAX_RETRIES} intentos: ${localEvent.entity_type}:${localEvent.action}`,
                         { duration: 6000 }

@@ -142,6 +142,18 @@ class SyncEventProcessor
                 $failed++;
 
                 Log::warning("[Sync] Stock insuficiente: {$e->getMessage()}");
+            } catch (\App\Exceptions\PlanLimitExceededException $e) {
+                // Error de negocio: límite del plan — registrar como FAILED y continuar (para otros tipos de eventos)
+                ProcessedSyncEvent::markFailed($event, $e->getMessage());
+
+                $results[] = [
+                    'status'   => 'failed',
+                    'event_id' => $event['event_id'],
+                    'error'    => $e->getMessage(),
+                ];
+                $failed++;
+
+                Log::warning("[Sync] Límite de plan excedido: {$e->getMessage()}");
             } catch (\Throwable $e) {
                 // Error inesperado — registrar y detener el batch
                 ProcessedSyncEvent::markFailed($event, $e->getMessage());
@@ -221,6 +233,21 @@ class SyncEventProcessor
     private function handleSaleCreate(array $event): void
     {
         $p = $event['payload'];
+
+        // ── Validación de límites del plan (100 facturas/mes en plan Inicial) ──
+        $store = \App\Models\Store::find($event['tenant_id']);
+        if ($store && $store->plan === 'FREE') {
+            $invoicesThisMonth = Sale::where('tenant_id', $event['tenant_id'])
+                ->whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
+                ->count();
+            
+            if ($invoicesThisMonth >= 100) {
+                throw new \App\Exceptions\PlanLimitExceededException(
+                    "Has alcanzado el límite de 100 facturas mensuales de tu Plan Inicial."
+                );
+            }
+        }
 
         // ── Pre-validación de stock (defensa en profundidad) ─────────────────
         if (!empty($p['items'])) {

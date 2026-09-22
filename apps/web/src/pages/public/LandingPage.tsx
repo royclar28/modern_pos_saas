@@ -133,12 +133,12 @@ export const LandingPage: React.FC = () => {
                             🚀 El POS hecho para Venezuela y Latinoamérica
                         </div>
                         <h1 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tight text-slate-900 dark:text-white mb-6 leading-tight">
-                            Vende, controla y{' '}
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-indigo-500">crece sin límites.</span>
+                            El Punto de Venta diseñado para el{' '}
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-indigo-500">comercio local.</span>
                         </h1>
                         <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 mb-10 max-w-2xl mx-auto lg:mx-0">
-                            El Punto de Venta más rápido para tu tienda. Factura, gestiona inventario, cuadra caja y organiza sorteos, incluso{' '}
-                            <strong className="text-slate-800 dark:text-slate-200">sin internet</strong>.
+                            Cobra en Dólares, Pago Móvil o Zelle en el mismo ticket, con la{' '}
+                            <strong className="text-slate-800 dark:text-slate-200">tasa del BCV siempre al día</strong>.
                         </p>
                         <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-4">
                             {isAuthenticated ? (
@@ -148,7 +148,7 @@ export const LandingPage: React.FC = () => {
                             ) : (
                                 <>
                                     <Link to="/register" className="px-8 py-4 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-bold text-lg transition-all shadow-lg shadow-violet-600/30 hover:-translate-y-0.5 flex items-center justify-center gap-2">
-                                        30 días gratis <ArrowRight size={20} />
+                                        Plan Inicial (Gratis) <ArrowRight size={20} />
                                     </Link>
                                     <Link to="/login" className="px-8 py-4 rounded-full border-2 border-slate-300 dark:border-slate-700 hover:border-violet-400 text-slate-700 dark:text-slate-300 font-bold text-lg transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2">
                                         Iniciar Sesión
@@ -260,7 +260,7 @@ export const LandingPage: React.FC = () => {
                     <div className="grid md:grid-cols-3 gap-8 relative">
                         <div className="hidden md:block absolute top-12 left-[20%] right-[20%] h-0.5 bg-gradient-to-r from-violet-300 to-indigo-300 dark:from-violet-800 dark:to-indigo-800 z-0" />
                         {[
-                            { n: '1', color: 'from-violet-500 to-violet-600', title: 'Crea tu cuenta', desc: 'Regístrate con tu email, sin tarjeta de crédito. Tienes 30 días para explorar todo.', img: '/registro.png' },
+                            { n: '1', color: 'from-violet-500 to-violet-600', title: 'Crea tu cuenta', desc: 'Regístrate con tu email, sin tarjeta de crédito. Acceso inmediato a nuestro Plan Inicial.', img: '/registro.png' },
                             { n: '2', color: 'from-indigo-500 to-indigo-600', title: 'Configura tu tienda', desc: 'Agrega tus productos, pon el nombre de tu negocio y ajusta el IVA y moneda.', img: '/ajuste2.png' },
                             { n: '3', color: 'from-emerald-500 to-emerald-600', title: '¡Empieza a vender!', desc: 'Abre tu caja y atiende a tus clientes desde cualquier dispositivo con internet.', img: '/venta.png' },
                         ].map(({ n, color, title, desc, img }) => (
@@ -281,49 +281,67 @@ export const LandingPage: React.FC = () => {
                             <Link to="/register" className="inline-flex items-center gap-3 px-10 py-5 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-black text-xl transition-all shadow-2xl shadow-violet-600/30 hover:-translate-y-1 hover:shadow-violet-600/50">
                                 Crear mi cuenta gratis <ArrowRight size={24} />
                             </Link>
-                            <p className="text-slate-500 text-sm mt-3">30 días de prueba · Sin tarjeta · Sin compromiso</p>
+                            <p className="text-slate-500 text-sm mt-3">Plan Inicial 100% Gratis · Sin tarjeta · Sin compromiso</p>
                         </div>
                     )}
                 </section>
 
                 {/* ── Precios ──────────────────────────────────────────────── */}
                 <section id="precios" className="py-24 bg-white dark:bg-slate-900">
-                    <div className="max-w-4xl mx-auto px-6 text-center">
-                        <h2 className="text-4xl font-black mb-4">Planes Simples y Transparentes</h2>
-                        <p className="text-slate-500 dark:text-slate-400 text-lg mb-14">Empieza gratis por 30 días, luego elige el plan que mejor se adapte a ti.</p>
+                    <div className="max-w-6xl mx-auto px-6 text-center">
+                        <h2 className="text-4xl font-black mb-4">Planes Simples y Accesibles</h2>
+                        <p className="text-slate-500 dark:text-slate-400 text-lg mb-14">Empieza gratis, luego elige el plan que mejor se adapte al crecimiento de tu negocio.</p>
                         
-                        <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
-                            {/* Plan Gratis */}
-                            <div className="rounded-3xl border border-slate-200 dark:border-slate-700 p-8 flex flex-col text-left">
-                                <h3 className="text-2xl font-bold mb-2">Prueba Gratis</h3>
-                                <p className="text-slate-500 mb-6">Para explorar el sistema</p>
+                        <div className="grid md:grid-cols-3 gap-8">
+                            {/* Plan Inicial */}
+                            <div className="rounded-3xl border border-slate-200 dark:border-slate-700 p-8 flex flex-col text-left hover:border-slate-300 dark:hover:border-slate-600 transition-colors">
+                                <h3 className="text-2xl font-bold mb-2">Inicial</h3>
+                                <p className="text-slate-500 mb-6 h-10">Perfecto para negocios que recién arrancan.</p>
                                 <div className="mb-6"><span className="text-5xl font-black">$0</span></div>
                                 <ul className="space-y-4 mb-8 flex-grow">
-                                    <li className="flex items-center gap-3"><CheckCircle2 size={20} className="text-emerald-500 shrink-0" /> 30 días de acceso total</li>
+                                    <li className="flex items-center gap-3"><CheckCircle2 size={20} className="text-emerald-500 shrink-0" /> Hasta 100 facturas/mes</li>
+                                    <li className="flex items-center gap-3"><CheckCircle2 size={20} className="text-emerald-500 shrink-0" /> 1 Caja registradora</li>
                                     <li className="flex items-center gap-3"><CheckCircle2 size={20} className="text-emerald-500 shrink-0" /> Sin tarjeta de crédito</li>
-                                    <li className="flex items-center gap-3"><CheckCircle2 size={20} className="text-emerald-500 shrink-0" /> 1 Sucursal</li>
                                 </ul>
-                                <Link to="/register" className="w-full py-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">Empezar ahora</Link>
+                                <Link to="/register" className="w-full py-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">Empezar Gratis</Link>
                             </div>
                             
-                            {/* Plan Pro */}
-                            <div className="rounded-3xl border-2 border-violet-500 bg-violet-50 dark:bg-violet-900/10 p-8 flex flex-col text-left relative">
-                                <div className="absolute top-0 right-8 -translate-y-1/2 bg-violet-500 text-white px-3 py-1 rounded-full text-xs font-bold tracking-wide">RECOMENDADO</div>
-                                <h3 className="text-2xl font-bold mb-2">Suscripción Pro</h3>
-                                <p className="text-slate-500 mb-6">Todo lo que necesitas para tu tienda</p>
-                                <div className="mb-6">
-                                    <span className="text-5xl font-black">$15</span>
-                                    <span className="text-slate-500">/mes</span>
+                            {/* Plan Emprendedor */}
+                            <div className="rounded-3xl border-2 border-violet-500 bg-violet-50 dark:bg-violet-900/10 p-8 flex flex-col text-left relative shadow-xl shadow-violet-500/10 scale-105 z-10">
+                                <div className="absolute top-0 right-8 -translate-y-1/2 bg-violet-500 text-white px-3 py-1 rounded-full text-xs font-bold tracking-wide">EL MÁS POPULAR</div>
+                                <h3 className="text-2xl font-bold mb-2 text-violet-900 dark:text-violet-100">Emprendedor</h3>
+                                <p className="text-slate-600 dark:text-slate-400 mb-6 h-10">La libertad que tu comercio necesita el día a día.</p>
+                                <div className="mb-6 flex items-end gap-1">
+                                    <span className="text-5xl font-black text-violet-600 dark:text-violet-400">$4.99</span>
+                                    <span className="text-slate-500 mb-1">/mes</span>
                                 </div>
                                 <ul className="space-y-4 mb-8 flex-grow">
-                                    <li className="flex items-center gap-3"><CheckCircle2 size={20} className="text-violet-500 shrink-0" /> Usuarios y cajas ilimitadas</li>
+                                    <li className="flex items-center gap-3"><CheckCircle2 size={20} className="text-violet-500 shrink-0" /> Facturas ilimitadas</li>
+                                    <li className="flex items-center gap-3"><CheckCircle2 size={20} className="text-violet-500 shrink-0" /> Cajas ilimitadas</li>
+                                    <li className="flex items-center gap-3"><CheckCircle2 size={20} className="text-violet-500 shrink-0" /> Reporte Z y Arqueo</li>
                                     <li className="flex items-center gap-3"><CheckCircle2 size={20} className="text-violet-500 shrink-0" /> Facturación offline</li>
-                                    <li className="flex items-center gap-3"><CheckCircle2 size={20} className="text-violet-500 shrink-0" /> Sorteos en vivo</li>
-                                    <li className="flex items-center gap-3"><CheckCircle2 size={20} className="text-violet-500 shrink-0" /> Soporte prioritario WhatsApp</li>
                                 </ul>
-                                <a href="https://wa.me/584124714797?text=Hola,%20quiero%20más%20información%20sobre%20el%20Plan%20Pro" target="_blank" rel="noopener noreferrer" className="w-full py-3 rounded-xl bg-violet-600 text-white font-bold text-center hover:bg-violet-700 transition-colors shadow-lg shadow-violet-600/30">Contactar Soporte</a>
+                                <a href="https://wa.me/584241234567?text=Hola,%20quiero%20el%20Plan%20Emprendedor" target="_blank" rel="noopener noreferrer" className="w-full py-3 rounded-xl bg-violet-600 text-white font-bold text-center hover:bg-violet-700 transition-colors shadow-lg shadow-violet-600/30">Contactar Soporte</a>
+                            </div>
+
+                            {/* Plan Negocio */}
+                            <div className="rounded-3xl border border-slate-200 dark:border-slate-700 p-8 flex flex-col text-left hover:border-slate-300 dark:hover:border-slate-600 transition-colors">
+                                <h3 className="text-2xl font-bold mb-2">Negocio</h3>
+                                <p className="text-slate-500 mb-6 h-10">Con IA y funciones para el máximo control.</p>
+                                <div className="mb-6 flex items-end gap-1">
+                                    <span className="text-5xl font-black">$9.99</span>
+                                    <span className="text-slate-500 mb-1">/mes</span>
+                                </div>
+                                <ul className="space-y-4 mb-8 flex-grow">
+                                    <li className="flex items-center gap-3"><CheckCircle2 size={20} className="text-indigo-500 shrink-0" /> Todo lo de Emprendedor</li>
+                                    <li className="flex items-center gap-3"><CheckCircle2 size={20} className="text-indigo-500 shrink-0" /> Escaneo OCR con IA</li>
+                                    <li className="flex items-center gap-3"><CheckCircle2 size={20} className="text-indigo-500 shrink-0" /> Reportes multi-sucursal</li>
+                                    <li className="flex items-center gap-3"><CheckCircle2 size={20} className="text-indigo-500 shrink-0" /> Soporte VIP</li>
+                                </ul>
+                                <a href="https://wa.me/584241234567?text=Hola,%20quiero%20el%20Plan%20Negocio" target="_blank" rel="noopener noreferrer" className="w-full py-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">Contactar Soporte</a>
                             </div>
                         </div>
+                        <p className="mt-8 text-slate-500 dark:text-slate-400">¿Quieres ahorrar? Pregunta por nuestros <strong className="text-violet-600 dark:text-violet-400">Planes Anuales</strong> (Ahorras hasta 2 meses).</p>
                     </div>
                 </section>
 
@@ -354,6 +372,44 @@ export const LandingPage: React.FC = () => {
                         <div className="flex-1 w-full max-w-xl space-y-3">
                             <div className="rounded-xl overflow-hidden shadow-xl border border-slate-300 dark:border-slate-600">
                                 <img src="/ajuste2.png" alt="Configuración del negocio" className="w-full" />
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* ── Equipo (Conoce a los Fundadores) ──────────────────────── */}
+                <section className="py-24 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
+                    <div className="max-w-6xl mx-auto px-6">
+                        <div className="text-center mb-16">
+                            <h2 className="text-4xl font-black mb-4">Tecnología confiable con rostro humano</h2>
+                            <p className="text-slate-500 text-lg max-w-2xl mx-auto">
+                                No somos una corporación anónima. Somos ingenieros y especialistas dedicados a que tu comercio local triunfe.
+                            </p>
+                        </div>
+                        <div className="grid md:grid-cols-3 gap-8">
+                            <div className="bg-slate-50 dark:bg-slate-800/50 p-8 rounded-3xl border border-slate-200 dark:border-slate-700 text-left">
+                                <div className="w-16 h-16 bg-violet-600 rounded-full flex items-center justify-center text-white font-black text-2xl mb-6 shadow-lg shadow-violet-600/30">R</div>
+                                <h3 className="text-xl font-black text-slate-900 dark:text-white mb-1">Roy Ramos</h3>
+                                <p className="text-violet-600 dark:text-violet-400 font-bold text-sm mb-4">Co-Fundador & Director Técnico</p>
+                                <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
+                                    Ingeniero con más de 6 años de experiencia transformando problemas de negocio en soluciones digitales. Mi enfoque es crear sistemas seguros, rápidos y fáciles de usar que le ahorren tiempo y dinero a tu empresa, garantizando siempre comunicación transparente.
+                                </p>
+                            </div>
+                            <div className="bg-slate-50 dark:bg-slate-800/50 p-8 rounded-3xl border border-slate-200 dark:border-slate-700 text-left">
+                                <div className="w-16 h-16 bg-indigo-600 rounded-full flex items-center justify-center text-white font-black text-2xl mb-6 shadow-lg shadow-indigo-600/30">J</div>
+                                <h3 className="text-xl font-black text-slate-900 dark:text-white mb-1">Josnel Blanco</h3>
+                                <p className="text-indigo-600 dark:text-indigo-400 font-bold text-sm mb-4">Co-Fundador & Arquitecto de Datos</p>
+                                <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
+                                    Ingeniero Full Stack especialista en Arquitectura de Integraciones, APIs y experto en integridad de datos. Asegurando que tu información financiera esté siempre sincronizada, protegida y disponible en tiempo real.
+                                </p>
+                            </div>
+                            <div className="bg-slate-50 dark:bg-slate-800/50 p-8 rounded-3xl border border-slate-200 dark:border-slate-700 text-left">
+                                <div className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center text-white font-black text-2xl mb-6 shadow-lg shadow-emerald-500/30">G</div>
+                                <h3 className="text-xl font-black text-slate-900 dark:text-white mb-1">Gabriela Figueroa</h3>
+                                <p className="text-emerald-600 dark:text-emerald-400 font-bold text-sm mb-4">Experta en Ventas y Marketing</p>
+                                <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
+                                    Especialista en impulsar el crecimiento comercial y conectar con las verdaderas necesidades de los clientes, asegurando que nuestra tecnología llegue a quienes más la necesitan con estrategias de mercado efectivas.
+                                </p>
                             </div>
                         </div>
                     </div>

@@ -75,6 +75,19 @@ class SyncController extends Controller
 
                 Log::warning("[SyncController] Stock insuficiente: {$e->getMessage()}");
 
+            } catch (\App\Exceptions\PlanLimitExceededException $e) {
+                // ── Límite de plan gratuito alcanzado ─────────────
+                $failed++;
+
+                $responses[] = [
+                    'event_id' => $event['event_id'],
+                    'status'   => 'failed',
+                    'error'    => $e->getMessage(),
+                    'type'     => 'PLAN_LIMIT_EXCEEDED',
+                ];
+
+                Log::warning("[SyncController] Límite de plan excedido: {$e->getMessage()}");
+
             } catch (\InvalidArgumentException $e) {
                 // ── Tipo de evento no soportado ───────────────────
                 $failed++;
