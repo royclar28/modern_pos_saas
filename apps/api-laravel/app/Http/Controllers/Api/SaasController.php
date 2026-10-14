@@ -106,6 +106,23 @@ class SaasController extends Controller
         ]);
     }
 
+    public function deleteStore(string $id)
+    {
+        $store = Store::findOrFail($id);
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($store) {
+            // Eliminar usuarios asociados permanentemente para liberar email y username
+            User::where('tenant_id', $store->id)->forceDelete();
+
+            // Eliminar la tienda y registros asociados
+            $store->delete();
+        });
+
+        return response()->json([
+            'message' => 'Tienda eliminada exitosamente.',
+        ]);
+    }
+
     // ─── Plan Management (SUPER_ADMIN only) ─────────────────
 
     /**

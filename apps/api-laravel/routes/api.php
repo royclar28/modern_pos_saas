@@ -161,6 +161,7 @@ Route::middleware(['auth:sanctum', 'trial', 'touch.session'])->group(function ()
         Route::get('/saas/stores', [\App\Http\Controllers\Api\SaasController::class, 'index']);
         Route::post('/saas/stores', [\App\Http\Controllers\Api\SaasController::class, 'createStore']);
         Route::put('/saas/stores/{id}', [\App\Http\Controllers\Api\SaasController::class, 'updateStore']);
+        Route::delete('/saas/stores/{id}', [\App\Http\Controllers\Api\SaasController::class, 'deleteStore']);
         Route::patch('/saas/stores/{id}/status', [\App\Http\Controllers\Api\SaasController::class, 'toggleStatus']);
     });
 
