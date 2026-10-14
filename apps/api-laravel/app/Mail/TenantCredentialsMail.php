@@ -4,41 +4,31 @@ namespace App\Mail;
 
 use App\Models\User;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class TenantCredentialsMail extends Mailable implements ShouldQueue
+class TenantCredentialsMail extends Mailable
 {
     use Queueable, SerializesModels;
 
     public User $user;
-
-    /**
-     * Password-reset token generado por Password::broker()->createToken().
-     * Válido por 60 minutos (config/auth.php passwords.users.expire).
-     *
-     * 🔒 Este token NUNCA se almacena en logs ni en la BD en texto plano.
-     *     La tabla password_reset_tokens contiene un hash SHA-256.
-     */
     public string $token;
-
-    /**
-     * URL completa al frontend SPA para que el usuario configure su contraseña.
-     */
+    public ?string $temporaryPassword;
     public string $setupUrl;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(User $user, string $token)
+    public function __construct(User $user, string $token, ?string $temporaryPassword = null)
     {
-        $this->user  = $user;
+        $this->user = $user;
         $this->token = $token;
+        $this->temporaryPassword = $temporaryPassword;
 
-        $this->setupUrl = rtrim(config('app.frontend_url', 'http://localhost:5173'), '/')
+        $baseUrl = config('app.frontend_url') ?: config('app.url', 'http://localhost:5173');
+        $this->setupUrl = rtrim($baseUrl, '/')
                          . '/setup-password?token=' . urlencode($token)
                          . '&email=' . urlencode($user->email);
     }

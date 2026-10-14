@@ -10,6 +10,8 @@ use App\Services\SessionService;
 use App\Enums\Plan;
 use Illuminate\Http\Request;
 
+use App\Models\User;
+
 class SaasController extends Controller
 {
     public function __construct(
@@ -57,12 +59,40 @@ class SaasController extends Controller
             'ownerName'  => $request->input('ownerName'),
             'plan'       => $request->input('plan', 'STANDARD'),
             'rif'        => $request->input('rif'),
-        ], sendWelcomeEmail: false);
+        ], sendWelcomeEmail: true);
 
         return response()->json([
-            'message' => 'Tienda creada exitosamente.',
-            'storeId' => $result['store']->id,
+            'message'           => 'Tienda creada exitosamente.',
+            'storeId'           => $result['store']->id,
+            'temporaryPassword' => $result['temporaryPassword'] ?? null,
+            'emailSent'         => $result['emailSent'] ?? false,
         ], 201);
+    }
+
+    public function updateStore(Request $request, string $id)
+    {
+        $store = Store::findOrFail($id);
+        $request->validate([
+            'name'       => 'required|string|max:255',
+            'ownerEmail' => ['required', 'email'],
+            'rif'        => 'nullable|string|max:20',
+        ]);
+
+        $store->update([
+            'name'        => $request->input('name'),
+            'owner_email' => $request->input('ownerEmail'),
+            'rif'         => $request->input('rif'),
+        ]);
+
+        $adminUser = User::where('tenant_id', $store->id)->where('role', 'ADMIN')->first();
+        if ($adminUser && $adminUser->email !== $request->input('ownerEmail')) {
+            $adminUser->update(['email' => $request->input('ownerEmail')]);
+        }
+
+        return response()->json([
+            'message' => 'Tienda actualizada exitosamente.',
+            'store'   => $store,
+        ]);
     }
 
     public function toggleStatus(Request $request, $id)

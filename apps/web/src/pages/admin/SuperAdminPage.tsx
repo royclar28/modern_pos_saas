@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { api } from '../../lib/api';
 
 interface Store {
     id: string;
@@ -33,8 +34,6 @@ const toast = {
 
 export const SuperAdminPage = () => {
     const navigate = useNavigate();
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001/api';
-    const token = localStorage.getItem('pos_token');
 
     const [stores, setStores] = useState<Store[]>([]);
     const [total, setTotal] = useState(0);
@@ -51,24 +50,27 @@ export const SuperAdminPage = () => {
     const fetchLogs = useCallback(async () => {
         setLoadingLogs(true);
         try {
-            const res = await fetch(`${apiUrl}/logs/laravel`, { headers: { Authorization: `Bearer ${token}` } });
-            const data = await res.json();
+            const data = await api.get<{ logs: string }>('/logs/laravel');
             setLogs(data.logs || 'No hay logs.');
         } catch (e: any) {
-            toast.error('Error fetching logs');
+            if (e.message !== 'Session expired') {
+                toast.error('Error obteniendo logs');
+            }
         } finally {
             setLoadingLogs(false);
         }
-    }, [apiUrl, token]);
+    }, []);
 
     const clearLogs = async () => {
         if (!confirm('¿Seguro que quieres borrar todos los logs de Laravel?')) return;
         try {
-            await fetch(`${apiUrl}/logs/laravel`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+            await api.delete('/logs/laravel');
             toast.success('Logs limpios');
             setLogs('');
         } catch (e: any) {
-            toast.error('Error limpiando logs');
+            if (e.message !== 'Session expired') {
+                toast.error('Error limpiando logs');
+            }
         }
     };
 
@@ -91,47 +93,35 @@ export const SuperAdminPage = () => {
     const fetchStores = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await fetch(`${apiUrl}/saas/stores?take=50`, {
-                headers: { 
-                    Authorization: `Bearer ${token}`,
-                    Accept: 'application/json'
-                }
-            });
-            if (res.status === 403) {
+            const data = await api.get<{ items: Store[]; total: number }>('/saas/stores?take=50');
+            setStores(data.items);
+            setTotal(data.total);
+        } catch (err: any) {
+            if (err.message?.includes('403')) {
                 toast.error('Acceso denegado. Solo SUPER_ADMIN.');
                 navigate('/');
                 return;
             }
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data = await res.json();
-            setStores(data.items);
-            setTotal(data.total);
-        } catch (err: any) {
-            toast.error('Error cargando tiendas: ' + err.message);
+            if (err.message !== 'Session expired') {
+                toast.error('Error cargando tiendas: ' + err.message);
+            }
         } finally {
             setLoading(false);
         }
-    }, [apiUrl, token, navigate]);
+    }, [navigate]);
 
     useEffect(() => { fetchStores(); }, [fetchStores]);
 
     const handleToggle = async (store: Store) => {
         setToggling(store.id);
         try {
-            const res = await fetch(`${apiUrl}/saas/stores/${store.id}/status`, {
-                method: 'PATCH',
-                headers: { 
-                    'Content-Type': 'application/json', 
-                    Authorization: `Bearer ${token}`,
-                    Accept: 'application/json'
-                },
-                body: JSON.stringify({ isActive: !store.isActive })
-            });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            await api.patch(`/saas/stores/${store.id}/status`, { isActive: !store.isActive });
             toast.success(`Tienda "${store.name}" ${!store.isActive ? 'activada' : 'suspendida'}`);
             fetchStores();
         } catch (err: any) {
-            toast.error('Error cambiando estado: ' + err.message);
+            if (err.message !== 'Session expired') {
+                toast.error('Error cambiando estado: ' + err.message);
+            }
         } finally {
             setToggling(null);
         }
@@ -143,28 +133,23 @@ export const SuperAdminPage = () => {
     const handlePlanChange = async (storeId: string, newPlan: string) => {
         if (!confirm(`¿Cambiar plan a ${newPlan}?`)) return;
         try {
-            const res = await fetch(`${apiUrl}/saas/plans/change`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ storeId, plan: newPlan }),
-            });
-            if (!res.ok) throw new Error((await res.json()).message || 'Error');
+            await api.post('/saas/plans/change', { storeId, plan: newPlan });
             toast.success(`Plan cambiado a ${newPlan}`);
             fetchStores();
-        } catch (e: any) { toast.error(e.message); }
+        } catch (e: any) {
+            if (e.message !== 'Session expired') toast.error(e.message);
+        }
     };
 
     const handleDeleteStore = async (storeId: string, storeName: string) => {
         if (!confirm('¿Estás absolutamente seguro de que quieres eliminar la tienda "' + storeName + '"? Esto no se puede deshacer.')) return;
         try {
-            const res = await fetch(`${apiUrl}/saas/stores/${storeId}`, {
-                method: 'DELETE',
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            if (!res.ok) throw new Error('Error al eliminar tienda');
+            await api.delete(`/saas/stores/${storeId}`);
             toast.success(`Tienda ${storeName} eliminada`);
             fetchStores();
-        } catch (e: any) { toast.error(e.message); }
+        } catch (e: any) {
+            if (e.message !== 'Session expired') toast.error(e.message);
+        }
     };
 
     const handleEditClick = (store: Store) => {
@@ -178,21 +163,18 @@ export const SuperAdminPage = () => {
         e.preventDefault();
         if (!editingStore || !editFormName || !editFormEmail) return toast.error('Nombre y correo son obligatorios');
         try {
-            const res = await fetch(`${apiUrl}/saas/stores/${editingStore.id}`, {
-                method: 'PUT',
-                headers: { 
-                    'Content-Type': 'application/json', 
-                    Authorization: `Bearer ${token}`,
-                    Accept: 'application/json'
-                },
-                body: JSON.stringify({ name: editFormName, rif: editFormRif, ownerEmail: editFormEmail })
+            await api.put(`/saas/stores/${editingStore.id}`, {
+                name: editFormName,
+                rif: editFormRif,
+                ownerEmail: editFormEmail,
             });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
             toast.success('Tienda actualizada');
             setEditingStore(null);
             fetchStores();
         } catch (err: any) {
-            toast.error('Error actualizando tienda: ' + err.message);
+            if (err.message !== 'Session expired') {
+                toast.error('Error actualizando tienda: ' + err.message);
+            }
         }
     };
 
@@ -200,15 +182,12 @@ export const SuperAdminPage = () => {
         const days = prompt(`Extender trial de "${storeName}" (1-90 días):`, '15');
         if (!days) return;
         try {
-            const res = await fetch(`${apiUrl}/saas/plans/extend-trial`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ storeId, days: parseInt(days) }),
-            });
-            if (!res.ok) throw new Error((await res.json()).message || 'Error');
+            await api.post('/saas/plans/extend-trial', { storeId, days: parseInt(days) });
             toast.success(`Trial extendido ${days} días`);
             fetchStores();
-        } catch (e: any) { toast.error(e.message); }
+        } catch (e: any) {
+            if (e.message !== 'Session expired') toast.error(e.message);
+        }
     };
 
     const handleCreate = async (e: React.FormEvent) => {
@@ -216,27 +195,34 @@ export const SuperAdminPage = () => {
         if (!formName || !formEmail || !formOwnerName) return toast.error('Nombre, correo y nombre del dueño son obligatorios');
         setCreating(true);
         try {
-            const res = await fetch(`${apiUrl}/saas/stores`, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json', 
-                    Authorization: `Bearer ${token}`,
-                    Accept: 'application/json'
-                },
-                body: JSON.stringify({ name: formName, rif: formRif, ownerEmail: formEmail, ownerName: formOwnerName })
+            const data = await api.post<{
+                message: string;
+                storeId: string;
+                temporaryPassword?: string;
+                emailSent?: boolean;
+            }>('/saas/stores', {
+                name: formName,
+                rif: formRif,
+                ownerEmail: formEmail,
+                ownerName: formOwnerName,
             });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data = await res.json();
-            
+
             if (data.temporaryPassword) {
                 setSuccessModalData({ email: formEmail, temporaryPassword: data.temporaryPassword });
             } else {
                 setSuccessModalData({ email: formEmail });
-                toast.success(`Tienda "${formName}" creada exitosamente`);
+            }
+
+            if (data.emailSent) {
+                toast.success(`Tienda "${formName}" creada y credenciales enviadas por correo.`);
+            } else {
+                toast.success(`Tienda "${formName}" creada con éxito.`);
             }
             setShowModal(false);
         } catch (err: any) {
-            toast.error('Error creando tienda: ' + err.message);
+            if (err.message !== 'Session expired') {
+                toast.error('Error creando tienda: ' + err.message);
+            }
         } finally {
             setCreating(false);
         }

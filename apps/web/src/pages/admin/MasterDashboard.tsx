@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { api } from '../../lib/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface MetricsSummary {
@@ -133,9 +134,6 @@ const PlanBadge = ({ plan }: { plan: string }) => {
 
 // ─── Master Dashboard ─────────────────────────────────────────────────────────
 export const MasterDashboard = () => {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001/api';
-    const token  = localStorage.getItem('pos_token');
-
     const [data, setData]       = useState<MetricsData | null>(null);
     const [loading, setLoading] = useState(true);
     const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -148,24 +146,27 @@ export const MasterDashboard = () => {
     const fetchLogs = useCallback(async () => {
         setLoadingLogs(true);
         try {
-            const res = await fetch(`${apiUrl}/logs/laravel`, { headers: { Authorization: `Bearer ${token}` } });
-            const data = await res.json();
+            const data = await api.get<{ logs: string }>('/logs/laravel');
             setLogs(data.logs || 'No hay logs.');
         } catch (e: any) {
-            toast.error('Error fetching logs');
+            if (e.message !== 'Session expired') {
+                toast.error('Error fetching logs');
+            }
         } finally {
             setLoadingLogs(false);
         }
-    }, [apiUrl, token]);
+    }, []);
 
     const clearLogs = async () => {
         if (!confirm('¿Seguro que quieres borrar todos los logs de Laravel?')) return;
         try {
-            await fetch(`${apiUrl}/logs/laravel`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+            await api.delete('/logs/laravel');
             toast.success('Logs limpios');
             setLogs('');
         } catch (e: any) {
-            toast.error('Error limpiando logs');
+            if (e.message !== 'Session expired') {
+                toast.error('Error limpiando logs');
+            }
         }
     };
 
@@ -175,19 +176,17 @@ export const MasterDashboard = () => {
 
     const fetchMetrics = useCallback(async () => {
         try {
-            const res = await fetch(`${apiUrl}/saas/metrics`, {
-                headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-            });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const json: MetricsData = await res.json();
+            const json = await api.get<MetricsData>('/saas/metrics');
             setData(json);
             setLastUpdated(new Date());
         } catch (err: any) {
-            toast.error('Error cargando métricas: ' + err.message);
+            if (err.message !== 'Session expired') {
+                toast.error('Error cargando métricas: ' + err.message);
+            }
         } finally {
             setLoading(false);
         }
-    }, [apiUrl, token]);
+    }, []);
 
     useEffect(() => {
         fetchMetrics();

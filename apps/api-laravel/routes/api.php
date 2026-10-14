@@ -160,6 +160,7 @@ Route::middleware(['auth:sanctum', 'trial', 'touch.session'])->group(function ()
         // SaaS routes (gestión de tiendas)
         Route::get('/saas/stores', [\App\Http\Controllers\Api\SaasController::class, 'index']);
         Route::post('/saas/stores', [\App\Http\Controllers\Api\SaasController::class, 'createStore']);
+        Route::put('/saas/stores/{id}', [\App\Http\Controllers\Api\SaasController::class, 'updateStore']);
         Route::patch('/saas/stores/{id}/status', [\App\Http\Controllers\Api\SaasController::class, 'toggleStatus']);
     });
 

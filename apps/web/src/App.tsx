@@ -107,7 +107,7 @@ const Dashboard = () => {
                 });
             }
         }
-    }, [items.length, isLoading, isHydrating, user?.id, hydrateLocalDB]);
+    }, [items.length, isLoading, isHydrating, user?.sub, hydrateLocalDB]);
 
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 

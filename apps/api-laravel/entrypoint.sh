@@ -35,15 +35,22 @@ php artisan route:cache
 php artisan view:cache
 
 echo ""
-echo "🚀 Arrancando FrankenPHP Octane en http://0.0.0.0:8000"
-echo "   Workers: auto | Server: frankenphp"
 echo "═══════════════════════════════════════════════"
 
-# ── Iniciar servidor de producción ────────────────────────────────────
-exec php artisan octane:start \
-    --server=frankenphp \
-    --host=0.0.0.0 \
-    --port=8000 \
-    --workers=1 \
-    --max-requests=250 \
-    --no-interaction
+# ── Iniciar servidor ──────────────────────────────────────────────────
+if php artisan list | grep -q "octane:start"; then
+    echo "🚀 Arrancando FrankenPHP Octane en http://0.0.0.0:8000"
+    echo "   Workers: auto | Server: frankenphp"
+    echo "═══════════════════════════════════════════════"
+    exec php artisan octane:start \
+        --server=frankenphp \
+        --host=0.0.0.0 \
+        --port=8000 \
+        --workers=1 \
+        --max-requests=250 \
+        --no-interaction
+else
+    echo "🚀 Arrancando Laravel Serve en http://0.0.0.0:8000"
+    echo "═══════════════════════════════════════════════"
+    exec php artisan serve --host=0.0.0.0 --port=8000
+fi

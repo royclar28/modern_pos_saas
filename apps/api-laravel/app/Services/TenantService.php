@@ -7,9 +7,12 @@ namespace App\Services;
 use App\Models\Category;
 use App\Models\Store;
 use App\Models\User;
+use App\Mail\TenantCredentialsMail;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 
@@ -29,11 +32,13 @@ class TenantService
      *
      * @param  array   $data   Requiere: name, ownerEmail, ownerName (opcional), plan (opcional), rif (opcional)
      * @param  bool    $sendWelcomeEmail  Si es true, envía TenantCredentialsMail
-     * @return array   ['store' => Store, 'user' => User, 'token' => ?string]
+     * @return array   ['store' => Store, 'user' => User, 'token' => ?string, 'temporaryPassword' => string, 'emailSent' => bool]
      */
-    public function createTenant(array $data, bool $sendWelcomeEmail = false): array
+    public function createTenant(array $data, bool $sendWelcomeEmail = true): array
     {
-        return DB::transaction(function () use ($data, $sendWelcomeEmail) {
+        $plainPassword = Str::password(12, symbols: false);
+
+        $result = DB::transaction(function () use ($data, $plainPassword) {
             // ── 1. Store ──────────────────────────────────────
             $store = Store::create([
                 'id'            => (string) Str::uuid(),
@@ -52,17 +57,13 @@ class TenantService
 
             $nameParts = explode(' ', trim($ownerName), 2);
 
-            $password = $sendWelcomeEmail
-                ? Hash::make(Str::random(40)) // hash inaccesible — solo vía reset
-                : Hash::make(Str::password(12, symbols: false));
-
             $user = User::create([
                 'tenant_id'  => $store->id,
                 'first_name' => $nameParts[0],
                 'last_name'  => $nameParts[1] ?? '',
                 'email'      => $data['ownerEmail'],
                 'username'   => $data['username'] ?? explode('@', $data['ownerEmail'])[0],
-                'password'   => $password,
+                'password'   => Hash::make($plainPassword),
                 'role'       => 'ADMIN',
             ]);
 
@@ -83,17 +84,34 @@ class TenantService
                 ]);
             }
 
-            // ── 4. Token de configuración (solo si envía email)
-            $token = null;
-            if ($sendWelcomeEmail) {
-                $token = Password::broker()->createToken($user);
-            }
+            // ── 4. Token de configuración ─────────────────────
+            $token = Password::broker()->createToken($user);
 
             return [
-                'store' => $store,
-                'user'  => $user,
-                'token' => $token,
+                'store'             => $store,
+                'user'              => $user,
+                'token'             => $token,
+                'temporaryPassword' => $plainPassword,
             ];
         });
+
+        // ── 5. Enviar correo con credenciales ─────────────────
+        $emailSent = false;
+        if ($sendWelcomeEmail) {
+            try {
+                Mail::to($result['user']->email)->send(
+                    new TenantCredentialsMail($result['user'], $result['token'], $result['temporaryPassword'])
+                );
+                $emailSent = true;
+                Log::info("Correo de credenciales enviado con éxito a: {$result['user']->email}");
+            } catch (\Throwable $e) {
+                Log::error("Fallo al enviar correo de credenciales a {$result['user']->email}: " . $e->getMessage());
+                $result['emailError'] = $e->getMessage();
+            }
+        }
+
+        $result['emailSent'] = $emailSent;
+
+        return $result;
     }
 }

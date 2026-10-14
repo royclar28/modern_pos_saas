@@ -26,7 +26,10 @@
             <p style="margin: 0 0 8px 0; font-size: 0.95em;">Resumen de tu cuenta:</p>
             <ul style="list-style-type: none; padding: 0; margin: 0;">
                 <li style="margin-bottom: 6px;"><strong>Usuario:</strong> {{ $user->username }}</li>
-                <li><strong>Correo electrónico:</strong> {{ $user->email }}</li>
+                <li style="margin-bottom: 6px;"><strong>Correo electrónico:</strong> {{ $user->email }}</li>
+                @if(!empty($temporaryPassword))
+                <li style="margin-top: 8px;"><strong>Contraseña temporal:</strong> <code style="background-color: #e2e8f0; color: #1e293b; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 1.05em;">{{ $temporaryPassword }}</code></li>
+                @endif
             </ul>
         </div>
 
