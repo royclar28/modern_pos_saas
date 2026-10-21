@@ -7,6 +7,7 @@ import {
     Store, ShoppingCart, Gift, Settings2
 } from 'lucide-react';
 import { ThemeManager } from '../../components/themes/ThemeManager';
+import { GLOBAL_SEASONAL_THEME } from '../../config/theme';
 
 // ── Carrusel de screenshots ───────────────────────────────────────────────────
 const screenshots = [
@@ -97,12 +98,24 @@ export const LandingPage: React.FC = () => {
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-sans flex flex-col">
             <ThemeManager />
 
+            {/* ── Banner Especial de Temporada (Halloween) ──────────────────── */}
+            {GLOBAL_SEASONAL_THEME === 'halloween' && (
+                <div className="bg-gradient-to-r from-orange-600 via-amber-600 to-purple-800 text-white text-center py-2.5 px-4 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-sm border-b border-orange-500/30">
+                    <span className="text-base animate-bounce">🎃</span>
+                    <span>¡Especial de Halloween en MerxPOS! Moderniza tu negocio hoy y olvídate de las pesadillas con la caja.</span>
+                    <span className="hidden md:inline bg-black/30 text-orange-200 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border border-orange-400/30">30 días de prueba gratis</span>
+                    <span className="text-base">👻</span>
+                </div>
+            )}
+
             {/* ── Navbar ──────────────────────────────────────────────────── */}
             <header className="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
                 <div className="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto w-full">
                     <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center text-white font-black text-lg shadow-md">M</div>
-                        <span className="text-xl font-black tracking-tight text-slate-900 dark:text-white">MerxPOS</span>
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 via-amber-600 to-purple-600 flex items-center justify-center text-white font-black text-lg shadow-md">M</div>
+                        <span className="text-xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-1.5">
+                            MerxPOS {GLOBAL_SEASONAL_THEME === 'halloween' && <span title="Edición Halloween" className="text-lg">🎃</span>}
+                        </span>
                     </div>
                     <nav className="flex items-center gap-3">
                         {isAuthenticated ? (
@@ -129,12 +142,18 @@ export const LandingPage: React.FC = () => {
                 <section className="py-16 md:py-24 max-w-7xl mx-auto px-6 flex flex-col lg:flex-row items-center gap-14">
                     {/* Text */}
                     <div className="flex-1 text-center lg:text-left">
-                        <div className="inline-block px-4 py-1.5 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 font-bold text-sm mb-6 border border-violet-200 dark:border-violet-800">
-                            🚀 El POS hecho para Venezuela y Latinoamérica
-                        </div>
+                        {GLOBAL_SEASONAL_THEME === 'halloween' ? (
+                            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300 font-bold text-sm mb-6 border border-orange-300 dark:border-orange-800 shadow-sm shadow-orange-500/10">
+                                <span>🎃</span> Especial de Halloween · El Punto de Venta sin pesadillas 👻
+                            </div>
+                        ) : (
+                            <div className="inline-block px-4 py-1.5 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 font-bold text-sm mb-6 border border-violet-200 dark:border-violet-800">
+                                🚀 El POS hecho para Venezuela y Latinoamérica
+                            </div>
+                        )}
                         <h1 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tight text-slate-900 dark:text-white mb-6 leading-tight">
                             El Punto de Venta diseñado para el{' '}
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-indigo-500">comercio local.</span>
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 via-amber-500 to-purple-600">comercio local.</span>
                         </h1>
                         <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 mb-10 max-w-2xl mx-auto lg:mx-0">
                             Cobra en Dólares, Pago Móvil o Zelle en el mismo ticket, con la{' '}

@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '../contexts/AuthProvider';
+import { GLOBAL_SEASONAL_THEME } from '../config/theme';
 
 // ─── Inline toast ───────────────────────────────────────────
 const showToast = (msg: string, type: 'success' | 'error') => {
@@ -117,13 +118,27 @@ export const LoginPage = () => {
             {/* Lado Izquierdo (Branding) */}
             <div className="flex flex-col justify-center items-center lg:items-start lg:w-1/2 p-10 lg:p-20 bg-gradient-to-br from-[var(--color-primary,#4f46e5)] via-[color-mix(in_srgb,var(--color-primary,#4f46e5),#000_20%)] to-[color-mix(in_srgb,var(--color-primary,#4f46e5),#065f46_40%)] text-white shrink-0 relative overflow-hidden">
                 <div className="absolute inset-0 bg-black/10 z-0"></div>
+                {GLOBAL_SEASONAL_THEME === 'halloween' && (
+                    <div className="absolute top-4 left-4 text-orange-300/40 pointer-events-none select-none text-5xl">
+                        🕸️
+                    </div>
+                )}
                 <div className="max-w-xl text-center lg:text-left relative z-10 w-full">
+                    {GLOBAL_SEASONAL_THEME === 'halloween' && (
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/35 border border-orange-400/40 text-orange-200 text-xs font-semibold mb-4 backdrop-blur-sm">
+                            <span>🎃</span>
+                            <span>Edición Halloween</span>
+                            <span>👻</span>
+                        </div>
+                    )}
                     <div className="w-16 h-16 bg-white/10 rounded-2xl backdrop-blur-md mb-8 flex items-center justify-center border border-white/20 mx-auto lg:mx-0 shadow-xl">
-                        <span className="text-3xl">📦</span>
+                        <span className="text-3xl">{GLOBAL_SEASONAL_THEME === 'halloween' ? '🎃' : '📦'}</span>
                     </div>
                     <h1 className="text-5xl lg:text-7xl font-black mb-6 tracking-tight drop-shadow-sm">{storeName}</h1>
                     <p className="text-xl lg:text-3xl font-light text-white/80 leading-snug drop-shadow-sm max-w-lg">
-                        El punto de venta inteligente que transforma tu negocio.
+                        {GLOBAL_SEASONAL_THEME === 'halloween'
+                            ? 'El punto de venta inteligente que transforma tu negocio (sin pesadillas a fin de mes 👻).'
+                            : 'El punto de venta inteligente que transforma tu negocio.'}
                     </p>
                 </div>
             </div>
@@ -132,7 +147,10 @@ export const LoginPage = () => {
             <div className="flex flex-col justify-center items-center lg:w-1/2 p-6 sm:p-12 bg-slate-50 dark:bg-slate-900 w-full relative transition-colors">
                 <div className="w-full max-w-md bg-white dark:bg-slate-800 shadow-2xl rounded-3xl p-8 sm:p-10 border-0 dark:border dark:border-slate-700">
                     <div className="mb-10 text-center lg:text-left">
-                        <h2 className="text-3xl font-black text-slate-800 dark:text-white mb-2">Bienvenido</h2>
+                        <h2 className="text-3xl font-black text-slate-800 dark:text-white mb-2 flex items-center justify-center lg:justify-start gap-2">
+                            <span>Bienvenido</span>
+                            {GLOBAL_SEASONAL_THEME === 'halloween' && <span className="text-2xl animate-pulse">🎃</span>}
+                        </h2>
                         <p className="text-slate-500 dark:text-slate-400 font-medium">Ingresa tus credenciales para acceder</p>
                     </div>
 
