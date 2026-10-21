@@ -1,10 +1,9 @@
-export type ThemeType = 'none' | 'worldcup' | 'christmas';
+export type ThemeType = 'none' | 'worldcup' | 'christmas' | 'halloween';
 
 /**
  * CONFIGURACIÓN DE TEMA ESTACIONAL GLOBAL
  * Cambia este valor para activar la decoración en todo el sistema.
  * 
- * En diciembre, puedes cambiar esto a 'christmas' y crear un componente
- * nuevo para navidad de forma sencilla.
+ * Opciones disponibles: 'none' | 'halloween' | 'christmas' | 'worldcup'
  */
-export const GLOBAL_SEASONAL_THEME: ThemeType = 'worldcup';
+export const GLOBAL_SEASONAL_THEME: ThemeType = 'halloween';

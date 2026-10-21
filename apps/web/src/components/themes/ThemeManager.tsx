@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { GLOBAL_SEASONAL_THEME, ThemeType } from '../../config/theme';
 import { WorldCupTheme } from './WorldCupTheme';
+import { HalloweenTheme } from './HalloweenTheme';
 
 /**
  * Gestor de Temas
@@ -11,37 +12,41 @@ export const ThemeManager: React.FC = () => {
     const [activeTheme, setActiveTheme] = useState<ThemeType>('none');
 
     useEffect(() => {
-        // Revisar si hay una anulación local (opción guardada en Settings)
-        const localOverride = localStorage.getItem('pos_seasonal_theme_override');
-        
-        if (localOverride === 'disabled') {
-            setActiveTheme('none');
-        } else {
-            setActiveTheme(GLOBAL_SEASONAL_THEME);
-        }
-        
-        // Escuchar cambios (por si el usuario lo desactiva en Ajustes)
-        const handleStorageChange = () => {
-            const override = localStorage.getItem('pos_seasonal_theme_override');
-            if (override === 'disabled') {
+        const updateTheme = () => {
+            const localOverride = localStorage.getItem('pos_seasonal_theme_override');
+            if (localOverride === 'disabled') {
                 setActiveTheme('none');
             } else {
                 setActiveTheme(GLOBAL_SEASONAL_THEME);
             }
         };
 
-        window.addEventListener('storage', handleStorageChange);
-        window.addEventListener('pos_theme_changed', handleStorageChange);
-        
+        updateTheme();
+
+        window.addEventListener('storage', updateTheme);
+        window.addEventListener('pos_theme_changed', updateTheme);
+
         return () => {
-            window.removeEventListener('storage', handleStorageChange);
-            window.removeEventListener('pos_theme_changed', handleStorageChange);
+            window.removeEventListener('storage', updateTheme);
+            window.removeEventListener('pos_theme_changed', updateTheme);
         };
     }, []);
 
-    // Renderizar el componente adecuado según la constante
-    
-    // Aquí puedes agregar más casos para 'christmas', 'halloween', etc. en el futuro.
+    // Renderizar según el tema estacional activo
+    if (activeTheme === 'halloween') {
+        return <HalloweenTheme isEnabled={true} />;
+    }
 
-    return null; // Sin decoraciones
+    // Si globalmente está activo Halloween pero este terminal lo desactivó,
+    // mostramos el botón discreto para permitir volver a activarlo cuando desee.
+    if (GLOBAL_SEASONAL_THEME === 'halloween' && activeTheme === 'none') {
+        return <HalloweenTheme isEnabled={false} />;
+    }
+
+    if (activeTheme === 'worldcup') {
+        return <WorldCupTheme />;
+    }
+
+    return null;
 };
+
