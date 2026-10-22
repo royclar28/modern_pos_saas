@@ -3,7 +3,7 @@
 # Imagen base: dunglas/frankenphp (Alpine, PHP 8.4)
 # Servidor: FrankenPHP vía Laravel Octane (sin Nginx, sin FPM)
 # ══════════════════════════════════════════════════════════════════════
-FROM dunglas/frankenphp:php8.4-alpine
+FROM dunglas/frankenphp:1-php8.4-alpine
 
 # ── Variables de entorno de producción ────────────────────────────────
 ENV APP_ENV=production \

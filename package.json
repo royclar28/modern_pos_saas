@@ -11,5 +11,11 @@
     "devDependencies": {
         "turbo": "latest",
         "typescript": "latest"
+    },
+    "pnpm": {
+        "overrides": {
+            "serialize-javascript": ">=7.0.5",
+            "postcss-selector-parser": ">=7.1.6"
+        }
     }
 }

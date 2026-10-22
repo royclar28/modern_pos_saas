@@ -14,7 +14,7 @@ RUN pnpm install
 RUN cd apps/web && pnpm build
 
 # ETAPA 2: Servidor de Producción (Nginx)
-FROM nginx:alpine
+FROM nginx:1.27-alpine
 
 # Copiamos los archivos estáticos ya compilados a Nginx
 COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
