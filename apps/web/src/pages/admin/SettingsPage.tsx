@@ -14,6 +14,7 @@ import { useSettingsContext as useSettings } from '../../contexts/SettingsProvid
 import { useHighVisibility } from '../../hooks/useHighVisibility';
 import { useFiscalPrinter } from '../../hooks/useFiscalPrinter';
 import { AppHeader } from '../../components/AppHeader';
+import { BUSINESS_TYPES_LIST } from '../../lib/businessTypes';
 
 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001/api';
 const token = () => localStorage.getItem('pos_token');
@@ -94,9 +95,9 @@ export const SettingsPage = () => {
     };
 
     // Global settings form
-    const [globalForm, setGlobalForm] = useState({ company: '', currency_symbol: '', default_tax_rate: '', timezone: '', primaryColor: '#7C3AED', enable_credit_sales: 'false' });
+    const [globalForm, setGlobalForm] = useState({ company: '', business_type: 'MINIMARKET', currency_symbol: '', default_tax_rate: '', timezone: '', primaryColor: '#7C3AED', enable_credit_sales: 'false' });
     useEffect(() => {
-        if (raw) setGlobalForm({ company: raw.company || '', currency_symbol: raw.currency_symbol || '$', default_tax_rate: String(raw.default_tax_rate ?? 16), timezone: raw.timezone || 'America/Caracas', primaryColor: raw.primaryColor || '#7C3AED', enable_credit_sales: raw.enable_credit_sales || 'false' });
+        if (raw) setGlobalForm({ company: raw.company || '', business_type: (raw as any).business_type || 'MINIMARKET', currency_symbol: raw.currency_symbol || '$', default_tax_rate: String(raw.default_tax_rate ?? 16), timezone: raw.timezone || 'America/Caracas', primaryColor: raw.primaryColor || '#7C3AED', enable_credit_sales: raw.enable_credit_sales || 'false' });
     }, [raw]);
 
     const [isSavingGlobal, setIsSavingGlobal] = useState(false);
@@ -235,6 +236,20 @@ export const SettingsPage = () => {
                                             </Field>
                                             <Field label="Nombre del Negocio" hint="Aparece en tickets y la interfaz">
                                                 <input id="company-name-input" type="text" value={globalForm.company} onChange={e => setGlobalForm(f => ({ ...f, company: e.target.value }))} className={inputClass} />
+                                            </Field>
+                                            <Field label="Tipo de Negocio / Rubro" hint="Adapta sugerencias y plantillas a tu comercio">
+                                                <select
+                                                    id="business-type-select"
+                                                    value={globalForm.business_type}
+                                                    onChange={e => setGlobalForm(f => ({ ...f, business_type: e.target.value }))}
+                                                    className={inputClass}
+                                                >
+                                                    {BUSINESS_TYPES_LIST.map(bt => (
+                                                        <option key={bt.code} value={bt.code}>
+                                                            {bt.icon} {bt.label}
+                                                        </option>
+                                                    ))}
+                                                </select>
                                             </Field>
                                             <Field label="Zona Horaria" hint="Afecta el cálculo de fechas">
                                                 <input id="timezone-input" type="text" value={globalForm.timezone} onChange={e => setGlobalForm(f => ({ ...f, timezone: e.target.value }))} placeholder="America/Caracas" className={inputClass} />

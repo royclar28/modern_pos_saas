@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
+import { BUSINESS_TYPES_LIST, getBusinessTypeInfo } from '../../lib/businessTypes';
 
 interface Store {
     id: string;
     name: string;
+    businessType?: string;
     rif: string | null;
     ownerEmail: string | null;
     plan: string;
@@ -80,6 +82,7 @@ export const SuperAdminPage = () => {
 
     // Form state
     const [formName, setFormName] = useState('');
+    const [formBusinessType, setFormBusinessType] = useState('MINIMARKET');
     const [formRif, setFormRif] = useState('');
     const [formEmail, setFormEmail] = useState('');
     const [formOwnerName, setFormOwnerName] = useState('');
@@ -87,6 +90,7 @@ export const SuperAdminPage = () => {
 
     const [editingStore, setEditingStore] = useState<Store | null>(null);
     const [editFormName, setEditFormName] = useState('');
+    const [editFormBusinessType, setEditFormBusinessType] = useState('MINIMARKET');
     const [editFormRif, setEditFormRif] = useState('');
     const [editFormEmail, setEditFormEmail] = useState('');
 
@@ -155,6 +159,7 @@ export const SuperAdminPage = () => {
     const handleEditClick = (store: Store) => {
         setEditingStore(store);
         setEditFormName(store.name);
+        setEditFormBusinessType(store.businessType || 'MINIMARKET');
         setEditFormRif(store.rif || '');
         setEditFormEmail(store.ownerEmail || '');
     };
@@ -165,6 +170,7 @@ export const SuperAdminPage = () => {
         try {
             await api.put(`/saas/stores/${editingStore.id}`, {
                 name: editFormName,
+                businessType: editFormBusinessType,
                 rif: editFormRif,
                 ownerEmail: editFormEmail,
             });
@@ -202,6 +208,7 @@ export const SuperAdminPage = () => {
                 emailSent?: boolean;
             }>('/saas/stores', {
                 name: formName,
+                businessType: formBusinessType,
                 rif: formRif,
                 ownerEmail: formEmail,
                 ownerName: formOwnerName,
@@ -305,6 +312,7 @@ export const SuperAdminPage = () => {
                                 <thead>
                                     <tr className="bg-slate-50 border-b border-slate-200 text-[10px] uppercase tracking-wider text-slate-500 font-bold">
                                         <th className="px-4 sm:px-6 py-4">Nombre</th>
+                                        <th className="px-4 sm:px-6 py-4">Rubro</th>
                                         <th className="px-4 sm:px-6 py-4 hidden sm:table-cell">RIF</th>
                                         <th className="px-4 sm:px-6 py-4 hidden md:table-cell">Correo Dueño</th>
                                         <th className="px-4 sm:px-6 py-4">Plan</th>
@@ -314,12 +322,20 @@ export const SuperAdminPage = () => {
                                 </thead>
                                 <tbody className="divide-y divide-slate-100 text-sm">
                                     {loading ? (
-                                        <tr><td colSpan={6} className="text-center py-12 text-slate-400">Cargando tiendas...</td></tr>
+                                        <tr><td colSpan={7} className="text-center py-12 text-slate-400">Cargando tiendas...</td></tr>
                                     ) : stores.length === 0 ? (
-                                        <tr><td colSpan={6} className="text-center py-12 text-slate-400">No hay tiendas registradas aún</td></tr>
-                                    ) : stores.map(store => (
+                                        <tr><td colSpan={7} className="text-center py-12 text-slate-400">No hay tiendas registradas aún</td></tr>
+                                    ) : stores.map(store => {
+                                        const btInfo = getBusinessTypeInfo(store.businessType);
+                                        return (
                                         <tr key={store.id} className="hover:bg-slate-50 transition-colors group">
                                             <td className="px-4 sm:px-6 py-4 font-semibold text-slate-800">{store.name}</td>
+                                            <td className="px-4 sm:px-6 py-4">
+                                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100 whitespace-nowrap">
+                                                    <span>{btInfo.icon}</span>
+                                                    <span>{btInfo.shortLabel}</span>
+                                                </span>
+                                            </td>
                                             <td className="px-4 sm:px-6 py-4 text-slate-500 font-mono text-xs hidden sm:table-cell">{store.rif || '-'}</td>
                                             <td className="px-4 sm:px-6 py-4 text-slate-500 text-xs hidden md:table-cell">{store.ownerEmail || '-'}</td>
                                             <td className="px-4 sm:px-6 py-4">
@@ -377,7 +393,8 @@ export const SuperAdminPage = () => {
                                                 </div>
                                             </td>
                                         </tr>
-                                    ))}
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
@@ -396,23 +413,31 @@ export const SuperAdminPage = () => {
                         <form onSubmit={handleCreate} className="p-6 space-y-4">
                             <div className="space-y-1">
                                 <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Nombre del Negocio *</label>
-                                <input value={formName} onChange={e => setFormName(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none" placeholder="Ej: Bodegón El Dorado" />
+                                <input value={formName} onChange={e => setFormName(e.target.value)} className="w-full px-3 py-2 bg-white text-slate-800 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none" placeholder="Ej: Bodegón El Dorado" />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Tipo de Negocio / Rubro *</label>
+                                <select value={formBusinessType} onChange={e => setFormBusinessType(e.target.value)} className="w-full px-3 py-2 bg-white text-slate-800 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none">
+                                    {BUSINESS_TYPES_LIST.map(bt => (
+                                        <option key={bt.code} value={bt.code}>{bt.icon} {bt.label}</option>
+                                    ))}
+                                </select>
                             </div>
                             <div className="space-y-1">
                                 <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Nombre del Dueño *</label>
-                                <input value={formOwnerName} onChange={e => setFormOwnerName(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none" placeholder="Ej: Juan Pérez" />
+                                <input value={formOwnerName} onChange={e => setFormOwnerName(e.target.value)} className="w-full px-3 py-2 bg-white text-slate-800 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none" placeholder="Ej: Juan Pérez" />
                             </div>
                             <div className="space-y-1">
                                 <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">RIF / Documento</label>
-                                <input value={formRif} onChange={e => setFormRif(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none" placeholder="Ej: J-12345678-9" />
+                                <input value={formRif} onChange={e => setFormRif(e.target.value)} className="w-full px-3 py-2 bg-white text-slate-800 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none" placeholder="Ej: J-12345678-9" />
                             </div>
                             <div className="space-y-1">
                                 <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Correo del Dueño *</label>
-                                <input type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none" placeholder="dueno@ejemplo.com" />
+                                <input type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} className="w-full px-3 py-2 bg-white text-slate-800 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none" placeholder="dueno@ejemplo.com" />
                             </div>
                             <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-800 font-medium flex items-start gap-2">
                                 <span className="text-base leading-none">💡</span>
-                                <div>Se generará un usuario automáticamente con el correo como login y una clave temporal enviada por correo.</div>
+                                <div>Se generará un usuario automáticamente con el correo como login, las categorías de su rubro y una clave temporal enviada por correo.</div>
                             </div>
                             <div className="flex justify-end gap-3 pt-2">
                                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800 transition-colors">Cancelar</button>
@@ -436,15 +461,23 @@ export const SuperAdminPage = () => {
                         <form onSubmit={handleUpdateStore} className="p-6 space-y-4">
                             <div className="space-y-1">
                                 <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Nombre del Negocio *</label>
-                                <input value={editFormName} onChange={e => setEditFormName(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none" />
+                                <input value={editFormName} onChange={e => setEditFormName(e.target.value)} className="w-full px-3 py-2 bg-white text-slate-800 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none" />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Tipo de Negocio / Rubro *</label>
+                                <select value={editFormBusinessType} onChange={e => setEditFormBusinessType(e.target.value)} className="w-full px-3 py-2 bg-white text-slate-800 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none">
+                                    {BUSINESS_TYPES_LIST.map(bt => (
+                                        <option key={bt.code} value={bt.code}>{bt.icon} {bt.label}</option>
+                                    ))}
+                                </select>
                             </div>
                             <div className="space-y-1">
                                 <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">RIF / Documento</label>
-                                <input value={editFormRif} onChange={e => setEditFormRif(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none" />
+                                <input value={editFormRif} onChange={e => setEditFormRif(e.target.value)} className="w-full px-3 py-2 bg-white text-slate-800 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none" />
                             </div>
                             <div className="space-y-1">
                                 <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Correo del Dueño *</label>
-                                <input type="email" value={editFormEmail} onChange={e => setEditFormEmail(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none" />
+                                <input type="email" value={editFormEmail} onChange={e => setEditFormEmail(e.target.value)} className="w-full px-3 py-2 bg-white text-slate-800 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none" />
                             </div>
                             <div className="flex justify-end gap-3 pt-2">
                                 <button type="button" onClick={() => setEditingStore(null)} className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800 transition-colors">Cancelar</button>

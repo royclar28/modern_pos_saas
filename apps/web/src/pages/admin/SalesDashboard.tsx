@@ -8,6 +8,7 @@ import { SaleDocType } from '../../db/schemas/sale.schema';
 import { Receipt } from '../../components/Receipt';
 import { AppHeader } from '../../components/AppHeader';
 import { useSettingsContext } from '../../contexts/SettingsProvider';
+import { openWhatsAppReceipt } from '../../lib/whatsappReceipt';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -208,7 +209,29 @@ export const SalesDashboard = () => {
     }, [allSales]);
 
     const isToday = selectedDate === todayStr();
-    const { currencySymbol } = useSettingsContext();
+    const { currencySymbol, company } = useSettingsContext();
+
+    // ── Handle WhatsApp share from ticket history ───────────────
+    const handleWhatsAppShare = async (sale: SaleDocType) => {
+        let defaultPhone = '';
+        let customerName: string | undefined = undefined;
+        if (sale.customerId) {
+            try {
+                const cust = await db.customers.get(sale.customerId);
+                if (cust) {
+                    defaultPhone = cust.phoneNumber || '';
+                    const full = [cust.firstName, cust.lastName].filter(Boolean).join(' ').trim();
+                    if (full) customerName = full;
+                }
+            } catch {}
+        }
+        const phone = window.prompt('Número de WhatsApp del cliente (ej. 04121234567):', defaultPhone);
+        if (!phone) return;
+        const ok = openWhatsAppReceipt(phone, sale, company, exchangeRate, customerName);
+        if (!ok) {
+            window.alert('Número de teléfono inválido.');
+        }
+    };
 
     // ── CSV Export ───────────────────────────────────────────
     const exportCSV = () => {
@@ -464,6 +487,11 @@ export const SalesDashboard = () => {
                                                     <td className="px-5 py-3.5 text-center">
                                                         <div className="flex items-center justify-center gap-1.5">
                                                             <button
+                                                                onClick={() => handleWhatsAppShare(sale)}
+                                                                className="text-[10px] font-bold bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 px-2 py-1 rounded-lg transition-colors"
+                                                                title="Enviar ticket por WhatsApp"
+                                                            >📲</button>
+                                                            <button
                                                                 onClick={() => handleReprint(sale)}
                                                                 className="text-[10px] font-bold bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-200 px-2 py-1 rounded-lg transition-colors"
                                                                 title="Reimprimir ticket"
@@ -589,6 +617,12 @@ export const SalesDashboard = () => {
                     </p>
                 </div>
             </main>
+
+            {reprintSale && (
+                <div className="hidden print:block fixed inset-0 bg-white z-50">
+                    <Receipt sale={reprintSale} />
+                </div>
+            )}
         </div>
     );
 };

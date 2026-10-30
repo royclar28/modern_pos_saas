@@ -13,6 +13,8 @@ import { Link } from 'react-router-dom';
 import { InvoiceScannerModal, ScannedProduct } from '../../components/InvoiceScannerModal';
 import { AppHeader } from '../../components/AppHeader';
 import { api } from '../../lib/api';
+import { useSettingsContext } from '../../contexts/SettingsProvider';
+import { getBusinessTypeInfo, seedDemoProductsForTenant } from '../../lib/businessTypes';
 
 // ─── Zod Schema for Validation ──────────────────────────────────────────────
 const parseNumberVal = (val: unknown) => {
@@ -543,10 +545,12 @@ export const InventoryPage = () => {
     const { items, isLoading } = useItems();
     const { hydrateLocalDB, isHydrating } = useInitialSync();
     const { user } = useAuth();
+    const { businessType } = useSettingsContext();
     const tenantId = user?.storeId || 'default-store';
 
     const [search, setSearch] = useState('');
     const [modalItem, setModalItem] = useState<ItemDocType | null | 'NEW'>(null);
+    const [isSeedingDemo, setIsSeedingDemo] = useState(false);
 
     // Scanner state
     const [scannedProducts, setScannedProducts] = useState<ScannedProduct[] | null>(null);
@@ -816,7 +820,39 @@ export const InventoryPage = () => {
                                     ) : filtered.length === 0 ? (
                                         <tr>
                                             <td colSpan={7} className="text-center py-12 text-slate-400 dark:text-slate-500 font-medium">
-                                                Ningún producto encontrado
+                                                {items.length === 0 && !search ? (
+                                                    <div className="max-w-md mx-auto space-y-3">
+                                                        <p className="text-slate-600 dark:text-slate-300 font-bold text-base">
+                                                            Tu inventario aún está vacío
+                                                        </p>
+                                                        <p className="text-xs text-slate-400">
+                                                            Puedes crear tu primer producto, escanear una factura con IA o cargar 5 productos de ejemplo para{' '}
+                                                            <strong className="text-violet-600 dark:text-violet-400">
+                                                                {getBusinessTypeInfo(businessType).icon} {getBusinessTypeInfo(businessType).shortLabel}
+                                                            </strong>.
+                                                        </p>
+                                                        <button
+                                                            type="button"
+                                                            disabled={isSeedingDemo}
+                                                            onClick={async () => {
+                                                                setIsSeedingDemo(true);
+                                                                try {
+                                                                    const count = await seedDemoProductsForTenant(businessType, tenantId);
+                                                                    toast.success(`¡${count} productos de ejemplo cargados!`);
+                                                                } catch {
+                                                                    toast.error('Error al cargar productos de ejemplo');
+                                                                } finally {
+                                                                    setIsSeedingDemo(false);
+                                                                }
+                                                            }}
+                                                            className="mt-2 inline-flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 active:scale-95 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md transition-all disabled:opacity-50"
+                                                        >
+                                                            {isSeedingDemo ? '⏳ Cargando...' : '✨ Cargar 5 Productos de Ejemplo de mi Rubro'}
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    'Ningún producto encontrado'
+                                                )}
                                             </td>
                                         </tr>
                                     ) : (

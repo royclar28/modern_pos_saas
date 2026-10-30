@@ -47,19 +47,21 @@ class SaasController extends Controller
     public function createStore(Request $request)
     {
         $request->validate([
-            'name'       => 'required|string|max:255',
-            'ownerEmail' => ['required', 'email', \Illuminate\Validation\Rule::unique('users', 'email')->whereNull('deleted_at')],
-            'ownerName'  => 'nullable|string|max:255',
-            'plan'       => 'nullable|in:STANDARD,PRO,ENTERPRISE',
-            'rif'        => 'nullable|string|max:20',
+            'name'         => 'required|string|max:255',
+            'businessType' => ['nullable', 'string', \Illuminate\Validation\Rule::in(array_keys(Store::BUSINESS_TYPES))],
+            'ownerEmail'   => ['required', 'email', \Illuminate\Validation\Rule::unique('users', 'email')->whereNull('deleted_at')],
+            'ownerName'    => 'nullable|string|max:255',
+            'plan'         => 'nullable|in:STANDARD,PRO,ENTERPRISE',
+            'rif'          => 'nullable|string|max:20',
         ]);
 
         $result = $this->tenants->createTenant([
-            'name'       => $request->input('name'),
-            'ownerEmail' => $request->input('ownerEmail'),
-            'ownerName'  => $request->input('ownerName'),
-            'plan'       => $request->input('plan', 'STANDARD'),
-            'rif'        => $request->input('rif'),
+            'name'         => $request->input('name'),
+            'businessType' => $request->input('businessType', 'MINIMARKET'),
+            'ownerEmail'   => $request->input('ownerEmail'),
+            'ownerName'    => $request->input('ownerName'),
+            'plan'         => $request->input('plan', 'STANDARD'),
+            'rif'          => $request->input('rif'),
         ], sendWelcomeEmail: true);
 
         return response()->json([
@@ -74,16 +76,23 @@ class SaasController extends Controller
     {
         $store = Store::findOrFail($id);
         $request->validate([
-            'name'       => 'required|string|max:255',
-            'ownerEmail' => ['required', 'email'],
-            'rif'        => 'nullable|string|max:20',
+            'name'         => 'required|string|max:255',
+            'businessType' => ['nullable', 'string', \Illuminate\Validation\Rule::in(array_keys(Store::BUSINESS_TYPES))],
+            'ownerEmail'   => ['required', 'email'],
+            'rif'          => 'nullable|string|max:20',
         ]);
 
-        $store->update([
+        $updateData = [
             'name'        => $request->input('name'),
             'owner_email' => $request->input('ownerEmail'),
             'rif'         => $request->input('rif'),
-        ]);
+        ];
+
+        if ($request->filled('businessType')) {
+            $updateData['business_type'] = $request->input('businessType');
+        }
+
+        $store->update($updateData);
 
         $adminUser = User::where('tenant_id', $store->id)->where('role', 'ADMIN')->first();
         if ($adminUser && $adminUser->email !== $request->input('ownerEmail')) {

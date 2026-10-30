@@ -19,6 +19,9 @@ import { PaymentData } from '../components/CheckoutModal';
 import { ShiftManagerModal } from '../components/ShiftManagerModal';
 import { WeightInputModal } from '../components/WeightInputModal';
 import { useBarcodeScanner } from '../hooks/useBarcodeScanner';
+import { getOutboxDB } from '../db/outbox';
+import { openWhatsAppReceipt } from '../lib/whatsappReceipt';
+import { getBusinessTypeInfo, seedDemoProductsForTenant } from '../lib/businessTypes';
 
 // ─── Lightweight inline toast (zero deps) ─────────────────────────────────────
 const toast = {
@@ -236,23 +239,51 @@ const CartRow = ({
 };
 
 // ─── Success Modal ────────────────────────────────────────────────────────────
-const SaleCompleteModal = ({ sale, onClose, exchangeRate }: { sale: SaleDocType, onClose: () => void, exchangeRate: number }) => {
+const SaleCompleteModal = ({ sale, onClose, exchangeRate, storeName }: { sale: SaleDocType, onClose: () => void, exchangeRate: number, storeName: string }) => {
     const [isPrinting, setIsPrinting] = useState(false);
     const [printMode, setPrintMode] = useState<'thermal' | 'fiscal'>('thermal');
+    const [whatsappPhone, setWhatsappPhone] = useState('');
+    const [customerName, setCustomerName] = useState<string | undefined>(undefined);
     const { printFiscalSale } = useFiscalPrinter();
+
+    // Auto-fill customer phone if sale was linked to a customer
+    useEffect(() => {
+        if (!sale.customerId) return;
+        const db = getOutboxDB();
+        db.customers.get(sale.customerId).then(cust => {
+            if (cust) {
+                if (cust.phoneNumber) setWhatsappPhone(cust.phoneNumber);
+                const fullName = [cust.firstName, cust.lastName].filter(Boolean).join(' ').trim();
+                if (fullName) setCustomerName(fullName);
+            }
+        }).catch(() => {});
+    }, [sale.customerId]);
+
+    const handleSendWhatsApp = () => {
+        if (!whatsappPhone.trim()) {
+            toast.error('Ingresa el número de WhatsApp del cliente (ej. 04121234567)');
+            return;
+        }
+        const ok = openWhatsAppReceipt(whatsappPhone, sale, storeName, exchangeRate, customerName);
+        if (!ok) {
+            toast.error('Número de teléfono inválido');
+        } else {
+            toast.success('Abriendo WhatsApp con el ticket...');
+        }
+    };
 
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[70] p-4 print:bg-transparent print:backdrop-blur-none print:p-0">
-            <div className="bg-white dark:bg-slate-800 border border-transparent dark:border-slate-700 rounded-3xl shadow-2xl max-w-sm w-full p-8 text-center print:hidden animate-in zoom-in-95 duration-300">
-                <div className="text-6xl mb-4 animate-bounce">✅</div>
+            <div className="bg-white dark:bg-slate-800 border border-transparent dark:border-slate-700 rounded-3xl shadow-2xl max-w-md w-full p-6 sm:p-8 text-center print:hidden animate-in zoom-in-95 duration-300 max-h-[92vh] overflow-y-auto">
+                <div className="text-5xl mb-3 animate-bounce">✅</div>
                 <h2 className="text-2xl font-black text-slate-800 dark:text-white mb-1 tracking-tight">¡Venta Exitosa!</h2>
-                <p className="text-slate-500 dark:text-slate-400 text-sm mb-6 font-medium">Guardada en local, sincronización en cola.</p>
-                <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl p-5 mb-6 text-left space-y-2 border border-slate-100 dark:border-slate-700 shadow-inner">
+                <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mb-4 font-medium">Guardada en local, sincronización en cola.</p>
+                <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl p-4 mb-4 text-left space-y-2 border border-slate-100 dark:border-slate-700 shadow-inner">
                     <div className="flex justify-between text-sm">
                         <span className="text-slate-500 dark:text-slate-400 font-medium">Ticket ID</span>
                         <span className="font-mono text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-600">{sale.id.slice(-8).toUpperCase()}</span>
                     </div>
-                    <div className="flex justify-between text-sm pt-2">
+                    <div className="flex justify-between text-sm pt-1">
                         <span className="text-slate-500 dark:text-slate-400 font-medium">Subtotal</span>
                         <span className="font-bold text-slate-700 dark:text-slate-200">${formatCurrency(sale.subtotal)}</span>
                     </div>
@@ -260,7 +291,7 @@ const SaleCompleteModal = ({ sale, onClose, exchangeRate }: { sale: SaleDocType,
                         <span className="text-slate-500 dark:text-slate-400 font-medium">IVA ({sale.taxPercent}%)</span>
                         <span className="font-bold text-slate-700 dark:text-slate-200">${formatCurrency(sale.taxAmount)}</span>
                     </div>
-                    <div className="flex justify-between items-center font-bold border-t border-slate-200 dark:border-slate-700 pt-3 mt-3">
+                    <div className="flex justify-between items-center font-bold border-t border-slate-200 dark:border-slate-700 pt-2.5 mt-2">
                         <span className="text-slate-600 dark:text-slate-300">Total Pagado</span>
                         <div className="text-right">
                             <div className="text-xl text-violet-700 dark:text-violet-400 font-black">${formatCurrency(sale.total)}</div>
@@ -268,7 +299,47 @@ const SaleCompleteModal = ({ sale, onClose, exchangeRate }: { sale: SaleDocType,
                         </div>
                     </div>
                 </div>
-                <div className="flex flex-col gap-3">
+
+                {/* ── Ticket Digital por WhatsApp ── */}
+                <div className="bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/70 rounded-2xl p-3.5 mb-4 text-left">
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 mb-2">
+                        📲 Enviar Recibo Digital por WhatsApp
+                    </label>
+                    <div className="flex gap-2">
+                        <input
+                            type="tel"
+                            value={whatsappPhone}
+                            onChange={e => setWhatsappPhone(e.target.value)}
+                            onKeyDown={e => {
+                                if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    handleSendWhatsApp();
+                                }
+                            }}
+                            placeholder="Ej: 0412 1234567"
+                            className="flex-1 min-w-0 px-3 py-2.5 rounded-xl text-sm font-semibold bg-white dark:bg-slate-800 text-slate-800 dark:text-white placeholder-slate-400 border border-emerald-300 dark:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        />
+                        <button
+                            type="button"
+                            onClick={handleSendWhatsApp}
+                            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md transition-all whitespace-nowrap flex items-center gap-1.5"
+                        >
+                            <span>📲</span> Enviar
+                        </button>
+                    </div>
+                </div>
+
+                <div className="flex flex-col gap-2.5">
+                    <div className="grid grid-cols-2 gap-2.5">
+                        <button onClick={() => { setPrintMode('thermal'); setTimeout(() => window.print(), 50); }} className="w-full bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 dark:hover:bg-slate-600 text-white font-bold py-3.5 px-3 rounded-2xl text-xs sm:text-sm transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5">
+                            🖨️ Ticket Térmico
+                        </button>
+                        <button onClick={() => { setPrintMode('fiscal'); setTimeout(() => window.print(), 50); }} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-3 rounded-2xl text-xs sm:text-sm transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5">
+                            📄 Factura A4
+                        </button>
+                    </div>
+
                     <button onClick={async () => {
                         try {
                             await printFiscalSale(sale);
@@ -276,18 +347,11 @@ const SaleCompleteModal = ({ sale, onClose, exchangeRate }: { sale: SaleDocType,
                         } catch (e: any) {
                             toast.error(e.message || "Error al imprimir en fiscal");
                         }
-                    }} disabled={isPrinting} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-2xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50">
-                        {isPrinting ? "⏳ Enviando Ráfaga..." : "🧾 Facturar en Fiscal"}
-                    </button>
-                    
-                    <button onClick={() => { setPrintMode('fiscal'); setTimeout(() => window.print(), 50); }} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
-                        📄 Imprimir Factura Fiscal (A4)
+                    }} disabled={isPrinting} className="w-full bg-slate-100 dark:bg-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold py-2.5 rounded-xl text-xs transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50">
+                        {isPrinting ? "⏳ Enviando Ráfaga..." : "🧾 Impresora Fiscal USB"}
                     </button>
 
-                    <button onClick={() => { setPrintMode('thermal'); setTimeout(() => window.print(), 50); }} className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-2xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
-                        🖨️ Imprimir Ticket (Térmico)
-                    </button>
-                    <button onClick={onClose} className="w-full bg-violet-100 hover:bg-violet-200 text-violet-800 font-bold py-4 rounded-2xl transition-all active:scale-95">
+                    <button onClick={onClose} className="w-full bg-violet-600 hover:bg-violet-700 text-white font-black py-3.5 rounded-2xl transition-all shadow-lg active:scale-95 mt-1">
                         Nueva Venta [Enter]
                     </button>
                 </div>
@@ -304,7 +368,7 @@ const SaleCompleteModal = ({ sale, onClose, exchangeRate }: { sale: SaleDocType,
 export const PosPage = () => {
     const { items, isLoading } = useItems();
     const { cartItems, totals, addToCart, removeFromCart, setQuantity, clearCart, checkout, exchangeRate, refetchSettings } = useCart();
-    const { enableCreditSales, company, toggleDarkMode, darkMode } = useSettings();
+    const { enableCreditSales, company, businessType, toggleDarkMode, darkMode } = useSettings();
     const { user } = useAuth();
     const { isHighVis } = useHighVisibility();
     const { hasOpenShift, currentShift } = useCashShift();
@@ -317,6 +381,7 @@ export const PosPage = () => {
     const [categoryFilter, setCategoryFilter] = useState('');
     const [inStockOnly, setInStockOnly] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [isSeedingDemo, setIsSeedingDemo] = useState(false);
     const [completedSale, setCompletedSale] = useState<SaleDocType | null>(null);
     const [isSyncingBCV, setIsSyncingBCV] = useState(false);
     const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
@@ -413,7 +478,8 @@ export const PosPage = () => {
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (completedSale) {
-                if (e.key === 'Enter' || e.key === 'Escape') {
+                const isInputFocused = (e.target as HTMLElement)?.tagName === 'INPUT';
+                if (e.key === 'Escape' || (e.key === 'Enter' && !isInputFocused)) {
                     e.preventDefault();
                     setCompletedSale(null);
                     searchInputRef.current?.focus();
@@ -567,12 +633,54 @@ export const PosPage = () => {
                                 </div>
                             </div>
                         ) : filtered.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-full text-center fade-in">
+                            <div className="flex flex-col items-center justify-center h-full text-center fade-in p-4">
                                 <span className="text-6xl mb-4 grayscale opacity-50">📦</span>
-                                <h3 className={`font-bold text-slate-700 dark:text-slate-200 ${hv ? 'text-3xl' : 'text-lg'}`}>No hay resultados</h3>
-                                <p className={`text-slate-400 mt-1 max-w-xs leading-relaxed ${hv ? 'text-lg' : 'text-sm'}`}>
-                                    Verifica el nombre del producto o escanea un código de barras válido.
-                                </p>
+                                {items.length === 0 && !search ? (
+                                    <div className="max-w-md bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 shadow-sm">
+                                        <h3 className={`font-black text-slate-800 dark:text-slate-100 ${hv ? 'text-2xl' : 'text-lg'}`}>
+                                            ¡Tu catálogo está listo para empezar!
+                                        </h3>
+                                        <p className="text-slate-500 dark:text-slate-400 text-sm mt-1.5 leading-relaxed">
+                                            Aún no tienes productos cargados. Puedes probar la caja ahora mismo cargando 5 productos de ejemplo para{' '}
+                                            <strong className="text-violet-600 dark:text-violet-400">
+                                                {getBusinessTypeInfo(businessType).icon} {getBusinessTypeInfo(businessType).shortLabel}
+                                            </strong>.
+                                        </p>
+                                        <div className="mt-4 flex flex-col sm:flex-row gap-2.5 justify-center">
+                                            <button
+                                                type="button"
+                                                disabled={isSeedingDemo}
+                                                onClick={async () => {
+                                                    setIsSeedingDemo(true);
+                                                    try {
+                                                        const count = await seedDemoProductsForTenant(businessType, user?.storeId || 'default-store');
+                                                        toast.success(`¡${count} productos de ejemplo cargados!`);
+                                                    } catch {
+                                                        toast.error('No se pudieron cargar los productos de ejemplo');
+                                                    } finally {
+                                                        setIsSeedingDemo(false);
+                                                    }
+                                                }}
+                                                className="px-5 py-2.5 bg-violet-600 hover:bg-violet-700 active:scale-95 text-white font-bold text-sm rounded-xl shadow-md transition-all disabled:opacity-50"
+                                            >
+                                                {isSeedingDemo ? '⏳ Cargando...' : `✨ Cargar 5 Productos de Ejemplo`}
+                                            </button>
+                                            <Link
+                                                to="/admin/inventory"
+                                                className="px-4 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 font-bold text-sm rounded-xl transition-all"
+                                            >
+                                                Ir a Inventario →
+                                            </Link>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <h3 className={`font-bold text-slate-700 dark:text-slate-200 ${hv ? 'text-3xl' : 'text-lg'}`}>No hay resultados</h3>
+                                        <p className={`text-slate-400 mt-1 max-w-xs leading-relaxed ${hv ? 'text-lg' : 'text-sm'}`}>
+                                            Verifica el nombre del producto o escanea un código de barras válido.
+                                        </p>
+                                    </>
+                                )}
                             </div>
                         ) : (
                             <div className={`gap-2.5 pb-10 fade-in grid ${
@@ -762,7 +870,12 @@ export const PosPage = () => {
             />
 
             {completedSale && (
-                <SaleCompleteModal sale={completedSale} onClose={() => setCompletedSale(null)} exchangeRate={exchangeRate} />
+                <SaleCompleteModal
+                    sale={completedSale}
+                    onClose={() => setCompletedSale(null)}
+                    exchangeRate={exchangeRate}
+                    storeName={company}
+                />
             )}
 
             <ShiftManagerModal

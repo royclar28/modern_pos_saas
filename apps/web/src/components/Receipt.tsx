@@ -1,7 +1,9 @@
 import React from 'react';
 import { SaleDocType } from '../db/schemas/sale.schema';
+import { useSettingsContext } from '../contexts/SettingsProvider';
 
 export const Receipt = ({ sale }: { sale: SaleDocType }) => {
+    const { company, exchangeRate } = useSettingsContext();
     const dateStr = new Date(sale.saleTime).toLocaleString('es-ES', {
         day: '2-digit', month: '2-digit', year: 'numeric',
         hour: '2-digit', minute: '2-digit'
@@ -12,9 +14,8 @@ export const Receipt = ({ sale }: { sale: SaleDocType }) => {
 
             {/* ── Header ── */}
             <div className="text-center mb-4">
-                <h2 className="text-xl font-bold uppercase mb-1">Boutique Femenina</h2>
-                <p className="text-xs">Av. Principal 123, Ciudad</p>
-                <p className="text-xs">Tel: 555-1234</p>
+                <h2 className="text-xl font-bold uppercase mb-1">{company || 'MERX POS'}</h2>
+                <p className="text-xs">Comprobante de Venta</p>
             </div>
 
             {/* ── Meta ── */}
@@ -67,9 +68,15 @@ export const Receipt = ({ sale }: { sale: SaleDocType }) => {
                     <span>${sale.taxAmount.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between font-bold text-base mt-2 border-t border-black pt-2">
-                    <span>TOTAL:</span>
+                    <span>TOTAL USD:</span>
                     <span>${sale.total.toFixed(2)}</span>
                 </div>
+                {exchangeRate > 0 && (
+                    <div className="flex justify-between font-bold text-xs mt-1">
+                        <span>TOTAL Bs.:</span>
+                        <span>Bs. {(sale.total * exchangeRate).toFixed(2)}</span>
+                    </div>
+                )}
             </div>
 
             {/* ── Footer ── */}
