@@ -6,6 +6,7 @@ export type StoreSettings = {
     currency_symbol: string;  // e.g. "$"
     exchange_rate: string;    // e.g. "36.25"
     company: string;
+    business_type?: string;   // e.g. "MINIMARKET" | "FERRETERIA" | "LICORERIA" | ...
     timezone: string;
     language: string;
     enable_credit_sales: string; // "true" | "false"
@@ -20,6 +21,7 @@ export type ParsedSettings = {
     exchangeRate: number;   
     currencySymbol: string;
     company: string;
+    businessType: string;
     rif: string;
     logoUrl: string | null;
     enableCreditSales: boolean;
@@ -38,6 +40,7 @@ const DEFAULTS: StoreSettings = {
     currency_symbol: '$',
     exchange_rate: '1',
     company: 'Mi Negocio',
+    business_type: 'MINIMARKET',
     timezone: 'America/Caracas',
     language: 'es',
     enable_credit_sales: 'false',
@@ -149,6 +152,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         exchangeRate: Math.max(1, Number(raw.exchange_rate) || 1),
         currencySymbol: raw.currency_symbol || '$',
         company: raw.company || 'Mi Negocio',
+        businessType: raw.business_type || 'MINIMARKET',
         rif: raw.rif || '',
         logoUrl: raw.logo_url || null,
         enableCreditSales: raw.enable_credit_sales === 'true',

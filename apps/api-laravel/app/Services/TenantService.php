@@ -40,9 +40,12 @@ class TenantService
 
         $result = DB::transaction(function () use ($data, $plainPassword) {
             // ── 1. Store ──────────────────────────────────────
+            $businessType = strtoupper($data['business_type'] ?? 'MINIMARKET');
+
             $store = Store::create([
                 'id'            => (string) Str::uuid(),
                 'name'          => $data['name'],
+                'business_type' => $businessType,
                 'rif'           => $data['rif'] ?? null,
                 'owner_email'   => $data['ownerEmail'],
                 'plan'          => $data['plan'] ?? 'STANDARD',
@@ -67,13 +70,8 @@ class TenantService
                 'role'       => 'ADMIN',
             ]);
 
-            // ── 3. Categorías default ────────────────────────
-            $defaultCategories = [
-                ['name' => 'Lácteos', 'sort_order' => 1],
-                ['name' => 'Bebidas', 'sort_order' => 2],
-                ['name' => 'Víveres', 'sort_order' => 3],
-                ['name' => 'Otros',   'sort_order' => 4],
-            ];
+            // ── 3. Categorías default según tipo de negocio ──
+            $defaultCategories = Store::defaultCategoriesFor($businessType);
 
             foreach ($defaultCategories as $cat) {
                 Category::create([
@@ -82,6 +80,13 @@ class TenantService
                     'name'       => $cat['name'],
                     'sort_order' => $cat['sort_order'],
                 ]);
+            }
+
+            foreach (Store::defaultConfigsFor($businessType) as $key => $value) {
+                \App\Models\StoreConfig::withoutGlobalScopes()->updateOrCreate(
+                    ['tenant_id' => $store->id, 'key' => $key],
+                    ['value' => (string) $value]
+                );
             }
 
             // ── 4. Token de configuración ─────────────────────

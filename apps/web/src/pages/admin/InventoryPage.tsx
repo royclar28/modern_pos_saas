@@ -106,27 +106,29 @@ const ItemModal = ({
     });
     const watchSellBy = watch('sellBy');        // ← NUEVO
 
+    const inputCls = "w-full px-3 py-2 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-violet-400 focus:outline-none";
+
     return (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-                <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
-                    <h2 className="text-xl font-bold text-slate-800">
+            <div className="bg-white dark:bg-slate-800 border border-transparent dark:border-slate-700 rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between shrink-0">
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">
                         {isEdit ? 'Editar Producto' : 'Nuevo Producto'}
                     </h2>
-                    <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-2xl leading-none">&times;</button>
+                    <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-2xl leading-none">&times;</button>
                 </div>
 
                 <div className="p-6 overflow-y-auto flex-1">
                     <form id="item-form" onSubmit={handleSubmit(onSave as any)} className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-1">
-                                <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Nombre *</label>
-                                <input {...register('name')} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-violet-400 focus:outline-none" />
+                                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Nombre *</label>
+                                <input {...register('name')} className={inputCls} />
                                 {errors.name && <p className="text-xs text-red-500">{errors.name.message}</p>}
                             </div>
                             <div className="space-y-1">
-                                <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Categoría *</label>
-                                <select {...register('category_id')} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-violet-400 focus:outline-none bg-white">
+                                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Categoría *</label>
+                                <select {...register('category_id')} className={inputCls}>
                                     <option value="">Seleccione una categoría</option>
                                     {categories.map(c => (
                                         <option key={c.id} value={c.id}>{c.name}</option>
@@ -135,8 +137,8 @@ const ItemModal = ({
                                 {errors.category_id && <p className="text-xs text-red-500">{errors.category_id.message}</p>}
                             </div>
                             <div className="space-y-1">
-                                <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Marca</label>
-                                <select {...register('brand_id')} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-violet-400 focus:outline-none bg-white">
+                                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Marca</label>
+                                <select {...register('brand_id')} className={inputCls}>
                                     <option value="">Sin marca</option>
                                     {brands.map(b => (
                                         <option key={b.id} value={b.id}>{b.name}</option>
@@ -144,50 +146,50 @@ const ItemModal = ({
                                 </select>
                             </div>
                             <div className="space-y-1">
-                                <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">SKU / ID Producto</label>
-                                <input {...register('itemNumber')} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-violet-400 focus:outline-none" />
+                                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">SKU / ID Producto</label>
+                                <input {...register('itemNumber')} className={inputCls} />
                             </div>
                             <div className="space-y-1">
-                                <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Stock Mín. (Alerta)</label>
-                                <input type="text" placeholder="0.00" {...register('reorderLevel', { onChange: e => e.target.value = e.target.value.replace(',', '.') })} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-violet-400 focus:outline-none" />
+                                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Stock Mín. (Alerta)</label>
+                                <input type="text" placeholder="0.00" {...register('reorderLevel', { onChange: e => e.target.value = e.target.value.replace(',', '.') })} className={inputCls} />
                                 {errors.reorderLevel && <p className="text-xs text-red-500">{errors.reorderLevel.message}</p>}
                             </div>
                             <div className="space-y-1">
-                                <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                                     Stock Inicial (Cantidad)
                                 </label>
                                 <input
                                     type="text"
                                     placeholder="0.00"
                                     {...register('receivingQuantity', { onChange: e => e.target.value = e.target.value.replace(',', '.') })}
-                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-violet-400 focus:outline-none"
+                                    className={inputCls}
                                 />
                                 {errors.receivingQuantity && <p className="text-xs text-red-500">{errors.receivingQuantity.message}</p>}
                             </div>
                             <div className="space-y-1">
-                                <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Costo *</label>
+                                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Costo *</label>
                                 <div className="relative">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">$</span>
-                                    <input type="text" placeholder="0.00" {...register('costPrice', { onChange: e => e.target.value = e.target.value.replace(',', '.') })} className="w-full pl-8 pr-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-violet-400 focus:outline-none" />
+                                    <input type="text" placeholder="0.00" {...register('costPrice', { onChange: e => e.target.value = e.target.value.replace(',', '.') })} className={`${inputCls} pl-8`} />
                                 </div>
                                 {errors.costPrice && <p className="text-xs text-red-500">{errors.costPrice.message}</p>}
                             </div>
                             <div className="space-y-1">
-                                <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Precio Venta *</label>
+                                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Precio Venta *</label>
                                 <div className="relative">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">$</span>
-                                    <input type="text" placeholder="0.00" {...register('unitPrice', { onChange: e => e.target.value = e.target.value.replace(',', '.') })} className="w-full pl-8 pr-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-violet-400 focus:outline-none" />
+                                    <input type="text" placeholder="0.00" {...register('unitPrice', { onChange: e => e.target.value = e.target.value.replace(',', '.') })} className={`${inputCls} pl-8`} />
                                 </div>
                                 {errors.unitPrice && <p className="text-xs text-red-500">{errors.unitPrice.message}</p>}
                             </div>
                             <div className="space-y-1 md:col-span-2">
-                                <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Descripción</label>
-                                <textarea {...register('description')} rows={2} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-violet-400 focus:outline-none"></textarea>
+                                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Descripción</label>
+                                <textarea {...register('description')} rows={2} className={inputCls}></textarea>
                             </div>
 
                             {/* ── Sell By Selector ── */}
                             <div className="space-y-1 md:col-span-2">
-                                <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                                     Tipo de Venta
                                 </label>
                                 <div className="flex gap-4 mt-2">
@@ -198,7 +200,7 @@ const ItemModal = ({
                                             {...register('sellBy')}
                                             className="accent-violet-600 w-4 h-4"
                                         />
-                                        <span className="text-sm font-medium text-slate-700">
+                                        <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
                                             📦 Por Unidad
                                         </span>
                                     </label>
@@ -209,7 +211,7 @@ const ItemModal = ({
                                             {...register('sellBy')}
                                             className="accent-violet-600 w-4 h-4"
                                         />
-                                        <span className="text-sm font-medium text-slate-700">
+                                        <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
                                             ⚖️ Por Peso / Granel
                                         </span>
                                     </label>
@@ -222,14 +224,14 @@ const ItemModal = ({
                             </div>
                             {/* ── Unit Label ── */}
                             <div className="space-y-1 md:col-span-2">
-                                <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                                     Etiqueta de Unidad
                                 </label>
                                 <input
                                     {...register('unitLabel')}
                                     maxLength={5}
                                     placeholder="und"
-                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-violet-400 focus:outline-none"
+                                    className={inputCls}
                                 />
                                 <p className="text-[10px] text-slate-400">
                                     Ej: Kg, Mts, und, Lts — se muestra junto a la cantidad en el POS.
@@ -239,8 +241,8 @@ const ItemModal = ({
                     </form>
                 </div>
 
-                <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 shrink-0">
-                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800 transition-colors">
+                <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-3 shrink-0">
+                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white transition-colors">
                         Cancelar
                     </button>
                     <button
@@ -745,7 +747,7 @@ export const InventoryPage = () => {
                                 placeholder="Buscar por SKU, nombre, categoría..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all"
+                                className="w-full pl-10 pr-4 py-2 rounded-xl bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder-slate-400 border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 dark:focus:ring-violet-900/40 transition-all"
                             />
                         </div>
                         <div className="flex items-center gap-3">
@@ -754,8 +756,8 @@ export const InventoryPage = () => {
                                 disabled={isHydrating}
                                 className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all border ${
                                     isHydrating 
-                                    ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
-                                    : 'bg-white text-slate-700 border-slate-200 hover:border-violet-400 hover:text-violet-600 shadow-sm'
+                                    ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700 cursor-not-allowed'
+                                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-violet-400 hover:text-violet-600 dark:hover:text-violet-400 shadow-sm'
                                 } flex items-center gap-2`}
                             >
                                 <span className={isHydrating ? "animate-spin" : ""}>🔄</span>

@@ -72,16 +72,16 @@ const ProductCard = ({ item, onAdd, exchangeRate, hv }: { item: ItemDocType; onA
             disabled={isOutOfStock}
             className={`group text-left transition-all duration-150 flex flex-col relative overflow-hidden
                 ${isOutOfStock
-                    ? 'bg-red-50 border border-red-200 opacity-60 cursor-not-allowed'
+                    ? 'bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 opacity-60 cursor-not-allowed'
                     : isLowStock
-                        ? 'bg-white border border-amber-400 hover:border-amber-500 hover:shadow-lg hover:shadow-amber-100/50 active:scale-95'
-                        : 'bg-white border border-slate-200 hover:border-violet-500 hover:shadow-lg hover:shadow-violet-200/50 active:scale-95'
+                        ? 'bg-white dark:bg-slate-900 border border-amber-400 dark:border-amber-500/70 hover:border-amber-500 hover:shadow-lg hover:shadow-amber-100/50 dark:hover:shadow-amber-900/20 active:scale-95'
+                        : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-violet-500 dark:hover:border-violet-500 hover:shadow-lg hover:shadow-violet-200/50 dark:hover:shadow-violet-900/20 active:scale-95'
                 }
                 ${hv ? 'rounded-2xl p-4 gap-2 min-h-[120px]' : 'rounded-lg p-2.5 gap-1.5 h-24'}
             `}
         >
             {/* Fondo decorativo */}
-            <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-violet-50 to-transparent -rotate-45 translate-x-8 -translate-y-8 rounded-full z-0 group-hover:scale-150 transition-transform duration-500" />
+            <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-violet-50 dark:from-violet-950/40 to-transparent -rotate-45 translate-x-8 -translate-y-8 rounded-full z-0 group-hover:scale-150 transition-transform duration-500" />
 
             {/* Badge de estado de stock */}
             {isOutOfStock && (
@@ -102,7 +102,7 @@ const ProductCard = ({ item, onAdd, exchangeRate, hv }: { item: ItemDocType; onA
             )}
 
             <div className="flex items-start justify-between gap-1 z-10">
-                <span className={`font-bold text-slate-700 leading-tight group-hover:text-violet-800 transition-colors ${
+                <span className={`font-bold text-slate-700 dark:text-slate-100 leading-tight group-hover:text-violet-800 dark:group-hover:text-violet-300 transition-colors ${
                     hv ? 'text-xl line-clamp-1' : 'text-xs line-clamp-2'
                 }`}>
                     {item.name}
@@ -110,24 +110,24 @@ const ProductCard = ({ item, onAdd, exchangeRate, hv }: { item: ItemDocType; onA
             </div>
             <div className="mt-auto flex justify-between items-end z-10 w-full">
                 <div className="flex flex-col">
-                    <span className={`font-black text-violet-700 ${hv ? 'text-3xl' : 'text-sm'}`}>
+                    <span className={`font-black text-violet-700 dark:text-violet-400 ${hv ? 'text-3xl' : 'text-sm'}`}>
                         ${formatCurrency(item.unitPrice)}
                     </span>
                     {hv && (
                         <span className={`text-xs font-semibold mt-0.5 ${
-                            isLowStock ? 'text-amber-600' : isOutOfStock ? 'text-red-500' : 'text-slate-400'
+                            isLowStock ? 'text-amber-600 dark:text-amber-400' : isOutOfStock ? 'text-red-500 dark:text-red-400' : 'text-slate-400'
                         }`}>
                             Stock: {item.stock ?? '—'}
                         </span>
                     )}
                     {!hv && (
-                        <span className="text-[10px] text-slate-400 font-medium leading-none">
+                        <span className="text-[10px] text-slate-400 dark:text-slate-400 font-medium leading-none">
                             Bs. {formatCurrency(item.unitPrice * exchangeRate)}
                         </span>
                     )}
                 </div>
                 {!hv && (
-                    <span className="text-[9px] font-bold tracking-wider uppercase text-slate-500 bg-slate-100 rounded px-1.5 py-0.5 truncate max-w-[60px]">
+                    <span className="text-[9px] font-bold tracking-wider uppercase text-slate-500 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded px-1.5 py-0.5 truncate max-w-[60px]">
                         {item.category}
                     </span>
                 )}
@@ -151,33 +151,33 @@ const CartRow = ({
     const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
     return (
-        <div className={`flex items-center border-b border-slate-100 last:border-0 group ${
+        <div className={`flex items-center border-b border-slate-100 dark:border-slate-800 last:border-0 group ${
             hv ? 'gap-3 py-3' : 'gap-2 py-2'
         }`}>
             <div className="flex-1 min-w-0">
-                <p className={`font-bold text-slate-800 truncate leading-tight ${hv ? 'text-lg' : 'text-xs'}`}>
+                <p className={`font-bold text-slate-800 dark:text-slate-100 truncate leading-tight ${hv ? 'text-lg' : 'text-xs'}`}>
                     {item.product.name}
                 </p>
                 {!hv && (
                     <div className="flex items-center gap-1 mt-0.5">
-                        <p className="text-[10px] text-slate-500 font-medium">${formatCurrency(item.product.unitPrice)}</p>
-                        <span className="text-[9px] text-slate-300">•</span>
-                        <p className="text-[9px] text-slate-400">Bs. {formatCurrency(item.product.unitPrice * exchangeRate)}</p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-300 font-medium">${formatCurrency(item.product.unitPrice)}</p>
+                        <span className="text-[9px] text-slate-300 dark:text-slate-600">•</span>
+                        <p className="text-[9px] text-slate-400 dark:text-slate-400">Bs. {formatCurrency(item.product.unitPrice * exchangeRate)}</p>
                     </div>
                 )}
             </div>
-            <div className={`flex items-center bg-slate-50 rounded-lg border border-slate-100 ${
+            <div className={`flex items-center bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700 ${
                 hv ? 'gap-1 p-1' : 'gap-0.5 p-0.5'
             }`}>
                 <button
                     onClick={() => onQtyChange(item.product.id, item.quantity - 1)}
-                    className={`rounded hover:bg-white hover:shadow-sm text-slate-600 font-bold flex items-center justify-center transition-all ${
+                    className={`rounded hover:bg-white dark:hover:bg-slate-700 hover:shadow-sm text-slate-600 dark:text-slate-200 font-bold flex items-center justify-center transition-all ${
                         hv ? 'w-10 h-10 text-2xl' : 'w-7 h-7 text-sm'
                     }`}
                 >−</button>
                 {isTouchDevice ? (
                     /* On touch devices: show quantity as a tappable span, no keyboard */
-                    <span className={`text-center font-bold text-slate-800 select-none ${
+                    <span className={`text-center font-bold text-slate-800 dark:text-white select-none ${
                         hv ? 'w-16 text-xl' : 'w-10 text-xs'
                     }`}>
                         {item.quantity}{item.product.unitLabel && item.product.unitLabel !== 'und' ? ` ${item.product.unitLabel}` : ''}
@@ -193,29 +193,29 @@ const CartRow = ({
                             if (!isNaN(val) && val > 0) onQtyChange(item.product.id, val);
                         }}
                         onFocus={e => e.target.select()}
-                        className={`text-center font-bold text-slate-800 bg-transparent border-0 focus:outline-none focus:ring-1 focus:ring-violet-400 rounded ${
+                        className={`text-center font-bold text-slate-800 dark:text-white bg-transparent border-0 focus:outline-none focus:ring-1 focus:ring-violet-400 rounded ${
                             hv ? 'w-16 text-xl' : 'w-10 text-xs'
                         }`}
                     />
                 )}
                 <button
                     onClick={() => onQtyChange(item.product.id, item.quantity + 1)}
-                    className={`rounded hover:bg-white hover:shadow-sm text-slate-600 font-bold flex items-center justify-center transition-all ${
+                    className={`rounded hover:bg-white dark:hover:bg-slate-700 hover:shadow-sm text-slate-600 dark:text-slate-200 font-bold flex items-center justify-center transition-all ${
                         hv ? 'w-10 h-10 text-2xl' : 'w-7 h-7 text-sm'
                     }`}
                 >+</button>
             </div>
             {item.product.unitLabel && item.product.unitLabel !== 'und' && (
-                <span className={`font-bold text-slate-500 shrink-0 ${hv ? 'text-sm ml-1' : 'text-[10px] ml-0.5'}`}>
+                <span className={`font-bold text-slate-500 dark:text-slate-400 shrink-0 ${hv ? 'text-sm ml-1' : 'text-[10px] ml-0.5'}`}>
                     {item.product.unitLabel}
                 </span>
             )}
-        <div className={`flex flex-col text-right px-1 ${hv ? 'w-24' : 'w-16'}`}>
-                <span className={`font-black text-slate-800 ${hv ? 'text-xl' : 'text-xs'}`}>
+            <div className={`flex flex-col text-right px-1 ${hv ? 'w-24' : 'w-16'}`}>
+                <span className={`font-black text-slate-800 dark:text-white ${hv ? 'text-xl' : 'text-xs'}`}>
                     ${formatCurrency(lineTotal)}
                 </span>
                 {!hv && (
-                    <span className="text-[9px] text-slate-400 font-medium">
+                    <span className="text-[9px] text-slate-400 dark:text-slate-400 font-medium">
                         Bs. {formatCurrency(lineTotal * exchangeRate)}
                     </span>
                 )}
@@ -226,7 +226,7 @@ const CartRow = ({
                         onRemove(item.product.id);
                     }
                 }}
-                className={`text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-all leading-none shrink-0 ${
+                className={`text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 bg-red-50 dark:bg-red-950/50 hover:bg-red-100 dark:hover:bg-red-900/60 rounded-lg transition-all leading-none shrink-0 ${
                     hv ? 'opacity-100 p-2.5 text-2xl' : 'opacity-100 md:opacity-0 md:group-hover:opacity-100 p-1.5 text-sm'
                 }`}
                 title="Eliminar"
@@ -243,28 +243,28 @@ const SaleCompleteModal = ({ sale, onClose, exchangeRate }: { sale: SaleDocType,
 
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[70] p-4 print:bg-transparent print:backdrop-blur-none print:p-0">
-            <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 text-center print:hidden animate-in zoom-in-95 duration-300">
+            <div className="bg-white dark:bg-slate-800 border border-transparent dark:border-slate-700 rounded-3xl shadow-2xl max-w-sm w-full p-8 text-center print:hidden animate-in zoom-in-95 duration-300">
                 <div className="text-6xl mb-4 animate-bounce">✅</div>
-                <h2 className="text-2xl font-black text-slate-800 mb-1 tracking-tight">¡Venta Exitosa!</h2>
-                <p className="text-slate-500 text-sm mb-6 font-medium">Guardada en local, sincronización en cola.</p>
-                <div className="bg-slate-50 rounded-2xl p-5 mb-6 text-left space-y-2 border border-slate-100 shadow-inner">
+                <h2 className="text-2xl font-black text-slate-800 dark:text-white mb-1 tracking-tight">¡Venta Exitosa!</h2>
+                <p className="text-slate-500 dark:text-slate-400 text-sm mb-6 font-medium">Guardada en local, sincronización en cola.</p>
+                <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl p-5 mb-6 text-left space-y-2 border border-slate-100 dark:border-slate-700 shadow-inner">
                     <div className="flex justify-between text-sm">
-                        <span className="text-slate-500 font-medium">Ticket ID</span>
-                        <span className="font-mono text-xs font-bold text-slate-700 bg-white px-2 py-0.5 rounded-md border border-slate-200">{sale.id.slice(-8).toUpperCase()}</span>
+                        <span className="text-slate-500 dark:text-slate-400 font-medium">Ticket ID</span>
+                        <span className="font-mono text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-600">{sale.id.slice(-8).toUpperCase()}</span>
                     </div>
                     <div className="flex justify-between text-sm pt-2">
-                        <span className="text-slate-500 font-medium">Subtotal</span>
-                        <span className="font-bold text-slate-700">${formatCurrency(sale.subtotal)}</span>
+                        <span className="text-slate-500 dark:text-slate-400 font-medium">Subtotal</span>
+                        <span className="font-bold text-slate-700 dark:text-slate-200">${formatCurrency(sale.subtotal)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                        <span className="text-slate-500 font-medium">IVA ({sale.taxPercent}%)</span>
-                        <span className="font-bold text-slate-700">${formatCurrency(sale.taxAmount)}</span>
+                        <span className="text-slate-500 dark:text-slate-400 font-medium">IVA ({sale.taxPercent}%)</span>
+                        <span className="font-bold text-slate-700 dark:text-slate-200">${formatCurrency(sale.taxAmount)}</span>
                     </div>
-                    <div className="flex justify-between items-center font-bold border-t border-slate-200 pt-3 mt-3">
-                        <span className="text-slate-600">Total Pagado</span>
+                    <div className="flex justify-between items-center font-bold border-t border-slate-200 dark:border-slate-700 pt-3 mt-3">
+                        <span className="text-slate-600 dark:text-slate-300">Total Pagado</span>
                         <div className="text-right">
-                            <div className="text-xl text-violet-700 font-black">${formatCurrency(sale.total)}</div>
-                            <div className="text-xs text-slate-500 font-medium">Bs. {formatCurrency(sale.total * exchangeRate)}</div>
+                            <div className="text-xl text-violet-700 dark:text-violet-400 font-black">${formatCurrency(sale.total)}</div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">Bs. {formatCurrency(sale.total * exchangeRate)}</div>
                         </div>
                     </div>
                 </div>
@@ -569,7 +569,7 @@ export const PosPage = () => {
                         ) : filtered.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-full text-center fade-in">
                                 <span className="text-6xl mb-4 grayscale opacity-50">📦</span>
-                                <h3 className={`font-bold text-slate-700 ${hv ? 'text-3xl' : 'text-lg'}`}>No hay resultados</h3>
+                                <h3 className={`font-bold text-slate-700 dark:text-slate-200 ${hv ? 'text-3xl' : 'text-lg'}`}>No hay resultados</h3>
                                 <p className={`text-slate-400 mt-1 max-w-xs leading-relaxed ${hv ? 'text-lg' : 'text-sm'}`}>
                                     Verifica el nombre del producto o escanea un código de barras válido.
                                 </p>
@@ -594,7 +594,7 @@ export const PosPage = () => {
                     </div>
 
                     {!hv && (
-                        <div className="px-4 py-1.5 bg-slate-200/50 border-t border-slate-200 flex justify-between items-center text-[10px] font-bold text-slate-500 tracking-wide uppercase shrink-0">
+                        <div className="px-4 py-1.5 bg-slate-200/50 dark:bg-slate-900/80 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center text-[10px] font-bold text-slate-500 dark:text-slate-400 tracking-wide uppercase shrink-0">
                             <div className="flex items-center gap-2">
                                 <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
                                 Dexie Offline Sync
@@ -695,7 +695,7 @@ export const PosPage = () => {
                         }`}>
                             <span className={`font-bold text-slate-700 dark:text-slate-300 tracking-tight ${hv ? 'text-2xl mb-2' : 'text-sm mb-1'}`}>TOTAL</span>
                             <div className="text-right flex flex-col items-end">
-                                <input type="text" readOnly disabled value={`$${formatCurrency(totals.total)}`} className={`bg-transparent border border-slate-200 dark:border-slate-600 rounded-lg text-right font-black text-violet-700 cursor-not-allowed w-40 ${hv ? 'text-5xl py-2 w-56' : 'text-2xl py-1 w-36'}`} />
+                                <input type="text" readOnly disabled value={`$${formatCurrency(totals.total)}`} className={`bg-transparent border border-slate-200 dark:border-slate-600 rounded-lg text-right font-black text-violet-700 dark:text-violet-400 cursor-not-allowed w-40 ${hv ? 'text-5xl py-2 w-56' : 'text-2xl py-1 w-36'}`} />
                                 <span className={`font-bold text-slate-500 dark:text-slate-400 ${hv ? 'text-xl mt-1' : 'text-xs mt-1'}`}>
                                     Bs. {formatCurrency(totals.total * exchangeRate)}
                                 </span>

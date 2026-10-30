@@ -39,19 +39,23 @@ class TenantRegistrationController extends Controller
     public function register(Request $request): JsonResponse
     {
         $request->validate([
-            'store_name' => 'required|string|max:255',
-            'username'   => ['required', 'string', 'max:50', 'alpha_dash', \Illuminate\Validation\Rule::unique('users', 'username')->whereNull('deleted_at')],
-            'email'      => ['required', 'email', 'max:255', \Illuminate\Validation\Rule::unique('users', 'email')->whereNull('deleted_at')],
-            'first_name' => 'required|string|max:100',
-            'last_name'  => 'nullable|string|max:100',
+            'store_name'    => 'required|string|max:255',
+            'business_type' => ['nullable', 'string', \Illuminate\Validation\Rule::in(Store::BUSINESS_TYPES)],
+            'username'      => ['required', 'string', 'max:50', 'alpha_dash', \Illuminate\Validation\Rule::unique('users', 'username')->whereNull('deleted_at')],
+            'email'         => ['required', 'email', 'max:255', \Illuminate\Validation\Rule::unique('users', 'email')->whereNull('deleted_at')],
+            'first_name'    => 'required|string|max:100',
+            'last_name'     => 'nullable|string|max:100',
         ]);
 
-        $user = DB::transaction(function () use ($request) {
+        $businessType = strtoupper($request->input('business_type', 'MINIMARKET'));
+
+        $user = DB::transaction(function () use ($request, $businessType) {
 
             // ── 1. Crear el Tenant (Store) en Plan Inicial (Gratis) ────────
             $store = Store::create([
                 'id'            => Str::uuid()->toString(),
                 'name'          => $request->store_name,
+                'business_type' => $businessType,
                 'owner_email'   => $request->email,
                 'plan'          => 'FREE',
                 'is_active'     => true,
@@ -59,13 +63,8 @@ class TenantRegistrationController extends Controller
                 'status'        => 'active',
             ]);
 
-            // ── 1.1 Seed de categorías por defecto ───────────────────────
-            $defaultCategories = [
-                ['name' => 'Lácteos',   'sort_order' => 1],
-                ['name' => 'Bebidas',   'sort_order' => 2],
-                ['name' => 'Víveres',   'sort_order' => 3],
-                ['name' => 'Otros',     'sort_order' => 4],
-            ];
+            // ── 1.1 Seed de categorías personalizadas por tipo de negocio ──
+            $defaultCategories = Store::defaultCategoriesFor($businessType);
 
             foreach ($defaultCategories as $cat) {
                 \App\Models\Category::create([
@@ -74,6 +73,14 @@ class TenantRegistrationController extends Controller
                     'name'       => $cat['name'],
                     'sort_order' => $cat['sort_order'],
                 ]);
+            }
+
+            // ── 1.2 Configuración inicial pre-ajustada según rubro ─────────
+            foreach (Store::defaultConfigsFor($businessType) as $key => $value) {
+                \App\Models\StoreConfig::withoutGlobalScopes()->updateOrCreate(
+                    ['tenant_id' => $store->id, 'key' => $key],
+                    ['value' => (string) $value]
+                );
             }
 
             // ── 2. Crear el usuario STORE_ADMIN con hash aleatorio ────────

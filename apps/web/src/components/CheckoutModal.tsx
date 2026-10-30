@@ -87,12 +87,12 @@ const QuickCustomerForm: React.FC<{
         onCreated(newCustomer);
     };
 
-    const inputCls = 'w-full px-3 py-2.5 border-2 border-slate-200 rounded-xl text-sm font-medium focus:border-violet-500 focus:ring-2 focus:ring-violet-200 transition-all';
+    const inputCls = 'w-full px-3 py-2.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-2 border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium focus:border-violet-500 focus:ring-2 focus:ring-violet-200 dark:focus:ring-violet-900 transition-all';
 
     return (
-        <div className="bg-violet-50 border-2 border-violet-200 rounded-2xl p-4 space-y-3 animate-in slide-in-from-top-2 duration-200">
+        <div className="bg-violet-50 dark:bg-violet-950/30 border-2 border-violet-200 dark:border-violet-800/60 rounded-2xl p-4 space-y-3 animate-in slide-in-from-top-2 duration-200">
             <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-violet-800 flex items-center gap-1.5">
+                <h3 className="text-sm font-bold text-violet-800 dark:text-violet-300 flex items-center gap-1.5">
                     <span className="text-base">👤</span> Nuevo Cliente
                 </h3>
                 <button onClick={onCancel} className="text-slate-400 hover:text-red-500 text-lg leading-none transition-colors">×</button>
@@ -100,21 +100,21 @@ const QuickCustomerForm: React.FC<{
 
             <div className="grid grid-cols-2 gap-2">
                 <div>
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5 block">Nombre *</label>
+                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-0.5 block">Nombre *</label>
                     <input ref={firstRef} type="text" value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Juan" className={inputCls} />
                 </div>
                 <div>
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5 block">Apellido *</label>
+                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-0.5 block">Apellido *</label>
                     <input type="text" value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Pérez" className={inputCls} />
                 </div>
             </div>
 
             <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5 block">Teléfono (vital para cobranza)</label>
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-0.5 block">Teléfono (vital para cobranza)</label>
                 <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="0414-1234567" className={inputCls} onKeyDown={e => { if (e.key === 'Enter') handleSubmit(); }} />
             </div>
 
-            <button onClick={handleSubmit} disabled={!isValid} className={`w-full py-2.5 rounded-xl font-bold text-sm transition-all active:scale-95 ${ isValid ? 'bg-violet-600 text-white hover:bg-violet-700 shadow-md shadow-violet-200' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}>
+            <button onClick={handleSubmit} disabled={!isValid} className={`w-full py-2.5 rounded-xl font-bold text-sm transition-all active:scale-95 ${ isValid ? 'bg-violet-600 text-white hover:bg-violet-700 shadow-md shadow-violet-200 dark:shadow-none' : 'bg-slate-200 dark:bg-slate-700 text-slate-400 cursor-not-allowed'}`}>
                 ✅ Guardar Cliente
             </button>
         </div>
@@ -324,47 +324,47 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col md:flex-row max-h-[95vh]">
+            <div className="bg-white dark:bg-slate-800 border border-transparent dark:border-slate-700 rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col md:flex-row max-h-[95vh]">
                 
                 {/* ── LEFT PANE (Payment Calculator & List) ── */}
-                <div className="w-full md:w-1/2 bg-slate-50 p-6 flex flex-col border-b md:border-b-0 md:border-r border-slate-200">
-                    <h2 className="text-xl font-black text-slate-800 tracking-tight flex justify-between items-center mb-6">
+                <div className="w-full md:w-1/2 bg-slate-50 dark:bg-slate-900 p-6 flex flex-col border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-700">
+                    <h2 className="text-xl font-black text-slate-800 dark:text-white tracking-tight flex justify-between items-center mb-6">
                         <span>💳 Resumen de Cobro</span>
-                        <span className="text-sm font-bold text-slate-400 bg-slate-200 px-2 py-1 rounded">Tasa: Bs. {exchangeRate.toFixed(2)}</span>
+                        <span className="text-sm font-bold text-slate-500 dark:text-slate-300 bg-slate-200 dark:bg-slate-800 px-2 py-1 rounded">Tasa: Bs. {exchangeRate.toFixed(2)}</span>
                     </h2>
 
                     <div className="space-y-4">
-                        <div className="flex justify-between items-end border-b border-slate-200 pb-3">
-                            <span className="text-sm font-bold text-slate-500 uppercase mt-2">Total a Pagar</span>
+                        <div className="flex justify-between items-end border-b border-slate-200 dark:border-slate-700 pb-3">
+                            <span className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase mt-2">Total a Pagar</span>
                             <div className="text-right flex flex-col items-end">
-                                <input type="text" readOnly disabled value={`$${total.toFixed(2)}`} className="text-3xl font-black text-slate-800 text-right bg-transparent border-none focus:ring-0 w-32 cursor-not-allowed" />
-                                <p className="text-sm font-bold text-slate-500">Bs. {totalBs.toFixed(2)}</p>
+                                <input type="text" readOnly disabled value={`$${total.toFixed(2)}`} className="text-3xl font-black text-slate-800 dark:text-white text-right bg-transparent border-none focus:ring-0 w-32 cursor-not-allowed" />
+                                <p className="text-sm font-bold text-slate-500 dark:text-slate-400">Bs. {totalBs.toFixed(2)}</p>
                             </div>
                         </div>
 
                         {isSplitPayment && (
                             <>
-                                <div className="flex justify-between items-end border-b border-slate-200 pb-3 mt-3">
-                                    <span className="text-sm font-bold text-emerald-600 uppercase">Total Pagado</span>
+                                <div className="flex justify-between items-end border-b border-slate-200 dark:border-slate-700 pb-3 mt-3">
+                                    <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 uppercase">Total Pagado</span>
                                     <div className="text-right">
-                                        <span className="text-2xl font-black text-emerald-600">${totalPaidUsd.toFixed(2)}</span>
+                                        <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">${totalPaidUsd.toFixed(2)}</span>
                                         <p className="text-sm font-bold text-emerald-500">Bs. {totalPaidBs.toFixed(2)}</p>
                                     </div>
                                 </div>
 
                                 {remainingUsd > 0 ? (
-                                    <div className="flex justify-between items-end bg-red-50 p-3 rounded-xl border border-red-200 mt-3">
-                                        <span className="text-sm font-bold text-red-600 uppercase">Falta por Cobrar</span>
+                                    <div className="flex justify-between items-end bg-red-50 dark:bg-red-950/30 p-3 rounded-xl border border-red-200 dark:border-red-800/50 mt-3">
+                                        <span className="text-sm font-bold text-red-600 dark:text-red-400 uppercase">Falta por Cobrar</span>
                                         <div className="text-right">
-                                            <span className="text-2xl font-black text-red-600">${remainingUsd.toFixed(2)}</span>
+                                            <span className="text-2xl font-black text-red-600 dark:text-red-400">${remainingUsd.toFixed(2)}</span>
                                             <p className="text-sm font-bold text-red-500">Bs. {remainingBs.toFixed(2)}</p>
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="flex justify-between items-end bg-amber-50 p-3 rounded-xl border border-amber-200 mt-3">
-                                        <span className="text-sm font-bold text-amber-600 uppercase">Vuelto a Entregar</span>
+                                    <div className="flex justify-between items-end bg-amber-50 dark:bg-amber-950/30 p-3 rounded-xl border border-amber-200 dark:border-amber-800/50 mt-3">
+                                        <span className="text-sm font-bold text-amber-600 dark:text-amber-400 uppercase">Vuelto a Entregar</span>
                                         <div className="text-right">
-                                            <span className="text-2xl font-black text-amber-600">${changeUsd.toFixed(2)}</span>
+                                            <span className="text-2xl font-black text-amber-600 dark:text-amber-400">${changeUsd.toFixed(2)}</span>
                                             <p className="text-sm font-bold text-amber-500">Bs. {changeBsCalc.toFixed(2)}</p>
                                         </div>
                                     </div>
@@ -376,7 +376,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     {/* Vuelto Options */}
                     {isSplitPayment && changeUsd > 0.01 && !isFiado && (
                         <div className="mt-4 animate-in slide-in-from-top-2">
-                            <p className="text-xs font-bold text-amber-800 mb-2">Dar vuelto en:</p>
+                            <p className="text-xs font-bold text-amber-800 dark:text-amber-300 mb-2">Dar vuelto en:</p>
                             <div className="grid grid-cols-3 gap-2">
                                 {CHANGE_OPTIONS.map(opt => (
                                     <button
@@ -384,8 +384,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                                         onClick={() => setChangeMethod(opt.key)}
                                         className={`py-2 px-1 rounded-xl text-[10px] sm:text-xs font-bold text-center transition-all border-2 ${
                                             changeMethod === opt.key
-                                                ? 'bg-amber-100 border-amber-400 text-amber-800 shadow-sm'
-                                                : 'bg-white border-slate-200 text-slate-500 hover:border-amber-300'
+                                                ? 'bg-amber-100 dark:bg-amber-900/40 border-amber-400 text-amber-800 dark:text-amber-200 shadow-sm'
+                                                : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 hover:border-amber-300'
                                         }`}
                                     >
                                         {opt.label}
@@ -401,14 +401,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                             <h3 className="text-xs font-bold text-slate-400 uppercase mb-2">Pagos Añadidos</h3>
                             <div className="space-y-2">
                                 {payments.map((p, i) => (
-                                    <div key={i} className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-200">
+                                    <div key={i} className="flex justify-between items-center bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
                                         <div>
-                                            <p className="text-sm font-bold text-slate-700">{p.method.replace('_', ' ')}</p>
+                                            <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{p.method.replace('_', ' ')}</p>
                                             {p.reference && <p className="text-xs text-slate-400 font-mono">Ref: {p.reference}</p>}
                                         </div>
                                         <div className="flex items-center gap-3">
                                             <div className="text-right">
-                                                <p className="font-black text-emerald-600 text-sm">${p.amountUsd.toFixed(2)}</p>
+                                                <p className="font-black text-emerald-600 dark:text-emerald-400 text-sm">${p.amountUsd.toFixed(2)}</p>
                                                 <p className="text-xs text-slate-400 font-bold">Bs. {p.amountBs.toFixed(2)}</p>
                                             </div>
                                             <button onClick={() => removePayment(i)} className="text-red-400 hover:text-red-600 font-bold p-1">✕</button>
@@ -423,7 +423,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     <div className="mt-auto pt-6 flex gap-3">
                         <button
                             onClick={onClose}
-                            className="flex-1 py-3.5 bg-white border-2 border-slate-200 rounded-2xl font-bold text-sm text-slate-600 hover:bg-slate-100 transition-all shadow-sm"
+                            className="flex-1 py-3.5 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-2xl font-bold text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all shadow-sm"
                         >Cancelar [Esc]</button>
                         <button
                             onClick={handleConfirm}
@@ -431,9 +431,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                             className={`flex-[1.5] py-3.5 rounded-2xl font-black text-sm transition-all shadow-lg flex items-center justify-center gap-2 ${
                                 ((!isSplitPayment && (!isFiado || selectedCustomer)) || (isSplitPayment && isReadyToProcess)) && !isProcessing
                                     ? isFiado
-                                        ? 'bg-amber-500 text-white hover:bg-amber-600 shadow-amber-200 border-2 border-amber-600'
-                                        : 'bg-violet-600 text-white hover:bg-violet-700 shadow-violet-200 border-2 border-violet-700'
-                                    : 'bg-slate-200 text-slate-400 shadow-none border-2 border-slate-200 cursor-not-allowed'
+                                        ? 'bg-amber-500 text-white hover:bg-amber-600 shadow-amber-200 dark:shadow-none border-2 border-amber-600'
+                                        : 'bg-violet-600 text-white hover:bg-violet-700 shadow-violet-200 dark:shadow-none border-2 border-violet-700'
+                                    : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 shadow-none border-2 border-slate-200 dark:border-slate-700 cursor-not-allowed'
                             }`}
                         >
                             {isProcessing ? 'Procesando...' : isFiado ? '📒 Procesar Crédito' : '✅ Cobrar Ticket'}
@@ -442,9 +442,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 </div>
 
                 {/* ── RIGHT PANE (Add Payment Methods) ── */}
-                <div className="w-full md:w-1/2 p-6 flex flex-col bg-white overflow-y-auto scroller">
+                <div className="w-full md:w-1/2 p-6 flex flex-col bg-white dark:bg-slate-800 overflow-y-auto scroller">
                     
-                    <div className={`grid ${tabCols} gap-1.5 bg-slate-100 p-1.5 rounded-2xl mb-6 shrink-0`}>
+                    <div className={`grid ${tabCols} gap-1.5 bg-slate-100 dark:bg-slate-900 p-1.5 rounded-2xl mb-6 shrink-0`}>
                         {PAYMENT_TABS.map(tab => (
                             <button
                                 key={tab.key}
@@ -460,9 +460,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                                 className={`py-2 px-1 rounded-xl text-center transition-all font-bold text-[10px] sm:text-xs leading-tight ${
                                     paymentMethod === tab.key
                                         ? tab.key === 'FIADO'
-                                            ? 'bg-white text-amber-700 shadow-md scale-[1.02]'
-                                            : 'bg-white text-violet-700 shadow-md scale-[1.02]'
-                                        : 'text-slate-500 hover:bg-white/50'
+                                            ? 'bg-white dark:bg-slate-700 text-amber-700 dark:text-amber-300 shadow-md scale-[1.02]'
+                                            : 'bg-white dark:bg-slate-700 text-violet-700 dark:text-violet-300 shadow-md scale-[1.02]'
+                                        : 'text-slate-500 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-800'
                                 }`}
                             >
                                 <span className="text-lg block mb-0.5">{tab.icon}</span>
@@ -477,19 +477,19 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                             {!showCustomerPicker ? (
                                 <button
                                     onClick={() => setShowCustomerPicker(true)}
-                                    className="w-full py-2 text-xs font-bold text-slate-400 hover:text-violet-600 transition-colors flex items-center justify-center gap-1"
+                                    className="w-full py-2 text-xs font-bold text-slate-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors flex items-center justify-center gap-1"
                                 >👤 Asignar cliente (opcional)</button>
                             ) : (
-                                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
+                                <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 space-y-2">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-xs font-bold text-slate-500">Buscar Cliente</span>
+                                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Buscar Cliente</span>
                                         <button onClick={() => setShowCustomerPicker(false)} className="text-slate-400 hover:text-red-500 text-sm">×</button>
                                     </div>
                                     <input
                                         type="text"
                                         value={customerSearch}
                                         onChange={e => setCustomerSearch(e.target.value)}
-                                        className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"
+                                        className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-lg"
                                         placeholder="Nombre o teléfono..."
                                         autoFocus
                                     />
@@ -498,7 +498,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                                             <button
                                                 key={cust.id}
                                                 onClick={() => { setSelectedCustomer(cust); setShowCustomerPicker(false); }}
-                                                className="w-full text-left px-3 py-2 rounded-lg hover:bg-violet-50 text-sm font-medium text-slate-700"
+                                                className="w-full text-left px-3 py-2 rounded-lg hover:bg-violet-50 dark:hover:bg-violet-900/30 text-sm font-medium text-slate-700 dark:text-slate-200"
                                             >{cust.firstName} {cust.lastName} {cust.phone && <span className="text-slate-400 text-xs">📞 {cust.phone}</span>}</button>
                                         ))}
                                     </div>
@@ -507,12 +507,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                         </div>
                     )}
                     {selectedCustomer && !isFiado && (
-                        <div className="mb-4 bg-violet-50 border border-violet-200 rounded-xl p-3 flex items-center justify-between">
+                        <div className="mb-4 bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800/50 rounded-xl p-3 flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <span className="text-sm">👤</span>
-                                <span className="text-sm font-bold text-violet-700">{selectedCustomer.firstName} {selectedCustomer.lastName}</span>
+                                <span className="text-sm font-bold text-violet-700 dark:text-violet-300">{selectedCustomer.firstName} {selectedCustomer.lastName}</span>
                             </div>
-                            <button onClick={() => setSelectedCustomer(null)} className="text-xs text-violet-500 hover:text-red-500">Quitar</button>
+                            <button onClick={() => setSelectedCustomer(null)} className="text-xs text-violet-500 dark:text-violet-400 hover:text-red-500">Quitar</button>
                         </div>
                     )}
 
@@ -521,20 +521,20 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                             {!isSplitPayment && (
                                 <button
                                     onClick={() => setIsSplitPayment(true)}
-                                    className="w-full py-3 mb-6 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl transition-all shadow-inner border border-slate-200"
+                                    className="w-full py-3 mb-6 bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-200 font-bold rounded-xl transition-all shadow-inner border border-slate-200 dark:border-slate-700"
                                 >🔗 Dividir Pago / Fraccionado</button>
                             )}
 
                             {(paymentMethod === 'PAGO_MOVIL' || paymentMethod === 'PUNTO') && (
                                 <div className="mb-4">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">
+                                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block">
                                         Referencia o Lote (Opcional en Punto)
                                     </label>
                                     <input
                                         type="text"
                                         value={reference}
                                         onChange={(e) => setReference(e.target.value)}
-                                        className="w-full px-4 py-3 text-lg font-bold text-slate-900 border-2 border-slate-200 rounded-xl focus:border-violet-500 focus:ring-2 focus:ring-violet-200 transition-all font-mono tracking-wider"
+                                        className="w-full px-4 py-3 text-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:border-violet-500 focus:ring-2 focus:ring-violet-200 dark:focus:ring-violet-900 transition-all font-mono tracking-wider"
                                         placeholder="Ej: 0424XXXXXXXX"
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter') isSplitPayment ? handleAddPaymentClick() : handleConfirm();
@@ -546,11 +546,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                             {isSplitPayment && (
                                 <>
                             <div className="mb-4">
-                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">
+                                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block">
                                     Monto a Añadir ({paymentMethod === 'DIVISA' ? '$' : 'Bs.'})
                                 </label>
                                 <div className="relative">
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 font-black text-2xl">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-black text-2xl">
                                         {paymentMethod === 'DIVISA' ? '$' : 'Bs.'}
                                     </span>
                                     <input
@@ -559,7 +559,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                                         step="any"
                                         value={amountReceived}
                                         onChange={(e) => setAmountReceived(e.target.value)}
-                                        className="w-full pl-14 pr-4 py-4 text-3xl font-black text-slate-900 border-2 border-slate-200 rounded-2xl focus:border-violet-500 focus:ring-2 focus:ring-violet-200 transition-all"
+                                        className="w-full pl-14 pr-4 py-4 text-3xl font-black bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-2 border-slate-200 dark:border-slate-700 rounded-2xl focus:border-violet-500 focus:ring-2 focus:ring-violet-200 dark:focus:ring-violet-900 transition-all"
                                         placeholder="0.00"
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter') handleAddPaymentClick();
@@ -573,11 +573,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                                 <div className="grid grid-cols-4 gap-2 mb-4">
                                     {paymentMethod === 'DIVISA' ? (
                                         [1, 5, 10, 20].map(amt => (
-                                            <button key={amt} onClick={() => {setAmountReceived(amt.toString()); addPayment('DIVISA', amt);}} className="py-2.5 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-violet-50 hover:border-violet-200 hover:text-violet-600 transition-all active:scale-95 bg-slate-50 shadow-sm">${amt}</button>
+                                            <button key={amt} onClick={() => {setAmountReceived(amt.toString()); addPayment('DIVISA', amt);}} className="py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 font-bold text-slate-600 dark:text-slate-200 hover:bg-violet-50 dark:hover:bg-violet-900/30 hover:border-violet-200 dark:hover:border-violet-700 hover:text-violet-600 dark:hover:text-violet-300 transition-all active:scale-95 bg-slate-50 dark:bg-slate-900 shadow-sm">${amt}</button>
                                         ))
                                     ) : (
                                         [50, 100, 200, 500].map(amt => (
-                                            <button key={amt} onClick={() => {setAmountReceived(amt.toString()); addPayment('EFECTIVO_BS', amt / exchangeRate);}} className="py-2.5 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-violet-50 hover:border-violet-200 hover:text-violet-600 transition-all active:scale-95 bg-slate-50 shadow-sm">Bs.{amt}</button>
+                                            <button key={amt} onClick={() => {setAmountReceived(amt.toString()); addPayment('EFECTIVO_BS', amt / exchangeRate);}} className="py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 font-bold text-slate-600 dark:text-slate-200 hover:bg-violet-50 dark:hover:bg-violet-900/30 hover:border-violet-200 dark:hover:border-violet-700 hover:text-violet-600 dark:hover:text-violet-300 transition-all active:scale-95 bg-slate-50 dark:bg-slate-900 shadow-sm">Bs.{amt}</button>
                                         ))
                                     )}
                                 </div>
@@ -586,14 +586,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                             <button
                                 onClick={handleAddPaymentClick}
                                 disabled={!amountReceived || parseFloat(amountReceived) <= 0}
-                                className="w-full py-4 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:active:scale-100 disabled:cursor-not-allowed"
+                                className="w-full py-4 bg-slate-900 dark:bg-violet-600 hover:bg-slate-800 dark:hover:bg-violet-500 text-white font-bold rounded-2xl transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:active:scale-100 disabled:cursor-not-allowed"
                             >➕ Añadir Pago al Recibo</button>
                             
                             {remainingUsd > 0 && (
-                                <div className="mt-4 p-3 bg-indigo-50 border border-indigo-100 rounded-xl">
+                                <div className="mt-4 p-3 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-800/50 rounded-xl">
                                     <button onClick={() => {
                                         setAmountReceived(paymentMethod === 'DIVISA' ? remainingUsd.toFixed(2) : remainingBs.toFixed(2));
-                                    }} className="w-full text-indigo-600 font-bold text-sm text-center hover:underline">
+                                    }} className="w-full text-indigo-600 dark:text-indigo-300 font-bold text-sm text-center hover:underline">
                                         Llenar con monto restante ({paymentMethod === 'DIVISA' ? `$${remainingUsd.toFixed(2)}` : `Bs. ${remainingBs.toFixed(2)}`})
                                     </button>
                                 </div>
@@ -619,33 +619,33 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                             ) : (
                                 <>
                                     {selectedCustomer ? (
-                                        <div className="bg-emerald-50 border-2 border-emerald-200 rounded-2xl p-4 flex items-center justify-between">
+                                        <div className="bg-emerald-50 dark:bg-emerald-950/30 border-2 border-emerald-200 dark:border-emerald-800/50 rounded-2xl p-4 flex items-center justify-between">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-10 h-10 bg-emerald-600 text-white rounded-full flex items-center justify-center font-black text-sm">
                                                     {selectedCustomer.firstName[0]}{selectedCustomer.lastName[0]}
                                                 </div>
                                                 <div>
-                                                    <p className="font-bold text-emerald-800">
+                                                    <p className="font-bold text-emerald-800 dark:text-emerald-200">
                                                         {selectedCustomer.firstName} {selectedCustomer.lastName}
                                                     </p>
-                                                    <p className="text-xs text-emerald-600">
+                                                    <p className="text-xs text-emerald-600 dark:text-emerald-400">
                                                         📞 {selectedCustomer.phone || 'Sin teléfono'}
                                                     </p>
                                                 </div>
                                             </div>
                                             <button
                                                 onClick={() => setSelectedCustomer(null)}
-                                                className="text-emerald-600 hover:text-red-500 text-xs font-bold bg-white px-3 py-2 rounded-lg border border-emerald-200 transition-all"
+                                                className="text-emerald-600 dark:text-emerald-300 hover:text-red-500 text-xs font-bold bg-white dark:bg-slate-800 px-3 py-2 rounded-lg border border-emerald-200 dark:border-emerald-700 transition-all"
                                             >Cambiar</button>
                                         </div>
                                     ) : (
                                         <>
                                             <div className="mb-4">
                                                 <div className="flex justify-between items-center mb-2">
-                                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Buscar Cliente</label>
+                                                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Buscar Cliente</label>
                                                     <button
                                                         onClick={() => setShowNewCustomerForm(true)}
-                                                        className="text-xs font-bold text-violet-600 hover:text-violet-800 transition-colors"
+                                                        className="text-xs font-bold text-violet-600 dark:text-violet-400 hover:text-violet-800 transition-colors"
                                                     >+ Nuevo Cliente</button>
                                                 </div>
                                                 <input
@@ -653,7 +653,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                                                     type="text"
                                                     value={customerSearch}
                                                     onChange={e => setCustomerSearch(e.target.value)}
-                                                    className="w-full px-4 py-3 text-sm font-medium text-slate-900 border-2 border-slate-200 rounded-xl"
+                                                    className="w-full px-4 py-3 text-sm font-medium bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-2 border-slate-200 dark:border-slate-700 rounded-xl"
                                                     placeholder="Buscar por nombre o teléfono..."
                                                 />
                                             </div>
@@ -662,13 +662,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                                                     <button
                                                         key={cust.id}
                                                         onClick={() => setSelectedCustomer(cust)}
-                                                        className="w-full flex items-center gap-3 p-3 bg-slate-50 hover:bg-amber-50 border border-slate-200 rounded-xl transition-all text-left"
+                                                        className="w-full flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900 hover:bg-amber-50 dark:hover:bg-amber-950/30 border border-slate-200 dark:border-slate-700 rounded-xl transition-all text-left"
                                                     >
-                                                        <div className="w-8 h-8 bg-slate-300 text-white rounded-full flex items-center justify-center font-bold text-xs">
+                                                        <div className="w-8 h-8 bg-slate-300 dark:bg-slate-700 text-white rounded-full flex items-center justify-center font-bold text-xs">
                                                             {cust.firstName[0]}{cust.lastName[0]}
                                                         </div>
                                                         <div>
-                                                            <p className="font-bold text-slate-700 text-sm">
+                                                            <p className="font-bold text-slate-700 dark:text-slate-200 text-sm">
                                                                 {cust.firstName} {cust.lastName}
                                                             </p>
                                                             <p className="text-[10px] text-slate-400 font-medium">

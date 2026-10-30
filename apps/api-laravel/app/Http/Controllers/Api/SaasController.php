@@ -27,13 +27,14 @@ class SaasController extends Controller
             $owner = $store->users()->where('role', 'ADMIN')->first();
 
             return [
-                'id'         => $store->id,
-                'name'       => $store->name,
-                'rif'        => $store->rif ?? 'N/A',
-                'ownerEmail' => $store->owner_email ?? ($owner?->email ?? 'N/A'),
-                'plan'       => $store->plan ?? 'STANDARD',
-                'isActive'   => $store->is_active,
-                'createdAt'  => $store->created_at->toISOString(),
+                'id'           => $store->id,
+                'name'         => $store->name,
+                'businessType' => $store->business_type ?? 'MINIMARKET',
+                'rif'          => $store->rif ?? 'N/A',
+                'ownerEmail'   => $store->owner_email ?? ($owner?->email ?? 'N/A'),
+                'plan'         => $store->plan ?? 'STANDARD',
+                'isActive'     => $store->is_active,
+                'createdAt'    => $store->created_at->toISOString(),
             ];
         });
 

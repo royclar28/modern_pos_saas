@@ -344,13 +344,13 @@ export const SalesDashboard = () => {
                     {/* ── Transaction Table ────────────────────────────────────── */}
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden transition-colors">
 
-                        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                            <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                            <h3 className="text-base font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                                 <span>🗒️</span>
                                 Historial de Tickets
                             </h3>
                             {!isLoading && allSales.length > 0 && (
-                                <span className="text-xs text-slate-400 bg-slate-100 px-3 py-1 rounded-full font-medium">
+                                <span className="text-xs text-slate-400 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 px-3 py-1 rounded-full font-medium">
                                     {allSales.length} registros
                                 </span>
                             )}
@@ -359,7 +359,7 @@ export const SalesDashboard = () => {
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">
                                 <thead>
-                                    <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500 font-semibold">
+                                    <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold">
                                         <th className="px-5 py-3.5">ID Ticket</th>
                                         <th className="px-5 py-3.5">Hora</th>
                                         <th className="px-5 py-3.5">Método</th>
@@ -372,13 +372,13 @@ export const SalesDashboard = () => {
                                         <th className="px-5 py-3.5 text-center">Acciones</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100 text-sm">
+                                <tbody className="divide-y divide-slate-100 dark:divide-slate-700 text-sm">
                                     {isLoading ? (
                                         Array.from({ length: 5 }).map((_, i) => (
                                             <tr key={i}>
                                                 {Array.from({ length: 9 }).map((_, j) => (
                                                     <td key={j} className="px-5 py-4">
-                                                        <div className="h-4 bg-slate-100 rounded animate-pulse" style={{ width: `${60 + Math.random() * 40}%` }} />
+                                                        <div className="h-4 bg-slate-100 dark:bg-slate-700 rounded animate-pulse" style={{ width: `${60 + Math.random() * 40}%` }} />
                                                     </td>
                                                 ))}
                                             </tr>
@@ -388,7 +388,7 @@ export const SalesDashboard = () => {
                                             <td colSpan={9} className="text-center py-16">
                                                 <div className="flex flex-col items-center gap-3 text-slate-400">
                                                     <span className="text-5xl">🏬</span>
-                                                    <p className="font-semibold text-slate-500">Sin ventas para esta fecha</p>
+                                                    <p className="font-semibold text-slate-500 dark:text-slate-300">Sin ventas para esta fecha</p>
                                                     <p className="text-sm">
                                                         {isToday
                                                             ? 'Las ventas registradas en el POS aparecerán aquí en tiempo real.'
@@ -403,27 +403,27 @@ export const SalesDashboard = () => {
                                                 (sum, item) => sum + (item.quantityPurchased ?? 1), 0
                                             );
                                             return (
-                                                <tr key={sale.id} className="hover:bg-violet-50/30 transition-colors">
+                                                <tr key={sale.id} className="hover:bg-violet-50/30 dark:hover:bg-slate-700/50 transition-colors">
                                                     <td className="px-5 py-3.5">
                                                         <span className={`font-mono text-xs px-2 py-1 rounded-md ${
                                                             sale.status === 'ANULADO'
-                                                                ? 'bg-red-100 text-red-600 line-through'
-                                                                : 'bg-slate-100 text-slate-600'
+                                                                ? 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 line-through'
+                                                                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-200'
                                                         }`}>
                                                             {sale.invoiceNumber ?? sale.id.slice(0, 8).toUpperCase()}
                                                         </span>
                                                     </td>
-                                                    <td className="px-5 py-3.5 text-slate-600 tabular-nums text-xs">
+                                                    <td className="px-5 py-3.5 text-slate-600 dark:text-slate-300 tabular-nums text-xs">
                                                         {fmtTime(sale.saleTime)}
                                                     </td>
                                                     <td className="px-5 py-3.5">
                                                         <div className="flex flex-col gap-1">
                                                             <PaymentBadge method={sale.paymentMethod} />
                                                             {sale.status === 'ANULADO' && (
-                                                                <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded">ANULADO</span>
+                                                                <span className="text-[10px] font-bold text-red-500 bg-red-50 dark:bg-red-900/30 px-1.5 py-0.5 rounded">ANULADO</span>
                                                             )}
                                                             {sale.paymentMethod === 'FIADO' && sale.status !== 'ANULADO' && (
-                                                                <span className="text-[10px] font-bold text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded">
+                                                                <span className="text-[10px] font-bold text-orange-500 bg-orange-50 dark:bg-orange-900/30 px-1.5 py-0.5 rounded">
                                                                     {sale.status === 'PAGADO' ? '✅ SALDADO' : `🔸 ${sale.paidAmount ? `$${sale.paidAmount.toFixed(2)}` : 'PENDIENTE'}`}
                                                                 </span>
                                                             )}
@@ -431,26 +431,26 @@ export const SalesDashboard = () => {
                                                     </td>
                                                     <td className="px-5 py-3.5">
                                                         {sale.reference ? (
-                                                            <span className="font-mono text-xs text-slate-500 bg-slate-50 px-2 py-0.5 rounded">
+                                                            <span className="font-mono text-xs text-slate-500 dark:text-slate-300 bg-slate-50 dark:bg-slate-700 px-2 py-0.5 rounded">
                                                                 {sale.reference}
                                                             </span>
                                                         ) : (
-                                                            <span className="text-xs text-slate-300">—</span>
+                                                            <span className="text-xs text-slate-300 dark:text-slate-600">—</span>
                                                         )}
                                                     </td>
                                                     <td className="px-5 py-3.5 text-center">
-                                                        <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-violet-100 text-violet-700 text-xs font-bold">
+                                                        <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-300 text-xs font-bold">
                                                             {totalItems}
                                                         </span>
                                                     </td>
-                                                    <td className="px-5 py-3.5 text-right text-slate-500 tabular-nums">
+                                                    <td className="px-5 py-3.5 text-right text-slate-500 dark:text-slate-300 tabular-nums">
                                                         {fmt(sale.subtotal)}
                                                     </td>
-                                                    <td className="px-5 py-3.5 text-right text-slate-500 tabular-nums">
+                                                    <td className="px-5 py-3.5 text-right text-slate-500 dark:text-slate-300 tabular-nums">
                                                         {fmt(sale.taxAmount)}
                                                     </td>
                                                     <td className={`px-5 py-3.5 text-right font-bold tabular-nums ${
-                                                        sale.status === 'ANULADO' ? 'text-red-400 line-through' : 'text-violet-700'
+                                                        sale.status === 'ANULADO' ? 'text-red-400 line-through' : 'text-violet-700 dark:text-violet-400'
                                                     }`}>
                                                         {fmt(sale.total)}
                                                     </td>
@@ -459,20 +459,20 @@ export const SalesDashboard = () => {
                                                         {sale.status === 'FIADO' && <span className="inline-flex items-center gap-1 bg-orange-100 text-orange-700 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase">🔸 Crédito</span>}
                                                         {sale.status === 'PENDIENTE' && <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase">⏳ Pendiente</span>}
                                                         {sale.status === 'ANULADO' && <span className="inline-flex items-center gap-1 bg-red-100 text-red-700 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase line-through">❌ Anulado</span>}
-                                                        {(!sale.status || !['PAGADO', 'FIADO', 'PENDIENTE', 'ANULADO'].includes(sale.status)) && <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase">➖ {sale.status || 'N/A'}</span>}
+                                                        {(!sale.status || !['PAGADO', 'FIADO', 'PENDIENTE', 'ANULADO'].includes(sale.status)) && <span className="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase">➖ {sale.status || 'N/A'}</span>}
                                                     </td>
                                                     <td className="px-5 py-3.5 text-center">
                                                         <div className="flex items-center justify-center gap-1.5">
                                                             <button
                                                                 onClick={() => handleReprint(sale)}
-                                                                className="text-[10px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded-lg transition-colors"
+                                                                className="text-[10px] font-bold bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-200 px-2 py-1 rounded-lg transition-colors"
                                                                 title="Reimprimir ticket"
                                                             >🖨️</button>
                                                             {sale.status !== 'ANULADO' && (
                                                                 <button
                                                                     onClick={() => handleVoidSale(sale)}
                                                                     disabled={voidingSaleId === sale.id}
-                                                                    className="text-[10px] font-bold bg-red-50 hover:bg-red-100 text-red-500 disabled:opacity-50 px-2 py-1 rounded-lg transition-colors"
+                                                                    className="text-[10px] font-bold bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-500 dark:text-red-400 disabled:opacity-50 px-2 py-1 rounded-lg transition-colors"
                                                                     title="Anular venta"
                                                                 >✕</button>
                                                             )}
@@ -486,17 +486,17 @@ export const SalesDashboard = () => {
 
                                 {!isLoading && allSales.length > 0 && (
                                     <tfoot>
-                                        <tr className="bg-slate-50 border-t-2 border-slate-200 font-bold text-sm">
-                                            <td colSpan={5} className="px-5 py-4 text-slate-700 uppercase tracking-wider text-xs">
+                                        <tr className="bg-slate-50 dark:bg-slate-900/50 border-t-2 border-slate-200 dark:border-slate-700 font-bold text-sm">
+                                            <td colSpan={5} className="px-5 py-4 text-slate-700 dark:text-slate-200 uppercase tracking-wider text-xs">
                                                 TOTALES DEL DÍA
                                             </td>
-                                            <td className="px-5 py-4 text-right text-slate-700 tabular-nums">
+                                            <td className="px-5 py-4 text-right text-slate-700 dark:text-slate-200 tabular-nums">
                                                 {fmt(allSales.reduce((s, x) => s + x.subtotal, 0))}
                                             </td>
-                                            <td className="px-5 py-4 text-right text-slate-700 tabular-nums">
+                                            <td className="px-5 py-4 text-right text-slate-700 dark:text-slate-200 tabular-nums">
                                                 {fmt(arqueo.totalTax)}
                                             </td>
-                                            <td className="px-5 py-4 text-right text-violet-700 tabular-nums text-base">
+                                            <td className="px-5 py-4 text-right text-violet-700 dark:text-violet-400 tabular-nums text-base">
                                                 {fmt(arqueo.grandTotal)}
                                             </td>
                                             <td colSpan={2} className="px-5 py-4"></td>
@@ -510,8 +510,8 @@ export const SalesDashboard = () => {
                     {/* ── Desglose por Método (mini-table) ─────────────────────── */}
                     {!isLoading && allSales.length > 0 && (
                         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden transition-colors">
-                            <div className="px-6 py-4 border-b border-slate-100">
-                                <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
+                                <h3 className="text-base font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                                     <span>🧮</span>
                                     Desglose por Método de Pago
                                 </h3>
@@ -519,7 +519,7 @@ export const SalesDashboard = () => {
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left border-collapse">
                                     <thead>
-                                        <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500 font-semibold">
+                                        <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold">
                                             <th className="px-6 py-3">Método</th>
                                             <th className="px-6 py-3 text-center">Tickets</th>
                                             <th className="px-6 py-3 text-right">Total USD</th>
@@ -527,7 +527,7 @@ export const SalesDashboard = () => {
                                             <th className="px-6 py-3 text-right">% del Total</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-100 text-sm">
+                                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700 text-sm">
                                         {[
                                             { method: 'DIVISA', total: arqueo.divisaTotal, count: arqueo.divisaCount },
                                             { method: 'EFECTIVO_BS', total: arqueo.bsTotal, count: arqueo.bsCount },
@@ -538,28 +538,28 @@ export const SalesDashboard = () => {
                                         ].filter(row => row.count > 0).map(row => {
                                             const pct = arqueo.grandTotal > 0 ? (row.total / arqueo.grandTotal) * 100 : 0;
                                             return (
-                                                <tr key={row.method} className="hover:bg-slate-50 transition-colors">
+                                                <tr key={row.method} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
                                                     <td className="px-6 py-3.5">
                                                         <PaymentBadge method={row.method} />
                                                     </td>
-                                                    <td className="px-6 py-3.5 text-center font-bold text-slate-700">
+                                                    <td className="px-6 py-3.5 text-center font-bold text-slate-700 dark:text-slate-200">
                                                         {row.count}
                                                     </td>
-                                                    <td className="px-6 py-3.5 text-right font-bold text-slate-800 tabular-nums">
+                                                    <td className="px-6 py-3.5 text-right font-bold text-slate-800 dark:text-slate-100 tabular-nums">
                                                         {fmt(row.total)}
                                                     </td>
-                                                    <td className="px-6 py-3.5 text-right text-slate-500 tabular-nums">
+                                                    <td className="px-6 py-3.5 text-right text-slate-500 dark:text-slate-400 tabular-nums">
                                                         {fmtBs(row.total * exchangeRate)}
                                                     </td>
                                                     <td className="px-6 py-3.5 text-right">
                                                         <div className="flex items-center justify-end gap-2">
-                                                            <div className="w-16 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                                            <div className="w-16 h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                                                                 <div
                                                                     className="h-full bg-violet-500 rounded-full transition-all"
                                                                     style={{ width: `${Math.min(100, pct)}%` }}
                                                                 />
                                                             </div>
-                                                            <span className="text-xs font-bold text-slate-600 tabular-nums w-12 text-right">
+                                                            <span className="text-xs font-bold text-slate-600 dark:text-slate-300 tabular-nums w-12 text-right">
                                                                 {pct.toFixed(1)}%
                                                             </span>
                                                         </div>
@@ -569,12 +569,12 @@ export const SalesDashboard = () => {
                                         })}
                                     </tbody>
                                     <tfoot>
-                                        <tr className="bg-slate-50 border-t-2 border-slate-200 font-bold text-sm">
-                                            <td className="px-6 py-3.5 text-slate-700 uppercase tracking-wider text-xs">TOTAL</td>
-                                            <td className="px-6 py-3.5 text-center text-slate-700">{arqueo.ticketCount}</td>
-                                            <td className="px-6 py-3.5 text-right text-violet-700 tabular-nums">{fmt(arqueo.grandTotal)}</td>
-                                            <td className="px-6 py-3.5 text-right text-slate-500 tabular-nums">{fmtBs(arqueo.grandTotal * exchangeRate)}</td>
-                                            <td className="px-6 py-3.5 text-right text-xs font-bold text-slate-600">100%</td>
+                                        <tr className="bg-slate-50 dark:bg-slate-900/50 border-t-2 border-slate-200 dark:border-slate-700 font-bold text-sm">
+                                            <td className="px-6 py-3.5 text-slate-700 dark:text-slate-200 uppercase tracking-wider text-xs">TOTAL</td>
+                                            <td className="px-6 py-3.5 text-center text-slate-700 dark:text-slate-200">{arqueo.ticketCount}</td>
+                                            <td className="px-6 py-3.5 text-right text-violet-700 dark:text-violet-400 tabular-nums">{fmt(arqueo.grandTotal)}</td>
+                                            <td className="px-6 py-3.5 text-right text-slate-500 dark:text-slate-400 tabular-nums">{fmtBs(arqueo.grandTotal * exchangeRate)}</td>
+                                            <td className="px-6 py-3.5 text-right text-xs font-bold text-slate-600 dark:text-slate-300">100%</td>
                                         </tr>
                                     </tfoot>
                                 </table>

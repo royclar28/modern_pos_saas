@@ -108,18 +108,18 @@ export const RafflesPage: React.FC = () => {
 
                 {showCreate && (
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 mb-6">
-                        <h2 className="font-bold mb-4">Crear Nuevo Sorteo</h2>
+                        <h2 className="font-bold mb-4 text-slate-800 dark:text-slate-100">Crear Nuevo Sorteo</h2>
                         <form onSubmit={handleCreate} className="flex flex-col sm:flex-row gap-4">
                             <input 
                                 type="text" 
                                 placeholder="Nombre del Sorteo (Ej. Día de la Madre)"
-                                className="flex-1 rounded-xl border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                                className="flex-1 px-3 py-2 rounded-xl bg-white dark:bg-slate-700 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600"
                                 value={newName}
                                 onChange={e => setNewName(e.target.value)}
                             />
                             <input 
                                 type="datetime-local" 
-                                className="rounded-xl border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                                className="px-3 py-2 rounded-xl bg-white dark:bg-slate-700 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600"
                                 value={newDate}
                                 onChange={e => setNewDate(e.target.value)}
                             />

@@ -22,6 +22,7 @@ class SettingsController extends Controller
         'default_tax_rate'    => '0',
         'currency_symbol'     => '$',
         'company'             => 'Mi Negocio',
+        'business_type'       => 'MINIMARKET',
         'timezone'            => 'America/Caracas',
         'language'            => 'es',
         'enable_credit_sales' => 'false',
@@ -42,11 +43,14 @@ class SettingsController extends Controller
         // Merge: defaults → DB values (DB wins)
         $settings = array_merge(self::DEFAULTS, $dbRows);
 
-        // Pull store name from the stores table as authoritative source for 'company'
+        // Pull store name and business_type from the stores table as authoritative source
         $store = Store::find(Auth::user()->tenant_id);
         if ($store) {
             if (!isset($dbRows['company'])) {
                 $settings['company'] = $store->name;
+            }
+            if (!isset($dbRows['business_type']) && $store->business_type) {
+                $settings['business_type'] = $store->business_type;
             }
             $settings['logo_url'] = $store->logo_url;
         }
@@ -71,6 +75,7 @@ class SettingsController extends Controller
             'default_tax_rate'    => 'sometimes|numeric|min:0|max:100',
             'currency_symbol'     => 'sometimes|string|max:5',
             'company'             => 'sometimes|string|max:255',
+            'business_type'       => ['sometimes', 'string', \Illuminate\Validation\Rule::in(Store::BUSINESS_TYPES)],
             'timezone'            => 'sometimes|string|max:100',
             'language'            => 'sometimes|string|max:10',
             'enable_credit_sales' => 'sometimes|in:true,false',
@@ -89,9 +94,16 @@ class SettingsController extends Controller
             }
         }
 
-        // If company name changed, also update the canonical Store name
+        // If company name or business_type changed, also update the canonical Store row
+        $storeUpdates = [];
         if ($request->has('company')) {
-            Store::where('id', $tenantId)->update(['name' => $request->input('company')]);
+            $storeUpdates['name'] = $request->input('company');
+        }
+        if ($request->has('business_type')) {
+            $storeUpdates['business_type'] = $request->input('business_type');
+        }
+        if (!empty($storeUpdates)) {
+            Store::where('id', $tenantId)->update($storeUpdates);
         }
 
         return response()->json(['status' => 'ok', 'message' => 'Configuración guardada correctamente.']);

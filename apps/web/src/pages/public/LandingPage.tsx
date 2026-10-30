@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthProvider';
 import {
     Zap, ShieldCheck, BarChart3, WifiOff, CheckCircle2, ArrowRight,
     Github, Twitter, Mail, Package, Printer, TrendingUp, ChevronLeft, ChevronRight,
-    Store, ShoppingCart, Gift, Settings2
+    Store, ShoppingCart, Gift, Settings2, Coffee
 } from 'lucide-react';
 import { ThemeManager } from '../../components/themes/ThemeManager';
 import { GLOBAL_SEASONAL_THEME } from '../../config/theme';
@@ -193,18 +193,23 @@ export const LandingPage: React.FC = () => {
                 <section className="py-10 border-y border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60">
                     <div className="max-w-6xl mx-auto px-6 text-center">
                         <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">Diseñado para tu tipo de negocio</p>
-                        <div className="flex flex-wrap justify-center gap-8">
+                        <div className="flex flex-wrap justify-center gap-6 sm:gap-8">
                             {[
-                                { icon: <Store size={18} className="text-violet-500" />, label: 'Minimarkets' },
-                                { icon: <Package size={18} className="text-emerald-500" />, label: 'Ferreterías' },
-                                { icon: <ShoppingCart size={18} className="text-amber-500" />, label: 'Boutiques' },
-                                { icon: <ShieldCheck size={18} className="text-blue-500" />, label: 'Farmacias' },
-                                { icon: <Printer size={18} className="text-pink-500" />, label: 'Licorerías' },
-                                { icon: <Gift size={18} className="text-rose-500" />, label: 'Tiendas de Ropa' },
-                            ].map(({ icon, label }) => (
-                                <div key={label} className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-semibold text-sm">
+                                { icon: <Store size={18} className="text-violet-500" />, label: 'Minimarkets', type: 'MINIMARKET' },
+                                { icon: <Package size={18} className="text-emerald-500" />, label: 'Ferreterías', type: 'FERRETERIA' },
+                                { icon: <ShoppingCart size={18} className="text-amber-500" />, label: 'Boutiques', type: 'BOUTIQUE' },
+                                { icon: <ShieldCheck size={18} className="text-blue-500" />, label: 'Farmacias', type: 'FARMACIA' },
+                                { icon: <Printer size={18} className="text-pink-500" />, label: 'Licorerías', type: 'LICORERIA' },
+                                { icon: <Gift size={18} className="text-rose-500" />, label: 'Tiendas de Ropa', type: 'BOUTIQUE' },
+                                { icon: <Coffee size={18} className="text-orange-500" />, label: 'Cafeterías y Panaderías', type: 'CAFETERIA' },
+                            ].map(({ icon, label, type }) => (
+                                <Link
+                                    key={label}
+                                    to={`/register?type=${type}`}
+                                    className="flex items-center gap-2 text-slate-700 dark:text-slate-300 hover:text-violet-600 dark:hover:text-violet-400 font-semibold text-sm transition-colors"
+                                >
                                     {icon} {label}
-                                </div>
+                                </Link>
                             ))}
                         </div>
                     </div>

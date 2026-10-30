@@ -68,6 +68,7 @@ class AuthController extends Controller
                 'name'           => $user->full_name,
                 'email'          => $user->email,
                 'tenant_id'      => $user->tenant_id,
+                'business_type'  => $store?->business_type ?? 'MINIMARKET',
                 'role'           => $user->role,
                 'trial_ends_at'  => $store?->trial_ends_at?->toISOString(),
                 'trialDaysLeft'  => $store ? $store->trialDaysLeft() : 0,
