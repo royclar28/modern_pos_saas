@@ -75,6 +75,7 @@ class SaasMetricsController extends Controller
                     'id'            => $store->id,
                     'name'          => $store->name,
                     'ownerEmail'    => $store->owner_email ?? $owner?->email ?? 'N/A',
+                    'ownerPhone'    => $owner?->phone ?? null,
                     'ownerName'     => $owner ? $owner->full_name : 'N/A',
                     'plan'          => $store->plan ?? 'STANDARD',
                     'isActive'      => $store->is_active,

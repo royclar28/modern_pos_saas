@@ -16,6 +16,7 @@ interface RecentStore {
     id: string;
     name: string;
     ownerEmail: string;
+    ownerPhone?: string | null;
     ownerName: string;
     plan: string;
     isActive: boolean;
@@ -25,6 +26,18 @@ interface RecentStore {
     registeredAt: string;
     lastActivityAt?: string | null;
 }
+
+const getWhatsAppUrl = (phone: string, storeName: string, ownerName?: string | null) => {
+    let clean = phone.replace(/\D/g, '');
+    if (clean.startsWith('0')) {
+        clean = '58' + clean.slice(1);
+    } else if (!clean.startsWith('58') && clean.length === 10) {
+        clean = '58' + clean;
+    }
+    const greeting = ownerName && ownerName !== 'N/A' ? ownerName.split(' ')[0] : 'amigo';
+    const msg = `Hola ${greeting}, un gusto saludarte. Te escribe Roy de MerxPOS. Vi que registraste tu comercio "${storeName}". ¿Pudiste probar el sistema? Estoy a tu orden para ayudarte a configurar tus productos o aclarar cualquier duda.`;
+    return `https://wa.me/${clean}?text=${encodeURIComponent(msg)}`;
+};
 
 interface MetricsData {
     summary: MetricsSummary;
@@ -425,9 +438,28 @@ export const MasterDashboard = () => {
                                                     <PlanBadge plan={store.plan} />
                                                     <TrialBadge status={store.trialStatus} daysLeft={store.trialDaysLeft} />
                                                 </div>
-                                                <p className="text-xs text-slate-500 font-mono truncate mt-0.5">
-                                                    {store.ownerEmail}
-                                                </p>
+                                                <div className="flex items-center gap-3 flex-wrap mt-0.5">
+                                                    {store.ownerName && store.ownerName !== 'N/A' && (
+                                                        <span className="text-xs text-slate-300 font-medium">
+                                                            👤 {store.ownerName}
+                                                        </span>
+                                                    )}
+                                                    <a href={`mailto:${store.ownerEmail}`} className="text-xs text-slate-400 hover:text-indigo-300 font-mono truncate">
+                                                        ✉️ {store.ownerEmail}
+                                                    </a>
+                                                    {store.ownerPhone && (
+                                                        <a
+                                                            href={getWhatsAppUrl(store.ownerPhone, store.name, store.ownerName)}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition-all"
+                                                            title="Abrir WhatsApp con el dueño"
+                                                        >
+                                                            <span>💬</span>
+                                                            <span>WhatsApp</span>
+                                                        </a>
+                                                    )}
+                                                </div>
                                             </div>
 
                                             {/* Status dot */}

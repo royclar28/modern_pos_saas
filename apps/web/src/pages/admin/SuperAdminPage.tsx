@@ -8,11 +8,25 @@ interface Store {
     name: string;
     businessType?: string;
     rif: string | null;
+    ownerName?: string | null;
     ownerEmail: string | null;
+    ownerPhone?: string | null;
     plan: string;
     isActive: boolean;
     createdAt: string;
 }
+
+const getWhatsAppUrl = (phone: string, storeName: string, ownerName?: string | null) => {
+    let clean = phone.replace(/\D/g, '');
+    if (clean.startsWith('0')) {
+        clean = '58' + clean.slice(1);
+    } else if (!clean.startsWith('58') && clean.length === 10) {
+        clean = '58' + clean;
+    }
+    const greeting = ownerName && ownerName !== 'N/A' ? ownerName.split(' ')[0] : 'amigo';
+    const msg = `Hola ${greeting}, un gusto saludarte. Te escribe Roy de MerxPOS. Vi que registraste tu comercio "${storeName}". ¿Pudiste probar el sistema? Estoy a tu orden para ayudarte a configurar tus productos o aclarar cualquier duda.`;
+    return `https://wa.me/${clean}?text=${encodeURIComponent(msg)}`;
+};
 
 // ─── Lightweight inline toast (zero deps) ─────────────────────────────────────
 const toast = {
@@ -85,6 +99,7 @@ export const SuperAdminPage = () => {
     const [formBusinessType, setFormBusinessType] = useState('MINIMARKET');
     const [formRif, setFormRif] = useState('');
     const [formEmail, setFormEmail] = useState('');
+    const [formPhone, setFormPhone] = useState('');
     const [formOwnerName, setFormOwnerName] = useState('');
     const [creating, setCreating] = useState(false);
 
@@ -211,6 +226,7 @@ export const SuperAdminPage = () => {
                 businessType: formBusinessType,
                 rif: formRif,
                 ownerEmail: formEmail,
+                ownerPhone: formPhone,
                 ownerName: formOwnerName,
             });
 
@@ -237,7 +253,7 @@ export const SuperAdminPage = () => {
 
     const handleCloseSuccess = () => {
         setSuccessModalData(null);
-        setFormName(''); setFormRif(''); setFormEmail(''); setFormOwnerName('');
+        setFormName(''); setFormRif(''); setFormEmail(''); setFormPhone(''); setFormOwnerName('');
         fetchStores();
     };
 
@@ -314,7 +330,7 @@ export const SuperAdminPage = () => {
                                         <th className="px-4 sm:px-6 py-4">Nombre</th>
                                         <th className="px-4 sm:px-6 py-4">Rubro</th>
                                         <th className="px-4 sm:px-6 py-4 hidden sm:table-cell">RIF</th>
-                                        <th className="px-4 sm:px-6 py-4 hidden md:table-cell">Correo Dueño</th>
+                                        <th className="px-4 sm:px-6 py-4">Contacto / Dueño</th>
                                         <th className="px-4 sm:px-6 py-4">Plan</th>
                                         <th className="px-4 sm:px-6 py-4 text-center">Estado</th>
                                         <th className="px-4 sm:px-6 py-4 text-center">Acciones</th>
@@ -337,7 +353,36 @@ export const SuperAdminPage = () => {
                                                 </span>
                                             </td>
                                             <td className="px-4 sm:px-6 py-4 text-slate-500 font-mono text-xs hidden sm:table-cell">{store.rif || '-'}</td>
-                                            <td className="px-4 sm:px-6 py-4 text-slate-500 text-xs hidden md:table-cell">{store.ownerEmail || '-'}</td>
+                                            <td className="px-4 sm:px-6 py-4 text-xs">
+                                                <div className="space-y-1">
+                                                    {store.ownerName && store.ownerName !== 'N/A' && (
+                                                        <p className="font-semibold text-slate-800 flex items-center gap-1">
+                                                            <span>👤</span> {store.ownerName}
+                                                        </p>
+                                                    )}
+                                                    <p className="text-slate-500 font-mono text-[11px] truncate max-w-[220px]">
+                                                        {store.ownerEmail ? (
+                                                            <a href={`mailto:${store.ownerEmail}`} className="hover:text-indigo-600 hover:underline">
+                                                                ✉️ {store.ownerEmail}
+                                                            </a>
+                                                        ) : '-'}
+                                                    </p>
+                                                    {store.ownerPhone ? (
+                                                        <a
+                                                            href={getWhatsAppUrl(store.ownerPhone, store.name, store.ownerName)}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all hover:scale-105 active:scale-95"
+                                                            title="Escribir por WhatsApp con mensaje de bienvenida"
+                                                        >
+                                                            <span>💬</span>
+                                                            <span>WhatsApp ({store.ownerPhone})</span>
+                                                        </a>
+                                                    ) : (
+                                                        <span className="text-[10px] text-slate-400 italic">Sin teléfono registrado</span>
+                                                    )}
+                                                </div>
+                                            </td>
                                             <td className="px-4 sm:px-6 py-4">
                                                 <span className={`px-2 py-1 rounded-md text-xs font-bold ${
                                                     store.plan === 'PRO' ? 'bg-violet-100 text-violet-700' :
@@ -434,6 +479,10 @@ export const SuperAdminPage = () => {
                             <div className="space-y-1">
                                 <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Correo del Dueño *</label>
                                 <input type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} className="w-full px-3 py-2 bg-white text-slate-800 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none" placeholder="dueno@ejemplo.com" />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Teléfono / WhatsApp</label>
+                                <input type="tel" value={formPhone} onChange={e => setFormPhone(e.target.value)} className="w-full px-3 py-2 bg-white text-slate-800 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none" placeholder="Ej: 04121234567" />
                             </div>
                             <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-800 font-medium flex items-start gap-2">
                                 <span className="text-base leading-none">💡</span>

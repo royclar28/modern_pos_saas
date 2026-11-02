@@ -43,6 +43,7 @@ class TenantRegistrationController extends Controller
             'business_type' => ['nullable', 'string', \Illuminate\Validation\Rule::in(Store::BUSINESS_TYPES)],
             'username'      => ['required', 'string', 'max:50', 'alpha_dash', \Illuminate\Validation\Rule::unique('users', 'username')->whereNull('deleted_at')],
             'email'         => ['required', 'email', 'max:255', \Illuminate\Validation\Rule::unique('users', 'email')->whereNull('deleted_at')],
+            'phone'         => 'required|string|max:30',
             'first_name'    => 'required|string|max:100',
             'last_name'     => 'nullable|string|max:100',
         ]);
@@ -93,6 +94,7 @@ class TenantRegistrationController extends Controller
                 'first_name' => $request->first_name,
                 'last_name'  => $request->last_name ?? '',
                 'email'      => $request->email,
+                'phone'      => $request->phone,
                 'username'   => $request->username,
                 'password'   => Hash::make(Str::random(40)),
                 'role'       => 'ADMIN',

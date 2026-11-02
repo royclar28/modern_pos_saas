@@ -114,6 +114,7 @@ export const RegisterPage = () => {
         last_name:     '',
         username:      '',
         email:         '',
+        phone:         '',
     });
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -132,6 +133,7 @@ export const RegisterPage = () => {
         if (!form.username.trim())    errs.username    = 'El usuario es requerido';
         if (!/^[a-z0-9_]+$/i.test(form.username)) errs.username = 'Solo letras, números y guión bajo';
         if (!form.email.trim())       errs.email       = 'El email es requerido';
+        if (!form.phone.trim())       errs.phone       = 'El WhatsApp o teléfono es requerido';
         return errs;
     };
 
@@ -276,20 +278,29 @@ export const RegisterPage = () => {
                         {renderInputField({ label: "Apellido", id: "last_name", placeholder: "García", error: errors.last_name })}
                     </div>
 
-                    {/* Usuario y Email */}
+                    {/* Usuario, Email y Teléfono */}
                     {renderInputField({
                         label: "Nombre de usuario",
                         id: "username",
                         placeholder: "maria_garcia",
                         error: errors.username
                     })}
-                    {renderInputField({
-                        label: "Correo electrónico",
-                        id: "email",
-                        type: "email",
-                        placeholder: "maria@ejemplo.com",
-                        error: errors.email
-                    })}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {renderInputField({
+                            label: "Correo electrónico",
+                            id: "email",
+                            type: "email",
+                            placeholder: "maria@ejemplo.com",
+                            error: errors.email
+                        })}
+                        {renderInputField({
+                            label: "Teléfono / WhatsApp",
+                            id: "phone",
+                            type: "tel",
+                            placeholder: "04121234567",
+                            error: errors.phone
+                        })}
+                    </div>
 
                     {/* Términos */}
                     <p className="text-xs text-slate-500 text-center leading-relaxed">

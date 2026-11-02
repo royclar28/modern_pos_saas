@@ -65,6 +65,7 @@ class TenantService
                 'first_name' => $nameParts[0],
                 'last_name'  => $nameParts[1] ?? '',
                 'email'      => $data['ownerEmail'],
+                'phone'      => $data['ownerPhone'] ?? $data['phone'] ?? null,
                 'username'   => $data['username'] ?? explode('@', $data['ownerEmail'])[0],
                 'password'   => Hash::make($plainPassword),
                 'role'       => 'ADMIN',

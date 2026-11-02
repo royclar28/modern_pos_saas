@@ -24,14 +24,16 @@ class SaasController extends Controller
     {
         $stores = Store::orderBy('created_at', 'desc')->get()->map(function ($store) {
             // Obtener el primer usuario admin de la tienda como propietario
-            $owner = $store->users()->where('role', 'ADMIN')->first();
+            $owner = $store->users()->whereIn('role', ['ADMIN', 'STORE_ADMIN'])->orderBy('created_at')->first();
 
             return [
                 'id'           => $store->id,
                 'name'         => $store->name,
                 'businessType' => $store->business_type ?? 'MINIMARKET',
                 'rif'          => $store->rif ?? 'N/A',
+                'ownerName'    => $owner ? trim(($owner->first_name ?? '') . ' ' . ($owner->last_name ?? '')) : 'N/A',
                 'ownerEmail'   => $store->owner_email ?? ($owner?->email ?? 'N/A'),
+                'ownerPhone'   => $owner?->phone ?? null,
                 'plan'         => $store->plan ?? 'STANDARD',
                 'isActive'     => $store->is_active,
                 'createdAt'    => $store->created_at->toISOString(),
@@ -50,6 +52,7 @@ class SaasController extends Controller
             'name'         => 'required|string|max:255',
             'businessType' => ['nullable', 'string', \Illuminate\Validation\Rule::in(array_keys(Store::BUSINESS_TYPES))],
             'ownerEmail'   => ['required', 'email', \Illuminate\Validation\Rule::unique('users', 'email')->whereNull('deleted_at')],
+            'ownerPhone'   => 'nullable|string|max:30',
             'ownerName'    => 'nullable|string|max:255',
             'plan'         => 'nullable|in:STANDARD,PRO,ENTERPRISE',
             'rif'          => 'nullable|string|max:20',
@@ -59,6 +62,7 @@ class SaasController extends Controller
             'name'         => $request->input('name'),
             'businessType' => $request->input('businessType', 'MINIMARKET'),
             'ownerEmail'   => $request->input('ownerEmail'),
+            'ownerPhone'   => $request->input('ownerPhone'),
             'ownerName'    => $request->input('ownerName'),
             'plan'         => $request->input('plan', 'STANDARD'),
             'rif'          => $request->input('rif'),
