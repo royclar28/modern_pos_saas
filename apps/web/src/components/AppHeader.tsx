@@ -72,6 +72,12 @@ export const AppHeader = ({
                 <h1 className="text-lg sm:text-xl font-bold flex items-center gap-2 truncate">
                     {icon && <span>{icon}</span>}
                     <span className="truncate">{title}</span>
+                    {GLOBAL_SEASONAL_THEME === 'christmas' && (
+                        <span className="hidden sm:inline-flex items-center gap-1 text-[11px] bg-red-950/80 text-red-300 border border-red-500/50 px-2 py-0.5 rounded-full font-semibold shadow-sm">
+                            <span>🎄</span>
+                            <span>Navidad</span>
+                        </span>
+                    )}
                     {GLOBAL_SEASONAL_THEME === 'halloween' && (
                         <span className="hidden sm:inline-flex items-center gap-1 text-[11px] bg-orange-950/80 text-orange-300 border border-orange-500/50 px-2 py-0.5 rounded-full font-semibold shadow-sm">
                             <span>🎃</span>

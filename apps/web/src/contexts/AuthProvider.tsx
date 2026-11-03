@@ -44,18 +44,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const navigate = useNavigate();
 
-    const logout = useCallback(async () => {
+    const logout = useCallback(async (reason?: string) => {
         const activeToken = token || localStorage.getItem('pos_token');
         if (activeToken) {
             try {
                 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001/api';
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 2000);
                 await fetch(`${apiUrl}/logout`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${activeToken}`,
                         'Accept': 'application/json'
-                    }
+                    },
+                    signal: controller.signal
                 });
+                clearTimeout(timeoutId);
             } catch (e) {}
         }
         
@@ -75,13 +79,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         document.documentElement.style.removeProperty('--color-primary');
         document.documentElement.style.removeProperty('--color-primary-hover');
         document.documentElement.style.removeProperty('--color-primary-light');
-        navigate('/login');
+        
+        if (reason) {
+            sessionStorage.setItem('pos_logout_reason', reason);
+        }
+        navigate('/login', { replace: true });
     }, [token, navigate]);
 
     useEffect(() => {
         // Registramos el manejador global para los errores 401 de Axios/Fetch
         registerLogoutHandler(() => {
-            logout();
+            logout('Tu sesión ha expirado. Por favor ingresa nuevamente.');
         });
     }, [logout]);
 
@@ -112,7 +120,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             } catch (err: any) {
                 console.warn('[AuthProvider] Validación de sesión falló:', err);
                 if (err.message === 'Session expired' || err.message?.includes('401') || err.message?.includes('Unauthenticated')) {
-                    await logout();
+                    await logout('Tu sesión ha expirado.');
                 } else if (!navigator.onLine) {
                     console.info('[AuthProvider] Sin conexión, manteniendo sesión local para modo offline.');
                 }

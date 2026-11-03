@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { GLOBAL_SEASONAL_THEME, ThemeType } from '../../config/theme';
 import { WorldCupTheme } from './WorldCupTheme';
 import { HalloweenTheme } from './HalloweenTheme';
+import { ChristmasTheme } from './ChristmasTheme';
 
 /**
  * Gestor de Temas
@@ -33,12 +34,20 @@ export const ThemeManager: React.FC = () => {
     }, []);
 
     // Renderizar según el tema estacional activo
+    if (activeTheme === 'christmas') {
+        return <ChristmasTheme isEnabled={true} />;
+    }
+
     if (activeTheme === 'halloween') {
         return <HalloweenTheme isEnabled={true} />;
     }
 
-    // Si globalmente está activo Halloween pero este terminal lo desactivó,
+    // Si globalmente está activo pero este terminal lo desactivó,
     // mostramos el botón discreto para permitir volver a activarlo cuando desee.
+    if (GLOBAL_SEASONAL_THEME === 'christmas' && activeTheme === 'none') {
+        return <ChristmasTheme isEnabled={false} />;
+    }
+
     if (GLOBAL_SEASONAL_THEME === 'halloween' && activeTheme === 'none') {
         return <HalloweenTheme isEnabled={false} />;
     }

@@ -36,10 +36,15 @@ export const LoginPage = () => {
     const [error, setError] = useState<string | null>(null);
     const [storeName, setStoreName] = useState('Merx POS');
 
-    // Fetch store branding before login (public-facing)
+    // Fetch store branding before login (public-facing) & check logout reason
     useEffect(() => {
         const cached = localStorage.getItem('pos_store_name');
         if (cached) setStoreName(cached);
+        const reason = sessionStorage.getItem('pos_logout_reason');
+        if (reason) {
+            setError(reason);
+            sessionStorage.removeItem('pos_logout_reason');
+        }
     }, []);
 
     const {
@@ -118,12 +123,24 @@ export const LoginPage = () => {
             {/* Lado Izquierdo (Branding) */}
             <div className="flex flex-col justify-center items-center lg:items-start lg:w-1/2 p-10 lg:p-20 bg-gradient-to-br from-[var(--color-primary,#4f46e5)] via-[color-mix(in_srgb,var(--color-primary,#4f46e5),#000_20%)] to-[color-mix(in_srgb,var(--color-primary,#4f46e5),#065f46_40%)] text-white shrink-0 relative overflow-hidden">
                 <div className="absolute inset-0 bg-black/10 z-0"></div>
+                {GLOBAL_SEASONAL_THEME === 'christmas' && (
+                    <div className="absolute top-4 left-4 text-red-200/40 pointer-events-none select-none text-5xl">
+                        ❄️
+                    </div>
+                )}
                 {GLOBAL_SEASONAL_THEME === 'halloween' && (
                     <div className="absolute top-4 left-4 text-orange-300/40 pointer-events-none select-none text-5xl">
                         🕸️
                     </div>
                 )}
                 <div className="max-w-xl text-center lg:text-left relative z-10 w-full">
+                    {GLOBAL_SEASONAL_THEME === 'christmas' && (
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/35 border border-red-400/40 text-red-100 text-xs font-semibold mb-4 backdrop-blur-sm">
+                            <span>🎄</span>
+                            <span>Edición Navidad</span>
+                            <span>✨</span>
+                        </div>
+                    )}
                     {GLOBAL_SEASONAL_THEME === 'halloween' && (
                         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/35 border border-orange-400/40 text-orange-200 text-xs font-semibold mb-4 backdrop-blur-sm">
                             <span>🎃</span>
@@ -132,13 +149,17 @@ export const LoginPage = () => {
                         </div>
                     )}
                     <div className="w-16 h-16 bg-white/10 rounded-2xl backdrop-blur-md mb-8 flex items-center justify-center border border-white/20 mx-auto lg:mx-0 shadow-xl">
-                        <span className="text-3xl">{GLOBAL_SEASONAL_THEME === 'halloween' ? '🎃' : '📦'}</span>
+                        <span className="text-3xl">
+                            {GLOBAL_SEASONAL_THEME === 'christmas' ? '🎄' : GLOBAL_SEASONAL_THEME === 'halloween' ? '🎃' : '📦'}
+                        </span>
                     </div>
                     <h1 className="text-5xl lg:text-7xl font-black mb-6 tracking-tight drop-shadow-sm">{storeName}</h1>
                     <p className="text-xl lg:text-3xl font-light text-white/80 leading-snug drop-shadow-sm max-w-lg">
-                        {GLOBAL_SEASONAL_THEME === 'halloween'
-                            ? 'El punto de venta inteligente que transforma tu negocio (sin pesadillas a fin de mes 👻).'
-                            : 'El punto de venta inteligente que transforma tu negocio.'}
+                        {GLOBAL_SEASONAL_THEME === 'christmas'
+                            ? 'El punto de venta inteligente que transforma tu negocio en esta temporada navideña ✨.'
+                            : GLOBAL_SEASONAL_THEME === 'halloween'
+                                ? 'El punto de venta inteligente que transforma tu negocio (sin pesadillas a fin de mes 👻).'
+                                : 'El punto de venta inteligente que transforma tu negocio.'}
                     </p>
                 </div>
             </div>
@@ -149,6 +170,7 @@ export const LoginPage = () => {
                     <div className="mb-10 text-center lg:text-left">
                         <h2 className="text-3xl font-black text-slate-800 dark:text-white mb-2 flex items-center justify-center lg:justify-start gap-2">
                             <span>Bienvenido</span>
+                            {GLOBAL_SEASONAL_THEME === 'christmas' && <span className="text-2xl animate-pulse">🎄</span>}
                             {GLOBAL_SEASONAL_THEME === 'halloween' && <span className="text-2xl animate-pulse">🎃</span>}
                         </h2>
                         <p className="text-slate-500 dark:text-slate-400 font-medium">Ingresa tus credenciales para acceder</p>

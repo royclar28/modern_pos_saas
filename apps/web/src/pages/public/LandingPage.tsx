@@ -98,7 +98,15 @@ export const LandingPage: React.FC = () => {
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-sans flex flex-col">
             <ThemeManager />
 
-            {/* ── Banner Especial de Temporada (Halloween) ──────────────────── */}
+            {/* ── Banner Especial de Temporada (Navidad / Halloween) ────────── */}
+            {GLOBAL_SEASONAL_THEME === 'christmas' && (
+                <div className="bg-gradient-to-r from-red-700 via-rose-600 to-emerald-800 text-white text-center py-2.5 px-4 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-sm border-b border-red-500/30">
+                    <span className="text-base animate-bounce">🎄</span>
+                    <span>¡Temporada Navideña en MerxPOS! Prepara tu negocio para las ventas decembrinas.</span>
+                    <span className="hidden md:inline bg-black/30 text-amber-200 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border border-amber-400/30">30 días de prueba gratis</span>
+                    <span className="text-base">✨</span>
+                </div>
+            )}
             {GLOBAL_SEASONAL_THEME === 'halloween' && (
                 <div className="bg-gradient-to-r from-orange-600 via-amber-600 to-purple-800 text-white text-center py-2.5 px-4 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-sm border-b border-orange-500/30">
                     <span className="text-base animate-bounce">🎃</span>
@@ -112,9 +120,16 @@ export const LandingPage: React.FC = () => {
             <header className="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
                 <div className="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto w-full">
                     <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 via-amber-600 to-purple-600 flex items-center justify-center text-white font-black text-lg shadow-md">M</div>
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white font-black text-lg shadow-md ${
+                            GLOBAL_SEASONAL_THEME === 'christmas'
+                                ? 'bg-gradient-to-br from-red-600 to-emerald-700'
+                                : GLOBAL_SEASONAL_THEME === 'halloween'
+                                    ? 'bg-gradient-to-br from-orange-500 via-amber-600 to-purple-600'
+                                    : 'bg-gradient-to-br from-violet-600 to-indigo-600'
+                        }`}>M</div>
                         <span className="text-xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-1.5">
-                            MerxPOS {GLOBAL_SEASONAL_THEME === 'halloween' && <span title="Edición Halloween" className="text-lg">🎃</span>}
+                            MerxPOS {GLOBAL_SEASONAL_THEME === 'christmas' && <span title="Edición Navidad" className="text-lg">🎄</span>}
+                            {GLOBAL_SEASONAL_THEME === 'halloween' && <span title="Edición Halloween" className="text-lg">🎃</span>}
                         </span>
                     </div>
                     <nav className="flex items-center gap-3">
@@ -142,7 +157,11 @@ export const LandingPage: React.FC = () => {
                 <section className="py-16 md:py-24 max-w-7xl mx-auto px-6 flex flex-col lg:flex-row items-center gap-14">
                     {/* Text */}
                     <div className="flex-1 text-center lg:text-left">
-                        {GLOBAL_SEASONAL_THEME === 'halloween' ? (
+                        {GLOBAL_SEASONAL_THEME === 'christmas' ? (
+                            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 font-bold text-sm mb-6 border border-red-300 dark:border-red-800 shadow-sm shadow-red-500/10">
+                                <span>🎄</span> Especial Navideño · Facturación y Cobros rápidos para Diciembre ✨
+                            </div>
+                        ) : GLOBAL_SEASONAL_THEME === 'halloween' ? (
                             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300 font-bold text-sm mb-6 border border-orange-300 dark:border-orange-800 shadow-sm shadow-orange-500/10">
                                 <span>🎃</span> Especial de Halloween · El Punto de Venta sin pesadillas 👻
                             </div>
@@ -153,7 +172,13 @@ export const LandingPage: React.FC = () => {
                         )}
                         <h1 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tight text-slate-900 dark:text-white mb-6 leading-tight">
                             El Punto de Venta diseñado para el{' '}
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 via-amber-500 to-purple-600">comercio local.</span>
+                            <span className={`text-transparent bg-clip-text ${
+                                GLOBAL_SEASONAL_THEME === 'christmas'
+                                    ? 'bg-gradient-to-r from-red-600 via-rose-500 to-emerald-600'
+                                    : GLOBAL_SEASONAL_THEME === 'halloween'
+                                        ? 'bg-gradient-to-r from-orange-500 via-amber-500 to-purple-600'
+                                        : 'bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600'
+                            }`}>comercio local.</span>
                         </h1>
                         <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 mb-10 max-w-2xl mx-auto lg:mx-0">
                             Cobra en Dólares, Pago Móvil o Zelle en el mismo ticket, con la{' '}
