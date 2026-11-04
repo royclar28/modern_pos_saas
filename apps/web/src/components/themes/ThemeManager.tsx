@@ -14,7 +14,7 @@ export const ThemeManager: React.FC = () => {
 
     useEffect(() => {
         const updateTheme = () => {
-            const localOverride = localStorage.getItem('pos_seasonal_theme_override');
+            const localOverride = localStorage.getItem(`pos_theme_override_${GLOBAL_SEASONAL_THEME}`);
             if (localOverride === 'disabled') {
                 setActiveTheme('none');
             } else {

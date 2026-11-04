@@ -30,11 +30,12 @@ export const ChristmasTheme: React.FC<ChristmasThemeProps> = ({ isEnabled = true
     }, [isEnabled]);
 
     const handleDisable = () => {
-        localStorage.setItem('pos_seasonal_theme_override', 'disabled');
+        localStorage.setItem('pos_theme_override_christmas', 'disabled');
         window.dispatchEvent(new Event('pos_theme_changed'));
     };
 
     const handleEnable = () => {
+        localStorage.removeItem('pos_theme_override_christmas');
         localStorage.removeItem('pos_seasonal_theme_override');
         window.dispatchEvent(new Event('pos_theme_changed'));
     };
