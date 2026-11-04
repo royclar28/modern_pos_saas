@@ -145,7 +145,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [state, dispatch] = useReducer(cartReducer, { items: [] });
 
     // ── Dynamic tax rate from API (falls back to 16 offline) ────────────────
-    const { taxRate, exchangeRate, refetch } = useSettings();
+    const { taxRate, exchangeRate, refetch, company } = useSettings();
 
     // ── Terminal identifier from localStorage ────────────────────────────────
     const { getTerminalId } = useTerminal();
@@ -158,6 +158,34 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         () => computeTotals(state.items, taxRate),
         [state.items, taxRate]
     );
+
+    // ── Broadcast to Customer Display in real-time ──────────────────────────
+    useEffect(() => {
+        if (typeof window === 'undefined' || !('BroadcastChannel' in window)) return;
+        try {
+            const channel = new BroadcastChannel('merx_customer_display');
+            if (state.items.length === 0) {
+                channel.postMessage({ type: 'CLEAR_CART' });
+            } else {
+                channel.postMessage({
+                    type: 'CART_UPDATE',
+                    items: state.items.map(i => ({
+                        id: i.product.id,
+                        name: i.product.name,
+                        quantity: i.quantity,
+                        price: i.product.unitPrice,
+                        total: Math.round(i.product.unitPrice * i.quantity * (1 - (i.discount || 0) / 100) * 100) / 100,
+                    })),
+                    totals,
+                    exchangeRate,
+                    company,
+                });
+            }
+            return () => channel.close();
+        } catch {
+            // Ignore if BroadcastChannel not permitted
+        }
+    }, [state.items, totals, exchangeRate, company]);
 
     const addToCart = useCallback((product: ItemDocType, weightOverride?: number) => {
         const qty = weightOverride !== undefined ? weightOverride : 1;
@@ -293,6 +321,17 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // ✨ Execute everything in a single atomic Dexie transaction
         await enqueueSyncEventBatch(batchEvents);
+
+        // Notify customer display of completed sale
+        try {
+            if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+                const channel = new BroadcastChannel('merx_customer_display');
+                channel.postMessage({ type: 'SALE_COMPLETED', total: totals.total, exchangeRate });
+                channel.close();
+            }
+        } catch {
+            // ignore
+        }
 
         dispatch({ type: 'CLEAR' });
         return saleDoc;

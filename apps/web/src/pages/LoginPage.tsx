@@ -123,6 +123,9 @@ export const LoginPage = () => {
             {/* Lado Izquierdo (Branding) */}
             <div className="flex flex-col justify-center items-center lg:items-start lg:w-1/2 p-10 lg:p-20 bg-gradient-to-br from-[var(--color-primary,#4f46e5)] via-[color-mix(in_srgb,var(--color-primary,#4f46e5),#000_20%)] to-[color-mix(in_srgb,var(--color-primary,#4f46e5),#065f46_40%)] text-white shrink-0 relative overflow-hidden">
                 <div className="absolute inset-0 bg-black/10 z-0"></div>
+                {/* ── Ambient Aurora Orbs (GPU-accelerated) ── */}
+                <div className="absolute -top-32 -left-32 w-80 h-80 rounded-full bg-white/10 blur-3xl pointer-events-none animate-pulse" style={{ animationDuration: '8s' }} />
+                <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-emerald-400/20 dark:bg-amber-300/15 blur-3xl pointer-events-none animate-pulse" style={{ animationDuration: '10s' }} />
                 {GLOBAL_SEASONAL_THEME === 'christmas' && (
                     <div className="absolute top-4 left-4 text-red-200/40 pointer-events-none select-none text-5xl">
                         ❄️
@@ -165,8 +168,26 @@ export const LoginPage = () => {
             </div>
 
             {/* Lado Derecho (Formulario) */}
-            <div className="flex flex-col justify-center items-center lg:w-1/2 p-6 sm:p-12 bg-slate-50 dark:bg-slate-900 w-full relative transition-colors">
-                <div className="w-full max-w-md bg-white dark:bg-slate-800 shadow-2xl rounded-3xl p-8 sm:p-10 border-0 dark:border dark:border-slate-700">
+            <div className="flex flex-col justify-center items-center lg:w-1/2 p-6 sm:p-12 bg-slate-50 dark:bg-slate-900 w-full relative transition-colors overflow-hidden">
+                {/* ── Ambient Aurora Mesh (Suave, flotante y 100% GPU) ── */}
+                <div
+                    className={`absolute -top-24 -right-24 w-80 h-80 rounded-full blur-3xl pointer-events-none animate-pulse ${
+                        GLOBAL_SEASONAL_THEME === 'christmas'
+                            ? 'bg-gradient-to-br from-red-500/20 via-rose-500/15 to-transparent dark:from-red-600/25 dark:via-rose-600/15'
+                            : 'bg-gradient-to-br from-violet-500/20 via-indigo-500/15 to-transparent dark:from-violet-600/20 dark:via-purple-600/15'
+                    }`}
+                    style={{ animationDuration: '7s' }}
+                />
+                <div
+                    className={`absolute -bottom-24 -left-24 w-80 h-80 rounded-full blur-3xl pointer-events-none animate-pulse ${
+                        GLOBAL_SEASONAL_THEME === 'christmas'
+                            ? 'bg-gradient-to-tr from-emerald-500/15 via-amber-500/15 to-transparent dark:from-emerald-600/20 dark:via-teal-600/15'
+                            : 'bg-gradient-to-tr from-rose-500/15 via-amber-500/10 to-transparent dark:from-sky-600/15 dark:via-cyan-600/15'
+                    }`}
+                    style={{ animationDuration: '10s' }}
+                />
+
+                <div className="w-full max-w-md bg-white/90 dark:bg-slate-800/90 backdrop-blur-md shadow-2xl rounded-3xl p-8 sm:p-10 border border-slate-200/80 dark:border-slate-700/80 relative z-10">
                     <div className="mb-10 text-center lg:text-left">
                         <h2 className="text-3xl font-black text-slate-800 dark:text-white mb-2 flex items-center justify-center lg:justify-start gap-2">
                             <span>Bienvenido</span>

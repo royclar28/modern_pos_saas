@@ -274,8 +274,19 @@ const SaleCompleteModal = ({ sale, onClose, exchangeRate, storeName }: { sale: S
 
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[70] p-4 print:bg-transparent print:backdrop-blur-none print:p-0">
-            <div className="bg-white dark:bg-slate-800 border border-transparent dark:border-slate-700 rounded-3xl shadow-2xl max-w-md w-full p-6 sm:p-8 text-center print:hidden animate-in zoom-in-95 duration-300 max-h-[92vh] overflow-y-auto">
-                <div className="text-5xl mb-3 animate-bounce">✅</div>
+            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl shadow-2xl max-w-md w-full p-6 sm:p-8 text-center print:hidden animate-in zoom-in-95 duration-300 max-h-[92vh] overflow-y-auto relative overflow-hidden">
+                {/* ── Halos ambientales de éxito (GPU pura) ── */}
+                <div className="absolute -top-16 -left-16 w-36 h-36 bg-emerald-500/20 dark:bg-emerald-400/15 rounded-full blur-2xl pointer-events-none animate-pulse" />
+                <div className="absolute -bottom-16 -right-16 w-36 h-36 bg-violet-500/20 dark:bg-violet-400/15 rounded-full blur-2xl pointer-events-none animate-pulse" />
+
+                {/* ── Icono de confirmación con onda de éxito expansiva ── */}
+                <div className="relative inline-flex items-center justify-center mb-3">
+                    <span className="absolute w-14 h-14 rounded-full bg-emerald-500/30 dark:bg-emerald-400/30 animate-ping pointer-events-none" style={{ animationDuration: '2s' }} />
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-100 to-emerald-200 dark:from-emerald-950/80 dark:to-emerald-900/60 border-2 border-emerald-500/40 flex items-center justify-center text-3xl shadow-lg shadow-emerald-500/20 relative z-10">
+                        ✨
+                    </div>
+                </div>
+
                 <h2 className="text-2xl font-black text-slate-800 dark:text-white mb-1 tracking-tight">¡Venta Exitosa!</h2>
                 <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mb-4 font-medium">Guardada en local, sincronización en cola.</p>
                 <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl p-4 mb-4 text-left space-y-2 border border-slate-100 dark:border-slate-700 shadow-inner">
@@ -512,6 +523,14 @@ export const PosPage = () => {
                                 Ajustes
                             </Link>
                         ) : null}
+                        <button
+                            onClick={() => window.open('/display', 'merx_customer_display', 'width=1024,height=768')}
+                            className="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-2.5 py-1 rounded-lg text-xs transition-colors border border-slate-700 flex items-center gap-1.5 ml-1"
+                            title="Abrir pantalla para el cliente (segundo monitor o tablet)"
+                        >
+                            <span>🖥️</span>
+                            <span className="hidden md:inline font-semibold">Visor Cliente</span>
+                        </button>
                         <button
                             onClick={toggleDarkMode}
                             className="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-3 py-1 rounded-lg text-sm transition-colors ml-4"
