@@ -16,6 +16,8 @@ jobs:
       # ──────────────────────────────────────────────────
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       # ══════════════════════════════════════════════════
       # BACKEND — Laravel
@@ -65,6 +67,27 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Verify React hook imports
+        run: |
+          node -e '
+          const fs = require("fs");
+          const path = require("path");
+          const hooks = ["useState","useEffect","useMemo","useCallback","useRef","useReducer","useContext"];
+          function walk(d){let r=[];for(const i of fs.readdirSync(d)){const f=path.join(d,i);if(fs.statSync(f).isDirectory())r=r.concat(walk(f));else if(/\.(tsx|ts)$/.test(i))r.push(f);}return r;}
+          let failed=false;
+          for(const f of walk("apps/web/src")){
+            const c=fs.readFileSync(f,"utf8").replace(/\/\/.*$/gm,"").replace(/\/\*[\s\S]*?\*\//g,"");
+            for(const h of hooks){
+              if(new RegExp("(?<![.\\w])"+h+"\\s*\\(").test(c)){
+                const imp=new RegExp("import[\\s\\S]*?\\b"+h+"\\b[\\s\\S]*?from|function\\s+"+h+"\\b|const\\s+"+h+"\\b").test(c);
+                if(!imp){console.error("Missing import:",h,"in",f);failed=true;}
+              }
+            }
+          }
+          if(failed)process.exit(1);
+          console.log("All React hook imports verified cleanly!");
+          '
+
       - name: Build frontend
         working-directory: apps/web
         env:
@@ -73,15 +96,45 @@ jobs:
         run: pnpm build
 
       # ══════════════════════════════════════════════════
-      # DEPLOY — Coolify Webhooks
+      # DEPLOY — Coolify Webhooks (selectivo para no saturar VPS)
       # ══════════════════════════════════════════════════
       - name: Trigger Coolify Deployments
         if: github.ref == 'refs/heads/main' && success()
         run: |
-          echo "Desplegando Backend..."
-          curl -sS -X GET "${{ secrets.COOLIFY_BACKEND_WEBHOOK }}" || echo "⚠️  Fallo en webhook de backend"
-          echo ""
-          echo "Desplegando Frontend..."
-          curl -sS -X GET "${{ secrets.COOLIFY_FRONTEND_WEBHOOK }}" || echo "⚠️  Fallo en webhook de frontend"
-          echo ""
+          DEPLOY_BACKEND=false
+          DEPLOY_FRONTEND=false
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || ! git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
+            DEPLOY_BACKEND=true
+            DEPLOY_FRONTEND=true
+          else
+            CHANGED=$(git diff --name-only HEAD~1 HEAD)
+            echo "Archivos modificados:"
+            echo "$CHANGED"
+            if echo "$CHANGED" | grep -qE '^apps/api-laravel/'; then
+              DEPLOY_BACKEND=true
+            fi
+            if echo "$CHANGED" | grep -qE '^(apps/web/|Dockerfile|\.dockerignore|package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|tsconfig\.base\.json)'; then
+              DEPLOY_FRONTEND=true
+            fi
+          fi
+
+          if [ "$DEPLOY_BACKEND" = "true" ]; then
+            echo "Desplegando Backend..."
+            curl -sS -X GET "${{ secrets.COOLIFY_BACKEND_WEBHOOK }}" || echo "⚠️  Fallo en webhook de backend"
+            echo ""
+          else
+            echo "⏭️  Sin cambios en Backend, omitiendo rebuild."
+          fi
+
+          if [ "$DEPLOY_BACKEND" = "true" ] && [ "$DEPLOY_FRONTEND" = "true" ]; then
+            sleep 10
+          fi
+
+          if [ "$DEPLOY_FRONTEND" = "true" ]; then
+            echo "Desplegando Frontend..."
+            curl -sS -X GET "${{ secrets.COOLIFY_FRONTEND_WEBHOOK }}" || echo "⚠️  Fallo en webhook de frontend"
+            echo ""
+          else
+            echo "⏭️  Sin cambios en Frontend, omitiendo rebuild."
+          fi
           echo "✅ Proceso de despliegue finalizado"

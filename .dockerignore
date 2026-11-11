@@ -1,0 +1,15 @@
+.git
+node_modules
+**/node_modules
+**/.pnpm-store
+dist
+**/dist
+.turbo
+.codegraph
+apps/api-laravel/vendor
+apps/api-laravel/storage
+docs
+publicidad
+*.sql
+*.pem
+*.key

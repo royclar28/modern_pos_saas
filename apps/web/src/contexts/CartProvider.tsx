@@ -13,7 +13,7 @@
  *   is stamped onto every Sale document before writing it to Dexie.
  *   This allows Reporte Z to filter and reconcile per-register.
  */
-import React, { createContext, useContext, useReducer, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useReducer, useMemo, useCallback, useEffect } from 'react';
 import { ItemDocType } from '../db/schemas/item.schema';
 import { SaleDocType, SaleItemDocType } from '../db/schemas/sale.schema';
 import { PaymentData } from '../components/CheckoutModal';
