@@ -20,9 +20,17 @@ class CatalogController extends Controller
      */
     public function show(string $tenantId): JsonResponse
     {
-        $store = Store::where('id', $tenantId)
-            ->orWhereRaw('LOWER(name) = ?', [strtolower(str_replace('-', ' ', $tenantId))])
-            ->orWhereRaw("LOWER(REPLACE(name, ' ', '-')) = ?", [strtolower($tenantId)])
+        $isUuid = \Illuminate\Support\Str::isUuid($tenantId);
+
+        $store = Store::query()
+            ->when($isUuid, function ($query) use ($tenantId) {
+                $query->where('id', $tenantId);
+            })
+            ->when(!$isUuid, function ($query) use ($tenantId) {
+                $cleaned = strtolower(trim($tenantId));
+                $query->whereRaw('LOWER(name) = ?', [str_replace('-', ' ', $cleaned)])
+                    ->orWhereRaw("LOWER(REPLACE(name, ' ', '-')) = ?", [$cleaned]);
+            })
             ->first();
 
         if (!$store) {
