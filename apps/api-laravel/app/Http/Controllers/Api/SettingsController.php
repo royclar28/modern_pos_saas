@@ -28,6 +28,9 @@ class SettingsController extends Controller
         'enable_credit_sales' => 'false',
         'primaryColor'        => '#7C3AED',
         'rif'                 => '',
+        'whatsapp_number'     => '',
+        'owner_email'         => '',
+        'catalog_enabled'     => 'true',
     ];
 
     /**
@@ -46,13 +49,17 @@ class SettingsController extends Controller
         // Pull store name and business_type from the stores table as authoritative source
         $store = Store::find(Auth::user()->tenant_id);
         if ($store) {
-            if (!isset($dbRows['company'])) {
+            if (!isset($dbRows['company']) || empty($dbRows['company'])) {
                 $settings['company'] = $store->name;
             }
             if (!isset($dbRows['business_type']) && $store->business_type) {
                 $settings['business_type'] = $store->business_type;
             }
             $settings['logo_url'] = $store->logo_url;
+            $settings['whatsapp_number'] = $store->whatsapp_number ?? ($dbRows['whatsapp_number'] ?? '');
+            $settings['owner_email'] = $store->owner_email ?? ($dbRows['owner_email'] ?? '');
+            $settings['rif'] = $store->rif ?? ($dbRows['rif'] ?? '');
+            $settings['catalog_enabled'] = (bool) $store->catalog_enabled;
         }
 
         // Append live BCV exchange rate
@@ -80,7 +87,10 @@ class SettingsController extends Controller
             'language'            => 'sometimes|string|max:10',
             'enable_credit_sales' => 'sometimes|in:true,false',
             'primaryColor'        => ['sometimes', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/'],
-            'rif'                 => 'sometimes|string|max:50',
+            'rif'                 => 'sometimes|nullable|string|max:50',
+            'whatsapp_number'     => 'sometimes|nullable|string|max:30',
+            'owner_email'         => 'sometimes|nullable|email|max:255',
+            'catalog_enabled'     => 'sometimes|in:true,false,1,0',
         ]);
 
         $tenantId = Auth::user()->tenant_id;
@@ -94,13 +104,25 @@ class SettingsController extends Controller
             }
         }
 
-        // If company name or business_type changed, also update the canonical Store row
+        // If company name, business_type, rif, whatsapp_number, or owner_email changed, update the Store row
         $storeUpdates = [];
         if ($request->has('company')) {
             $storeUpdates['name'] = $request->input('company');
         }
         if ($request->has('business_type')) {
             $storeUpdates['business_type'] = $request->input('business_type');
+        }
+        if ($request->has('rif')) {
+            $storeUpdates['rif'] = $request->input('rif');
+        }
+        if ($request->has('whatsapp_number')) {
+            $storeUpdates['whatsapp_number'] = $request->input('whatsapp_number');
+        }
+        if ($request->has('owner_email')) {
+            $storeUpdates['owner_email'] = $request->input('owner_email');
+        }
+        if ($request->has('catalog_enabled')) {
+            $storeUpdates['catalog_enabled'] = filter_var($request->input('catalog_enabled'), FILTER_VALIDATE_BOOLEAN);
         }
         if (!empty($storeUpdates)) {
             Store::where('id', $tenantId)->update($storeUpdates);

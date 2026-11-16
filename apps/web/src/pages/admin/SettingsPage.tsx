@@ -95,9 +95,31 @@ export const SettingsPage = () => {
     };
 
     // Global settings form
-    const [globalForm, setGlobalForm] = useState({ company: '', business_type: 'MINIMARKET', currency_symbol: '', default_tax_rate: '', timezone: '', primaryColor: '#7C3AED', enable_credit_sales: 'false' });
+    const [globalForm, setGlobalForm] = useState({
+        company: '',
+        rif: '',
+        whatsapp_number: '',
+        owner_email: '',
+        business_type: 'MINIMARKET',
+        currency_symbol: '',
+        default_tax_rate: '',
+        timezone: '',
+        primaryColor: '#7C3AED',
+        enable_credit_sales: 'false'
+    });
     useEffect(() => {
-        if (raw) setGlobalForm({ company: raw.company || '', business_type: (raw as any).business_type || 'MINIMARKET', currency_symbol: raw.currency_symbol || '$', default_tax_rate: String(raw.default_tax_rate ?? 16), timezone: raw.timezone || 'America/Caracas', primaryColor: raw.primaryColor || '#7C3AED', enable_credit_sales: raw.enable_credit_sales || 'false' });
+        if (raw) setGlobalForm({
+            company: raw.company || '',
+            rif: raw.rif || '',
+            whatsapp_number: raw.whatsapp_number || '',
+            owner_email: raw.owner_email || '',
+            business_type: (raw as any).business_type || 'MINIMARKET',
+            currency_symbol: raw.currency_symbol || '$',
+            default_tax_rate: String(raw.default_tax_rate ?? 16),
+            timezone: raw.timezone || 'America/Caracas',
+            primaryColor: raw.primaryColor || '#7C3AED',
+            enable_credit_sales: raw.enable_credit_sales || 'false'
+        });
     }, [raw]);
 
     const [isSavingGlobal, setIsSavingGlobal] = useState(false);
@@ -236,6 +258,15 @@ export const SettingsPage = () => {
                                             </Field>
                                             <Field label="Nombre del Negocio" hint="Aparece en tickets y la interfaz">
                                                 <input id="company-name-input" type="text" value={globalForm.company} onChange={e => setGlobalForm(f => ({ ...f, company: e.target.value }))} className={inputClass} />
+                                            </Field>
+                                            <Field label="R.I.F. / Documento Fiscal" hint="Identificación fiscal para tickets e informes">
+                                                <input id="rif-input" type="text" placeholder="J-12345678-9" value={globalForm.rif} onChange={e => setGlobalForm(f => ({ ...f, rif: e.target.value }))} className={inputClass} />
+                                            </Field>
+                                            <Field label="WhatsApp de Pedidos" hint="Número que recibirá los pedidos del catálogo web">
+                                                <input id="whatsapp-input" type="text" placeholder="+58 424 1234567" value={globalForm.whatsapp_number} onChange={e => setGlobalForm(f => ({ ...f, whatsapp_number: e.target.value }))} className={inputClass} />
+                                            </Field>
+                                            <Field label="Correo de Contacto" hint="Correo principal del negocio">
+                                                <input id="owner-email-input" type="email" placeholder="contacto@minegocio.com" value={globalForm.owner_email} onChange={e => setGlobalForm(f => ({ ...f, owner_email: e.target.value }))} className={inputClass} />
                                             </Field>
                                             <Field label="Tipo de Negocio / Rubro" hint="Adapta sugerencias y plantillas a tu comercio">
                                                 <select

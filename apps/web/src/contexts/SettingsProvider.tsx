@@ -12,6 +12,9 @@ export type StoreSettings = {
     enable_credit_sales: string; // "true" | "false"
     primaryColor?: string;
     rif?: string;
+    whatsapp_number?: string;
+    owner_email?: string;
+    catalog_enabled?: boolean | string;
     logo_url?: string;
 };
 
@@ -23,6 +26,8 @@ export type ParsedSettings = {
     company: string;
     businessType: string;
     rif: string;
+    whatsappNumber: string;
+    ownerEmail: string;
     logoUrl: string | null;
     enableCreditSales: boolean;
     primaryColor: string;
@@ -46,6 +51,9 @@ const DEFAULTS: StoreSettings = {
     enable_credit_sales: 'false',
     primaryColor: '#7C3AED',
     rif: '',
+    whatsapp_number: '',
+    owner_email: '',
+    catalog_enabled: 'true',
 };
 
 const SettingsContext = createContext<ParsedSettings | undefined>(undefined);
@@ -154,6 +162,8 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         company: raw.company || 'Mi Negocio',
         businessType: raw.business_type || 'MINIMARKET',
         rif: raw.rif || '',
+        whatsappNumber: raw.whatsapp_number || '',
+        ownerEmail: raw.owner_email || '',
         logoUrl: raw.logo_url || null,
         enableCreditSales: raw.enable_credit_sales === 'true',
         primaryColor: raw.primaryColor || '#7C3AED',
