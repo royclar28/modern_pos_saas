@@ -193,7 +193,7 @@ export const HalloweenTheme: React.FC<HalloweenThemeProps> = ({ isEnabled = true
             </style>
 
             {/* ── Telaraña Grande de Alta Visibilidad - Esquina Superior Izquierda ── */}
-            <div className="fixed top-0 left-0 z-50 pointer-events-none drop-shadow-[0_2px_8px_rgba(234,88,12,0.35)]">
+            <div className="hidden md:block fixed top-0 left-0 z-30 pointer-events-none drop-shadow-[0_2px_8px_rgba(234,88,12,0.35)] opacity-85">
                 <svg width="170" height="170" viewBox="0 0 170 170" fill="none" className="text-orange-500/75 dark:text-orange-400/85">
                     {/* Hilos estructurales */}
                     <path d="M0,0 L170,0" stroke="currentColor" strokeWidth="2" />
@@ -216,7 +216,7 @@ export const HalloweenTheme: React.FC<HalloweenThemeProps> = ({ isEnabled = true
             </div>
 
             {/* ── Telaraña Grande con Araña Animada - Esquina Superior Derecha ─────── */}
-            <div className="fixed top-0 right-0 z-50 pointer-events-none drop-shadow-[0_2px_8px_rgba(234,88,12,0.35)]">
+            <div className="hidden md:block fixed top-0 right-0 z-30 pointer-events-none drop-shadow-[0_2px_8px_rgba(234,88,12,0.35)] opacity-85">
                 <svg width="170" height="170" viewBox="0 0 170 170" fill="none" className="text-orange-500/75 dark:text-orange-400/85">
                     {/* Hilos estructurales */}
                     <path d="M170,0 L0,0" stroke="currentColor" strokeWidth="2" />

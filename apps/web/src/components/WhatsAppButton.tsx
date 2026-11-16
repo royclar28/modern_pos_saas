@@ -30,8 +30,15 @@ export const WhatsAppButton = () => {
     const isMobile = useIsMobile();
     const [hovered, setHovered] = useState(false);
 
-    // Hide completely on the POS page (mobile & desktop) to avoid blocking the cart FAB
-    if (location.pathname === '/pos') return null;
+    // Hide on POS page and public catalog/customer display to avoid blocking UI or confusing customers
+    if (
+        location.pathname === '/pos' ||
+        location.pathname.startsWith('/c/') ||
+        location.pathname === '/display' ||
+        location.pathname === '/visor'
+    ) {
+        return null;
+    }
 
     return (
         <div

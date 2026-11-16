@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { GLOBAL_SEASONAL_THEME, ThemeType } from '../../config/theme';
 import { WorldCupTheme } from './WorldCupTheme';
 import { HalloweenTheme } from './HalloweenTheme';
@@ -10,6 +11,7 @@ import { ChristmasTheme } from './ChristmasTheme';
  * o la anulación local en la caja.
  */
 export const ThemeManager: React.FC = () => {
+    const location = useLocation();
     const [activeTheme, setActiveTheme] = useState<ThemeType>('none');
 
     useEffect(() => {
@@ -32,6 +34,15 @@ export const ThemeManager: React.FC = () => {
             window.removeEventListener('pos_theme_changed', updateTheme);
         };
     }, []);
+
+    // Do not inject seasonal themes into public catalog or customer display pages
+    if (
+        location.pathname.startsWith('/c/') ||
+        location.pathname === '/display' ||
+        location.pathname === '/visor'
+    ) {
+        return null;
+    }
 
     // Renderizar según el tema estacional activo
     if (activeTheme === 'christmas') {

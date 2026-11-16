@@ -194,8 +194,8 @@ export const ChristmasTheme: React.FC<ChristmasThemeProps> = ({ isEnabled = true
             </style>
 
             {/* ── Guirnalda con Acebo y Campanitas - Esquina Superior Izquierda ── */}
-            <div className="fixed top-0 left-0 z-50 pointer-events-none drop-shadow-[0_2px_8px_rgba(220,38,38,0.35)]">
-                <svg width="160" height="130" viewBox="0 0 160 130" fill="none" className="text-emerald-600 dark:text-emerald-500">
+            <div className="hidden md:block fixed top-0 left-0 z-30 pointer-events-none drop-shadow-[0_2px_8px_rgba(220,38,38,0.35)] opacity-85">
+                <svg width="140" height="110" viewBox="0 0 160 130" fill="none" className="text-emerald-600 dark:text-emerald-500">
                     {/* Ramas de pino de la guirnalda */}
                     <path d="M0,0 Q60,10 110,40 Q80,25 0,0" fill="#15803d" opacity="0.9" />
                     <path d="M0,0 Q40,40 60,95 Q40,60 0,0" fill="#166534" opacity="0.9" />
@@ -227,7 +227,7 @@ export const ChristmasTheme: React.FC<ChristmasThemeProps> = ({ isEnabled = true
             </div>
 
             {/* ── Esfera Navideña Colgante Animada - Esquina Superior Derecha ─────── */}
-            <div className="fixed top-0 right-0 z-50 pointer-events-none drop-shadow-[0_4px_12px_rgba(220,38,38,0.4)]">
+            <div className="hidden md:block fixed top-0 right-0 z-30 pointer-events-none drop-shadow-[0_4px_12px_rgba(220,38,38,0.4)] opacity-85">
                 {/* Rama de pino superior derecha */}
                 <svg width="140" height="90" viewBox="0 0 140 90" fill="none">
                     <path d="M140,0 Q90,12 40,32 Q80,20 140,0" fill="#15803d" opacity="0.9" />
