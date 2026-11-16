@@ -35,9 +35,8 @@ export const ThemeManager: React.FC = () => {
         };
     }, []);
 
-    // Do not inject seasonal themes into public catalog or customer display pages
+    // Do not inject seasonal themes into customer display pages (visor)
     if (
-        location.pathname.startsWith('/c/') ||
         location.pathname === '/display' ||
         location.pathname === '/visor'
     ) {
