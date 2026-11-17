@@ -130,7 +130,7 @@ export const QuickAmountModal: React.FC<QuickAmountModalProps> = ({
                         </div>
                         <div>
                             <h3 className="font-extrabold text-lg leading-tight">Venta Rápida / Calculadora</h3>
-                            <p className="text-xs text-emerald-100 mt-0.5">Cobrar monto libre sin producto registrado</p>
+                            <p className="text-xs text-emerald-100 mt-0.5">Vender monto libre sin producto registrado</p>
                         </div>
                     </div>
                     <button
@@ -177,7 +177,7 @@ export const QuickAmountModal: React.FC<QuickAmountModalProps> = ({
                     {/* Big Amount Input */}
                     <div>
                         <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
-                            Monto a Cobrar {currencyMode === 'USD' ? 'en Dólares ($)' : 'en Bolívares (Bs.)'}
+                            Monto a Vender {currencyMode === 'USD' ? 'en Dólares ($)' : 'en Bolívares (Bs.)'}
                         </label>
                         <div className="relative">
                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-black text-slate-400">

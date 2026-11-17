@@ -436,7 +436,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                                     : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 shadow-none border-2 border-slate-200 dark:border-slate-700 cursor-not-allowed'
                             }`}
                         >
-                            {isProcessing ? 'Procesando...' : isFiado ? '📒 Procesar Crédito' : '✅ Cobrar Ticket'}
+                            {isProcessing ? 'Procesando...' : isFiado ? '📒 Procesar Crédito' : '✅ Vender'}
                         </button>
                     </div>
                 </div>

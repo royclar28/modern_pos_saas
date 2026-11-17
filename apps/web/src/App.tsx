@@ -308,7 +308,7 @@ const Dashboard = () => {
 
                         {/* 4 Acciones Gigantes en Modo Bodega */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {/* 1. COBRAR EN CAJA */}
+                            {/* 1. VENDER */}
                             <Link
                                 to="/pos"
                                 className="group relative overflow-hidden bg-gradient-to-br from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-600 text-white rounded-3xl p-6 sm:p-7 shadow-xl shadow-emerald-600/20 transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center gap-5"
@@ -321,10 +321,10 @@ const Dashboard = () => {
                                         Paso 1
                                     </div>
                                     <h2 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight">
-                                        1. Cobrar en Caja
+                                        1. Vender
                                     </h2>
                                     <p className="text-xs sm:text-sm text-emerald-100 font-medium mt-1">
-                                        Hacer ventas con o sin productos registrados, en $ y Bolívares
+                                        Caja y punto de venta: hacer ventas con o sin código, en $ y Bs.
                                     </p>
                                 </div>
                             </Link>

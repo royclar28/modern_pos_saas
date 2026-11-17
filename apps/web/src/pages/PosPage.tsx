@@ -609,7 +609,7 @@ export const PosPage = () => {
                                 className={`flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black rounded-xl shadow-md shadow-emerald-600/20 transition-all shrink-0 cursor-pointer ${
                                     hv ? 'px-5 py-3.5 text-base' : 'px-3.5 py-2 text-xs'
                                 }`}
-                                title="Cobrar con calculadora un monto libre sin producto registrado"
+                                title="Vender con calculadora un monto libre sin producto registrado"
                             >
                                 <span className={hv ? 'text-lg' : 'text-sm'}>⚡</span>
                                 <span>Venta Rápida</span>
@@ -858,7 +858,7 @@ export const PosPage = () => {
                             `}
                         >
                             <span className={hv ? 'text-3xl' : 'text-lg leading-none mt-[-2px]'}>💳</span>
-                            <span>COBRAR TICKET</span>
+                            <span>VENDER</span>
                             <span className={`font-bold opacity-60 bg-black/10 rounded ${
                                 hv ? 'ml-3 text-sm px-2 py-1' : 'ml-2 text-[10px] px-1.5 py-0.5'
                             }`}>[F12]</span>
