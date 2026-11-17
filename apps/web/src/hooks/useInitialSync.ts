@@ -18,9 +18,10 @@ export function useInitialSync() {
     const [isHydrating, setIsHydrating] = useState(false);
     const [progress, setProgress] = useState({ steps: 0, total: 3 });
 
-    const hydrateLocalDB = useCallback(async () => {
+    const hydrateLocalDB = useCallback(async (options?: { silent?: boolean }) => {
         setIsHydrating(true);
         setProgress({ steps: 0, total: 3 });
+        const silent = options?.silent ?? false;
         
         try {
             console.log('[useInitialSync] Iniciando hidratación. Obteniendo /items...');
@@ -101,11 +102,15 @@ export function useInitialSync() {
             }
             setProgress(p => ({ ...p, steps: 3 }));
             
-            toast.success("Catálogo sincronizado exitosamente para modo Offline");
+            if (!silent) {
+                toast.success("Catálogo sincronizado exitosamente");
+            }
 
         } catch (error: any) {
             console.error("Error hidratando base de datos local:", error);
-            toast.error("Error al descargar catálogo. Revisa conexión o sesión.");
+            if (!silent) {
+                toast.error("Error al descargar catálogo. Revisa conexión o sesión.");
+            }
         } finally {
             setIsHydrating(false);
         }

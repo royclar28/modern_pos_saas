@@ -118,14 +118,14 @@ const Dashboard = () => {
     };
 
     useEffect(() => {
-        // Auto-hydrate if DB is empty and not already hydrating
-        if (!isLoading && items.length === 0 && !isHydrating) {
-            const hasHydrated = localStorage.getItem(`hydrated_${user?.sub}`);
-            if (!hasHydrated) {
-                hydrateLocalDB().then(() => {
-                    if (user?.sub) localStorage.setItem(`hydrated_${user.sub}`, 'true');
-                });
-            }
+        // Auto-hydrate if DB is empty or periodically in background (every 10 min)
+        const lastSync = parseInt(localStorage.getItem(`last_sync_${user?.sub}`) || '0', 10);
+        const shouldPeriodicSync = Date.now() - lastSync > 10 * 60 * 1000;
+
+        if (!isHydrating && ((!isLoading && items.length === 0) || shouldPeriodicSync)) {
+            hydrateLocalDB({ silent: true }).then(() => {
+                if (user?.sub) localStorage.setItem(`last_sync_${user.sub}`, Date.now().toString());
+            }).catch(console.error);
         }
     }, [items.length, isLoading, isHydrating, user?.sub, hydrateLocalDB]);
 

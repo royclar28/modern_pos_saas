@@ -346,6 +346,22 @@ class SyncEventProcessor
 
             $activeResolution->increment('current_number');
         }
+
+        // ── Registrar pagos de la venta (soporte multimoneda y pagos mixtos) ──
+        if (!empty($p['payments']) && is_array($p['payments'])) {
+            foreach ($p['payments'] as $pmt) {
+                SalePayment::create([
+                    'id'             => (string) \Illuminate\Support\Str::uuid(),
+                    'tenant_id'      => $event['tenant_id'],
+                    'sale_id'        => $sale->id,
+                    'amount'         => (float) ($pmt['amountUsd'] ?? $pmt['amount_usd'] ?? $pmt['amount'] ?? 0),
+                    'payment_method' => $pmt['method'] ?? 'EFECTIVO',
+                    'reference'      => $pmt['reference'] ?? null,
+                    'note'           => isset($pmt['amountBs']) ? "Bs. " . number_format((float)$pmt['amountBs'], 2) : null,
+                    'paid_at'        => $sale->sale_time,
+                ]);
+            }
+        }
     }
 
     private function handleSaleVoid(array $event): void

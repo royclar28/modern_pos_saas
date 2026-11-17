@@ -86,10 +86,20 @@ export const useCashShift = () => {
         let cashSalesTotal = 0;
 
         shiftSales.forEach(sale => {
-            const method = sale.paymentMethod || 'OTRO';
-            salesSummary[method] = (salesSummary[method] || 0) + sale.total;
-            if (method === 'DIVISA' || method === 'EFECTIVO_BS') {
-                cashSalesTotal += sale.total;
+            if (sale.payments && sale.payments.length > 0) {
+                sale.payments.forEach(p => {
+                    const method = p.method;
+                    salesSummary[method] = (salesSummary[method] || 0) + p.amountUsd;
+                    if (method === 'DIVISA' || method === 'EFECTIVO_BS') {
+                        cashSalesTotal += p.amountUsd;
+                    }
+                });
+            } else {
+                const method = sale.paymentMethod || 'OTRO';
+                salesSummary[method] = (salesSummary[method] || 0) + sale.total;
+                if (method === 'DIVISA' || method === 'EFECTIVO_BS') {
+                    cashSalesTotal += sale.total;
+                }
             }
         });
 
@@ -179,12 +189,22 @@ export const useCashShift = () => {
         let cashTotal = 0;
 
         shiftSales.forEach(sale => {
-            const method = sale.paymentMethod || 'OTRO';
-            salesByMethod[method] = (salesByMethod[method] || 0) + sale.total;
-            totalSales += sale.total;
-            if (method === 'DIVISA' || method === 'EFECTIVO_BS') {
-                cashTotal += sale.total;
+            if (sale.payments && sale.payments.length > 0) {
+                sale.payments.forEach(p => {
+                    const method = p.method;
+                    salesByMethod[method] = (salesByMethod[method] || 0) + p.amountUsd;
+                    if (method === 'DIVISA' || method === 'EFECTIVO_BS') {
+                        cashTotal += p.amountUsd;
+                    }
+                });
+            } else {
+                const method = sale.paymentMethod || 'OTRO';
+                salesByMethod[method] = (salesByMethod[method] || 0) + sale.total;
+                if (method === 'DIVISA' || method === 'EFECTIVO_BS') {
+                    cashTotal += sale.total;
+                }
             }
+            totalSales += sale.total;
         });
 
         let debtPaymentsCash = 0;

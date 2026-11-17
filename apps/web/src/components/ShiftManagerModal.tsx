@@ -14,6 +14,7 @@ const PAYMENT_LABELS: Record<string, string> = {
     PAGO_MOVIL: '📱 Pago Móvil',
     PUNTO: '💳 Punto de Venta',
     FIADO: '📝 Crédito',
+    MIXTO: '🔀 Pago Mixto',
     OTRO: '📦 Otro',
 };
 

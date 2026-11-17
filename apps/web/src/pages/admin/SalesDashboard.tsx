@@ -161,50 +161,102 @@ export const SalesDashboard = () => {
 
     // ── Arqueo calculations (memoized) ───────────────────────────────
     const arqueo = useMemo(() => {
-        const byMethod = (method: string) =>
-            allSales.filter(s => s.paymentMethod === method);
+        let divisaTotal = 0;
+        let bsTotal = 0;
+        let pagoMovilTotal = 0;
+        let puntoTotal = 0;
+        let fiadoTotal = 0;
+        let mixtoTotal = 0;
+        let legacyTotal = 0;
 
-        const sumTotal = (sales: SaleDocType[]) =>
-            sales.reduce((sum, s) => sum + (s.total ?? 0), 0);
+        let divisaCount = 0;
+        let bsCount = 0;
+        let pagoMovilCount = 0;
+        let puntoCount = 0;
+        let fiadoCount = 0;
+        let mixtoCount = 0;
+        let legacyCount = 0;
 
-        const divisaSales = byMethod('DIVISA');
-        const bsSales = byMethod('EFECTIVO_BS');
-        const pagoMovilSales = byMethod('PAGO_MOVIL');
-        const puntoSales = byMethod('PUNTO');
-        const fiadoSales = byMethod('FIADO');
-        const mixtoSales = byMethod('MIXTO');
+        allSales.forEach(s => {
+            if (s.status === 'ANULADO') return;
 
-        const divisaTotal = sumTotal(divisaSales);
-        const bsTotal = sumTotal(bsSales);
-        const pagoMovilTotal = sumTotal(pagoMovilSales);
-        const puntoTotal = sumTotal(puntoSales);
-        const fiadoTotal = sumTotal(fiadoSales);
-        const mixtoTotal = sumTotal(mixtoSales);
+            // Si la venta tiene pagos explícitos (soporte para ventas fraccionadas / mixtas)
+            if (s.payments && s.payments.length > 0) {
+                if (s.payments.length > 1) {
+                    mixtoCount++;
+                    mixtoTotal += (s.total ?? 0);
+                }
+                s.payments.forEach(p => {
+                    const amt = p.amountUsd || 0;
+                    if (p.method === 'DIVISA') {
+                        divisaTotal += amt;
+                        if (s.payments!.length === 1) divisaCount++;
+                    } else if (p.method === 'EFECTIVO_BS') {
+                        bsTotal += amt;
+                        if (s.payments!.length === 1) bsCount++;
+                    } else if (p.method === 'PAGO_MOVIL') {
+                        pagoMovilTotal += amt;
+                        if (s.payments!.length === 1) pagoMovilCount++;
+                    } else if (p.method === 'PUNTO') {
+                        puntoTotal += amt;
+                        if (s.payments!.length === 1) puntoCount++;
+                    } else if (p.method === 'FIADO') {
+                        fiadoTotal += amt;
+                        if (s.payments!.length === 1) fiadoCount++;
+                    } else {
+                        divisaTotal += amt;
+                    }
+                });
+            } else {
+                const total = s.total ?? 0;
+                const m = s.paymentMethod;
+                if (m === 'DIVISA') {
+                    divisaTotal += total;
+                    divisaCount++;
+                } else if (m === 'EFECTIVO_BS') {
+                    bsTotal += total;
+                    bsCount++;
+                } else if (m === 'PAGO_MOVIL') {
+                    pagoMovilTotal += total;
+                    pagoMovilCount++;
+                } else if (m === 'PUNTO') {
+                    puntoTotal += total;
+                    puntoCount++;
+                } else if (m === 'FIADO') {
+                    fiadoTotal += total;
+                    fiadoCount++;
+                } else if (m === 'MIXTO') {
+                    mixtoCount++;
+                    mixtoTotal += total;
+                    // Fallback para ventas mixtas antiguas sin array de pagos
+                    divisaTotal += total;
+                } else {
+                    legacyTotal += total;
+                    legacyCount++;
+                }
+            }
+        });
 
         const digitalTotal = pagoMovilTotal + puntoTotal;
-        const grandTotal = divisaTotal + bsTotal + digitalTotal + fiadoTotal + mixtoTotal;
+        const grandTotal = divisaTotal + bsTotal + digitalTotal + fiadoTotal + legacyTotal;
 
         const ticketCount = allSales.length;
         const totalTax = allSales.reduce((sum, s) => sum + (s.taxAmount ?? 0), 0);
         const avgTicket = ticketCount > 0 ? grandTotal / ticketCount : 0;
 
-        // Legacy sales without paymentMethod
-        const legacySales = allSales.filter(s => !s.paymentMethod);
-        const legacyTotal = sumTotal(legacySales);
-
         return {
-            divisaTotal, divisaCount: divisaSales.length,
-            bsTotal, bsCount: bsSales.length,
-            pagoMovilTotal, pagoMovilCount: pagoMovilSales.length,
-            puntoTotal, puntoCount: puntoSales.length,
-            fiadoTotal, fiadoCount: fiadoSales.length,
-            mixtoTotal, mixtoCount: mixtoSales.length,
-            digitalTotal, digitalCount: pagoMovilSales.length + puntoSales.length,
+            divisaTotal, divisaCount,
+            bsTotal, bsCount,
+            pagoMovilTotal, pagoMovilCount,
+            puntoTotal, puntoCount,
+            fiadoTotal, fiadoCount,
+            mixtoTotal, mixtoCount,
+            digitalTotal, digitalCount: pagoMovilCount + puntoCount,
             grandTotal,
             ticketCount,
             totalTax,
             avgTicket,
-            legacyTotal, legacyCount: legacySales.length,
+            legacyTotal, legacyCount,
         };
     }, [allSales]);
 
@@ -442,6 +494,20 @@ export const SalesDashboard = () => {
                                                     <td className="px-5 py-3.5">
                                                         <div className="flex flex-col gap-1">
                                                             <PaymentBadge method={sale.paymentMethod} />
+                                                            {sale.payments && sale.payments.length > 1 && (
+                                                                <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium space-y-0.5 mt-0.5">
+                                                                    {sale.payments.map((p, idx) => (
+                                                                        <div key={idx} className="flex items-center gap-1">
+                                                                            <span className="font-bold text-slate-700 dark:text-slate-300">
+                                                                                {p.method === 'DIVISA' ? `$${p.amountUsd.toFixed(2)}` : `Bs. ${p.amountBs.toFixed(2)}`}
+                                                                            </span>
+                                                                            <span className="text-[9px] opacity-75">
+                                                                                ({p.method === 'DIVISA' ? 'Divisa' : p.method === 'PUNTO' ? 'Punto' : p.method === 'PAGO_MOVIL' ? 'P. Móvil' : 'Bs.'})
+                                                                            </span>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
                                                             {sale.status === 'ANULADO' && (
                                                                 <span className="text-[10px] font-bold text-red-500 bg-red-50 dark:bg-red-900/30 px-1.5 py-0.5 rounded">ANULADO</span>
                                                             )}

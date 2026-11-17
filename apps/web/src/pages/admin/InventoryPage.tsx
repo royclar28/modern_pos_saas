@@ -574,7 +574,9 @@ export const InventoryPage = () => {
             }
         };
         fetchMasterData();
-    }, []);
+        // Sincronización automática silenciosa en segundo plano para traer siempre los últimos productos
+        hydrateLocalDB({ silent: true }).catch(console.error);
+    }, [hydrateLocalDB]);
 
     const getCategoryName = (id: string | undefined) => {
         if (!id) return 'Sin Categoría';
@@ -756,7 +758,7 @@ export const InventoryPage = () => {
                         </div>
                         <div className="flex items-center gap-3">
                             <button
-                                onClick={hydrateLocalDB}
+                                onClick={() => hydrateLocalDB({ silent: false })}
                                 disabled={isHydrating}
                                 className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all border ${
                                     isHydrating 
