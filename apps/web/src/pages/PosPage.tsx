@@ -18,6 +18,7 @@ import { CheckoutModal } from '../components/CheckoutModal';
 import { PaymentData } from '../components/CheckoutModal';
 import { ShiftManagerModal } from '../components/ShiftManagerModal';
 import { WeightInputModal } from '../components/WeightInputModal';
+import { QuickAmountModal } from '../components/QuickAmountModal';
 import { useBarcodeScanner } from '../hooks/useBarcodeScanner';
 import { getOutboxDB } from '../db/outbox';
 import { openWhatsAppReceipt } from '../lib/whatsappReceipt';
@@ -397,6 +398,7 @@ export const PosPage = () => {
     const [isSyncingBCV, setIsSyncingBCV] = useState(false);
     const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
     const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
+    const [isQuickAmountOpen, setIsQuickAmountOpen] = useState(false);
     const [weightModalItem, setWeightModalItem] = useState<ItemDocType | null>(null);
     const [mobileCartOpen, setMobileCartOpen] = useState(false);
     const searchInputRef = useRef<HTMLInputElement>(null);
@@ -601,6 +603,18 @@ export const PosPage = () => {
                                 )}
                             </div>
                             
+                            <button
+                                type="button"
+                                onClick={() => setIsQuickAmountOpen(true)}
+                                className={`flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black rounded-xl shadow-md shadow-emerald-600/20 transition-all shrink-0 cursor-pointer ${
+                                    hv ? 'px-5 py-3.5 text-base' : 'px-3.5 py-2 text-xs'
+                                }`}
+                                title="Cobrar con calculadora un monto libre sin producto registrado"
+                            >
+                                <span className={hv ? 'text-lg' : 'text-sm'}>⚡</span>
+                                <span>Venta Rápida</span>
+                            </button>
+
                             <label className="flex items-center gap-2 cursor-pointer bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-200 transition-colors">
                                 <input 
                                     type="checkbox" 
@@ -912,6 +926,20 @@ export const PosPage = () => {
                     setWeightModalItem(null);
                 }}
                 onClose={() => setWeightModalItem(null)}
+            />
+
+            {/* ── Quick Amount / Calculadora Modal ── */}
+            <QuickAmountModal
+                isOpen={isQuickAmountOpen}
+                onClose={() => setIsQuickAmountOpen(false)}
+                onAdd={(item) => {
+                    addToCart(item);
+                    playBeep();
+                    toast.success(`Agregado: ${item.name}`);
+                }}
+                exchangeRate={exchangeRate}
+                tenantId={user?.storeId || 'default-store'}
+                existingItems={items}
             />
 
             {/* Global Styles */}

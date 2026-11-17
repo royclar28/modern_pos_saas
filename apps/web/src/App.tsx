@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { clsx } from 'clsx';
 import { AuthProvider, useAuth } from './contexts/AuthProvider';
 import { SettingsProvider, useSettingsContext } from './contexts/SettingsProvider';
 import { CartProvider } from './contexts/CartProvider';
@@ -92,11 +93,29 @@ const TrialBanner = ({ trialEndsAt }: { trialEndsAt?: string | null }) => {
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 const Dashboard = () => {
     const { user, logout } = useAuth();
-    const { enableCreditSales, company, toggleDarkMode, darkMode } = useSettingsContext();
+    const { enableCreditSales, company, toggleDarkMode, darkMode, exchangeRate } = useSettingsContext();
     useSync();
     const { items, isLoading } = useItems();
     const { hydrateLocalDB, isHydrating } = useInitialSync();
     const { data: dashboard, isLoading: dashLoading } = useDashboard();
+
+    const [uiMode, setUiMode] = useState<'simple' | 'advanced'>(() => {
+        return (localStorage.getItem('pos_ui_mode') as 'simple' | 'advanced') || 'simple';
+    });
+    const [copiedCatalog, setCopiedCatalog] = useState(false);
+    const [showAdvancedInSimple, setShowAdvancedInSimple] = useState(false);
+
+    const handleCopyCatalogLink = () => {
+        const catalogUrl = `${window.location.origin}/c/${user?.storeId || ''}`;
+        navigator.clipboard.writeText(catalogUrl);
+        setCopiedCatalog(true);
+        setTimeout(() => setCopiedCatalog(false), 2500);
+    };
+
+    const handleToggleUiMode = (mode: 'simple' | 'advanced') => {
+        setUiMode(mode);
+        localStorage.setItem('pos_ui_mode', mode);
+    };
 
     useEffect(() => {
         // Auto-hydrate if DB is empty and not already hydrating
@@ -180,291 +199,554 @@ const Dashboard = () => {
                     </div>
                 </div>
 
-                {/* ── KPI Cards — Live summary from backend ──────── */}
-                {!dashLoading && dashboard && (
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5">
-                        {/* Revenue Today */}
-                        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 sm:p-5 shadow-sm transition-colors">
-                            <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-bold mb-1">Ingresos Hoy</p>
-                            <p className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400">
-                                ${dashboard.today.revenue.toFixed(2)}
+                {/* ── Selector de Modo: Bodega (Fácil) vs Completo ──────────────── */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-slate-800 p-3 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm mb-6">
+                    <div className="flex items-center gap-2.5">
+                        <span className={`w-3 h-3 rounded-full ${uiMode === 'simple' ? 'bg-emerald-500' : 'bg-violet-500'} animate-pulse`} />
+                        <div>
+                            <p className="text-xs sm:text-sm font-bold text-slate-800 dark:text-white">
+                                {uiMode === 'simple' ? '🛒 Modo Bodega (Sencillo)' : '🏢 Modo Completo (Avanzado)'}
                             </p>
-                            <div className="flex gap-3 mt-1.5 text-[10px] text-slate-400 font-medium">
-                                <span>💵 ${dashboard.today.direct_sales.toFixed(2)} ventas</span>
-                                {dashboard.today.debt_payments > 0 && (
-                                    <span>📒 +${dashboard.today.debt_payments.toFixed(2)} abonos</span>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Transactions + Units */}
-                        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 sm:p-5 shadow-sm transition-colors">
-                            <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-bold mb-1">Actividad Hoy</p>
-                            <p className="text-2xl sm:text-3xl font-black text-slate-800 dark:text-white">
-                                {dashboard.today.transaction_count} <span className="text-sm font-bold text-slate-400">tickets</span>
-                            </p>
-                            <p className="text-[10px] text-slate-400 font-medium mt-1.5">
-                                📦 {dashboard.today.units_sold} unidades vendidas
+                            <p className="text-[11px] text-slate-400">
+                                {uiMode === 'simple' ? 'Interfaz limpia y rápida: solo lo que necesitas para vender y cobrar' : 'Todas las herramientas avanzadas, reportes fiscales e inventario con IA'}
                             </p>
                         </div>
+                    </div>
 
-                        {/* Pending Debt (global) */}
-                        {dashboard.debt.total_pending > 0 ? (
-                            <Link
-                                to="/admin/creditos"
-                                className="bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-800 hover:border-amber-400 dark:hover:border-amber-600 rounded-2xl p-4 sm:p-5 shadow-sm transition-all hover:-translate-y-0.5 group cursor-pointer"
-                            >
-                                <p className="text-xs text-amber-600 dark:text-amber-400 uppercase tracking-wider font-bold mb-1">Por Cobrar</p>
-                                <p className="text-2xl sm:text-3xl font-black text-amber-700 dark:text-amber-300">
-                                    ${dashboard.debt.total_pending.toFixed(2)}
-                                </p>
-                                <p className="text-[10px] text-amber-500 font-medium mt-1.5 flex items-center gap-1">
-                                    👥 {dashboard.debt.customers_with_debt} clientes · {dashboard.debt.pending_tickets} tickets
-                                    {dashboard.debt.oldest_debt_days > 30 && (
-                                        <span className="bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 px-1.5 py-0.5 rounded-full font-bold ml-1">
-                                            ⚠ {dashboard.debt.oldest_debt_days}d
+                    <div className="flex items-center bg-slate-100 dark:bg-slate-900/80 p-1 rounded-xl self-stretch sm:self-auto justify-center">
+                        <button
+                            type="button"
+                            onClick={() => handleToggleUiMode('simple')}
+                            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                                uiMode === 'simple'
+                                    ? 'bg-emerald-600 text-white shadow-sm'
+                                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                            }`}
+                        >
+                            <span>🛒</span> Modo Bodega (Fácil)
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handleToggleUiMode('advanced')}
+                            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                                uiMode === 'advanced'
+                                    ? 'bg-violet-600 text-white shadow-sm'
+                                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                            }`}
+                        >
+                            <span>🏢</span> Modo Completo
+                        </button>
+                    </div>
+                </div>
+
+                {uiMode === 'simple' ? (
+                    /* ── VISTA MODO BODEGA (SENCILLO) ─────────────────────────── */
+                    <div className="space-y-6">
+                        {/* Resumen Fácil del Día */}
+                        {!dashLoading && dashboard && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {/* Dinero Vendido Hoy */}
+                                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/20 border-2 border-emerald-200 dark:border-emerald-800/60 rounded-3xl p-5 sm:p-6 shadow-sm">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <span className="text-xs font-black text-emerald-800 dark:text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
+                                            💵 Dinero Vendido Hoy
                                         </span>
-                                    )}
-                                </p>
-                            </Link>
-                        ) : (
-                            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 sm:p-5 shadow-sm transition-colors">
-                                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-bold mb-1">Por Cobrar</p>
-                                <p className="text-2xl sm:text-3xl font-black text-slate-400 dark:text-slate-500">$0.00</p>
-                                <p className="text-[10px] text-slate-400 font-medium mt-1.5">Sin deudas pendientes ✨</p>
+                                        <span className="text-xs bg-emerald-200/60 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200 px-2.5 py-0.5 rounded-full font-bold">
+                                            {dashboard.today.transaction_count} {dashboard.today.transaction_count === 1 ? 'venta' : 'ventas'}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-baseline gap-2 flex-wrap">
+                                        <p className="text-3xl sm:text-4xl font-black text-emerald-700 dark:text-emerald-300">
+                                            ${dashboard.today.revenue.toFixed(2)}
+                                        </p>
+                                        {exchangeRate > 0 && (
+                                            <p className="text-base sm:text-lg font-bold text-emerald-600/90 dark:text-emerald-400">
+                                                ≈ Bs. {(dashboard.today.revenue * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <p className="text-xs text-emerald-600/80 dark:text-emerald-400/80 mt-1 font-semibold">
+                                        Tasa del día: Bs. {exchangeRate.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
+                                    </p>
+                                </div>
+
+                                {/* Cuaderno de Fiados */}
+                                <Link
+                                    to="/admin/creditos"
+                                    className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/20 border-2 border-amber-200 dark:border-amber-800/60 hover:border-amber-400 rounded-3xl p-5 sm:p-6 shadow-sm transition-all hover:scale-[1.01] block group"
+                                >
+                                    <div className="flex justify-between items-start mb-2">
+                                        <span className="text-xs font-black text-amber-800 dark:text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                                            📒 Por Cobrar en Fiados
+                                        </span>
+                                        {dashboard.debt.customers_with_debt > 0 ? (
+                                            <span className="text-xs bg-amber-200/60 dark:bg-amber-900 text-amber-800 dark:text-amber-200 px-2.5 py-0.5 rounded-full font-bold">
+                                                {dashboard.debt.customers_with_debt} {dashboard.debt.customers_with_debt === 1 ? 'cliente' : 'clientes'}
+                                            </span>
+                                        ) : (
+                                            <span className="text-xs text-emerald-600 font-bold bg-emerald-100/60 dark:bg-emerald-950 px-2 py-0.5 rounded-full">
+                                                Al día ✨
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="flex items-baseline gap-2 flex-wrap">
+                                        <p className="text-3xl sm:text-4xl font-black text-amber-700 dark:text-amber-300">
+                                            ${dashboard.debt.total_pending.toFixed(2)}
+                                        </p>
+                                        {exchangeRate > 0 && dashboard.debt.total_pending > 0 && (
+                                            <p className="text-base sm:text-lg font-bold text-amber-600/90 dark:text-amber-400">
+                                                ≈ Bs. {(dashboard.debt.total_pending * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <p className="text-xs text-amber-700 dark:text-amber-300 mt-1 font-bold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                        Toca para abrir el cuaderno y registrar abonos →
+                                    </p>
+                                </Link>
                             </div>
                         )}
 
-                        {/* Stock Alerts */}
-                        <Link
-                            to={canAccessAdmin ? "/admin/inventory" : "#"}
-                            className={`rounded-2xl p-4 sm:p-5 shadow-sm transition-all hover:-translate-y-0.5 group cursor-pointer ${
-                                dashboard.stock.out_of_stock_count > 0
-                                    ? 'bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800 hover:border-red-400'
-                                    : dashboard.stock.low_stock_count > 0
-                                        ? 'bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-800 hover:border-amber-400'
-                                        : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700'
-                            }`}
-                        >
-                            <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-bold mb-1">Inventario</p>
-                            <p className="text-2xl sm:text-3xl font-black text-slate-800 dark:text-white">
-                                {dashboard.stock.out_of_stock_count > 0
-                                    ? `🚫 ${dashboard.stock.out_of_stock_count}`
-                                    : dashboard.stock.low_stock_count > 0
-                                        ? `⚠️ ${dashboard.stock.low_stock_count}`
-                                        : '✅ OK'
-                                }
-                            </p>
-                            <p className="text-[10px] text-slate-400 font-medium mt-1.5">
-                                {dashboard.stock.total_items} productos · {dashboard.stock.low_stock_count} bajos · {dashboard.stock.out_of_stock_count} agotados
-                            </p>
-                        </Link>
-                    </div>
-                )}
+                        {/* 4 Acciones Gigantes en Modo Bodega */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {/* 1. COBRAR EN CAJA */}
+                            <Link
+                                to="/pos"
+                                className="group relative overflow-hidden bg-gradient-to-br from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-600 text-white rounded-3xl p-6 sm:p-7 shadow-xl shadow-emerald-600/20 transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center gap-5"
+                            >
+                                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white/20 flex items-center justify-center text-4xl sm:text-5xl shrink-0 shadow-inner group-hover:scale-110 transition-transform">
+                                    🛒
+                                </div>
+                                <div>
+                                    <div className="inline-block bg-white/20 text-white text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md mb-1">
+                                        Paso 1
+                                    </div>
+                                    <h2 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight">
+                                        1. Cobrar en Caja
+                                    </h2>
+                                    <p className="text-xs sm:text-sm text-emerald-100 font-medium mt-1">
+                                        Hacer ventas con o sin productos registrados, en $ y Bolívares
+                                    </p>
+                                </div>
+                            </Link>
 
-                {/* ── Plan Badge ───────────────────────────────── */}
-                {planInfo && (
-                    <div className={`mb-5 rounded-xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between text-sm font-bold border gap-2 ${
-                        trialEndsAt && trialDaysLeft <= 3
-                            ? 'bg-red-50 border-red-200 text-red-700'
-                            : trialEndsAt && trialDaysLeft <= 7
-                                ? 'bg-amber-50 border-amber-200 text-amber-700'
-                                : 'bg-blue-50 border-blue-200 text-blue-700'
-                    }`}>
-                        <div className="flex items-center gap-2">
-                            <span>{planInfo.plan === 'TRIAL' ? '🕐' : '✅'}</span>
-                            <span>
-                                {planInfo.plan === 'TRIAL'
-                                    ? `${planInfo.plan_label} — ${trialDaysLeft} día(s) restante(s)`
-                                    : `${planInfo.plan_label}${planInfo.price > 0 ? ` ($${planInfo.price}/mes)` : ''} — Activo`
-                                }
-                            </span>
+                            {/* 2. CUADERNO DE FIADOS */}
+                            <Link
+                                to="/admin/creditos"
+                                className="group bg-white dark:bg-slate-800 hover:bg-amber-50/50 dark:hover:bg-amber-950/20 border-2 border-slate-200 dark:border-slate-700 hover:border-amber-400 text-slate-800 dark:text-white rounded-3xl p-6 sm:p-7 shadow-md transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center gap-5"
+                            >
+                                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-300 flex items-center justify-center text-4xl sm:text-5xl shrink-0 shadow-inner group-hover:scale-110 transition-transform">
+                                    📒
+                                </div>
+                                <div>
+                                    <div className="inline-block bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md mb-1">
+                                        Deudas
+                                    </div>
+                                    <h2 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight">
+                                        2. Cuaderno de Fiados
+                                    </h2>
+                                    <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">
+                                        Anotar a quién le fiaste y registrar abonos cuando vengan a pagar
+                                    </p>
+                                </div>
+                            </Link>
+
+                            {/* 3. MIS PRODUCTOS Y PRECIOS */}
+                            <Link
+                                to="/admin/inventory"
+                                className="group bg-white dark:bg-slate-800 hover:bg-sky-50/50 dark:hover:bg-sky-950/20 border-2 border-slate-200 dark:border-slate-700 hover:border-sky-400 text-slate-800 dark:text-white rounded-3xl p-6 sm:p-7 shadow-md transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center gap-5"
+                            >
+                                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-300 flex items-center justify-center text-4xl sm:text-5xl shrink-0 shadow-inner group-hover:scale-110 transition-transform">
+                                    🏷️
+                                </div>
+                                <div>
+                                    <div className="inline-block bg-sky-100 dark:bg-sky-900/60 text-sky-800 dark:text-sky-200 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md mb-1">
+                                        Precios
+                                    </div>
+                                    <h2 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight">
+                                        3. Mis Productos
+                                    </h2>
+                                    <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">
+                                        Ver existencias, agregar cosas nuevas o cambiar precios
+                                    </p>
+                                </div>
+                            </Link>
+
+                            {/* 4. ¿CUÁNTO VENDÍ HOY? */}
+                            <Link
+                                to="/admin/sales"
+                                className="group bg-white dark:bg-slate-800 hover:bg-violet-50/50 dark:hover:bg-violet-950/20 border-2 border-slate-200 dark:border-slate-700 hover:border-violet-400 text-slate-800 dark:text-white rounded-3xl p-6 sm:p-7 shadow-md transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center gap-5"
+                            >
+                                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-300 flex items-center justify-center text-4xl sm:text-5xl shrink-0 shadow-inner group-hover:scale-110 transition-transform">
+                                    📊
+                                </div>
+                                <div>
+                                    <div className="inline-block bg-violet-100 dark:bg-violet-900/60 text-violet-800 dark:text-violet-200 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md mb-1">
+                                        Reportes
+                                    </div>
+                                    <h2 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight">
+                                        4. ¿Cuánto Vendí?
+                                    </h2>
+                                    <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">
+                                        Ver lista de ventas del día, efectivo recibido y pagos móviles
+                                    </p>
+                                </div>
+                            </Link>
                         </div>
-                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs font-medium opacity-70">
-                            <span>📱 {planInfo.max_devices > 1 ? `Hasta ${planInfo.max_devices} disp.` : '1 dispositivo'}</span>
-                            <span>👥 {planInfo.current_users}/{planInfo.max_users} usuarios</span>
-                            <span>📦 {planInfo.current_items}/{planInfo.max_items} items</span>
-                            {planInfo.credit_sales ? <span>📒 Créditos</span> : <span className="text-slate-400">🚫 Créditos</span>}
-                            {planInfo.payment_methods && (
-                                <span className="text-slate-400">💳 {planInfo.payment_methods.join(', ')}</span>
+
+                        {/* Banner de Mi Tienda / WhatsApp */}
+                        <div className="bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-3xl p-5 sm:p-6 shadow-md flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div className="flex items-center gap-4 text-center sm:text-left">
+                                <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center text-2xl shrink-0">
+                                    📲
+                                </div>
+                                <div>
+                                    <h3 className="font-extrabold text-base sm:text-lg">Tu Enlace de Pedidos por WhatsApp</h3>
+                                    <p className="text-xs sm:text-sm text-emerald-100 mt-0.5">
+                                        Compártelo con tus clientes para que te pidan desde su celular sin registros ni contraseñas
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                                <button
+                                    type="button"
+                                    onClick={handleCopyCatalogLink}
+                                    className="px-4 py-2.5 bg-white text-emerald-800 hover:bg-emerald-50 active:scale-95 font-black text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5"
+                                >
+                                    {copiedCatalog ? '✅ ¡Enlace Copiado!' : '📋 Copiar Enlace'}
+                                </button>
+                                <a
+                                    href={`/c/${user?.storeId || ''}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="px-4 py-2.5 bg-emerald-800/60 hover:bg-emerald-800 text-white active:scale-95 font-bold text-xs rounded-xl transition-all"
+                                >
+                                    Ver Tienda ↗
+                                </a>
+                            </div>
+                        </div>
+
+                        {/* Acordeón de Herramientas Avanzadas */}
+                        <div className="border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 rounded-2xl overflow-hidden shadow-xs">
+                            <button
+                                type="button"
+                                onClick={() => setShowAdvancedInSimple(!showAdvancedInSimple)}
+                                className="w-full px-5 py-4 text-left flex items-center justify-between text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                            >
+                                <span className="text-xs sm:text-sm font-bold flex items-center gap-2">
+                                    ⚙️ Otras herramientas secundarias (Cortes Z, Facturas con IA, Sorteos, Ajustes)
+                                </span>
+                                <span className="text-xs font-bold text-slate-400">
+                                    {showAdvancedInSimple ? '▲ Ocultar' : '▼ Mostrar'}
+                                </span>
+                            </button>
+                            {showAdvancedInSimple && (
+                                <div className="p-4 border-t border-slate-100 dark:border-slate-700 grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50/50 dark:bg-slate-900/30">
+                                    <Link to="/admin/shifts" className="p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:border-violet-500 block">
+                                        🔐 Reportes Z / Caja
+                                    </Link>
+                                    <Link to="/admin/inventory" className="p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:border-violet-500 block">
+                                        🤖 Facturas con IA
+                                    </Link>
+                                    <Link to="/admin/raffles" className="p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:border-violet-500 block">
+                                        🎁 Sorteos en Vivo
+                                    </Link>
+                                    <Link to="/admin/settings" className="p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:border-violet-500 block">
+                                        ⚙️ Ajustes de Tienda
+                                    </Link>
+                                </div>
                             )}
                         </div>
                     </div>
+                ) : (
+                    /* ── VISTA MODO COMPLETO (AVANZADO) ───────────────────────── */
+                    <>
+                        {/* ── KPI Cards — Live summary from backend ──────── */}
+                        {!dashLoading && dashboard && (
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5">
+                                {/* Revenue Today */}
+                                <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 sm:p-5 shadow-sm transition-colors">
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-bold mb-1">Ingresos Hoy</p>
+                                    <p className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400">
+                                        ${dashboard.today.revenue.toFixed(2)}
+                                    </p>
+                                    <div className="flex gap-3 mt-1.5 text-[10px] text-slate-400 font-medium">
+                                        <span>💵 ${dashboard.today.direct_sales.toFixed(2)} ventas</span>
+                                        {dashboard.today.debt_payments > 0 && (
+                                            <span>📒 +${dashboard.today.debt_payments.toFixed(2)} abonos</span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Transactions + Units */}
+                                <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 sm:p-5 shadow-sm transition-colors">
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-bold mb-1">Actividad Hoy</p>
+                                    <p className="text-2xl sm:text-3xl font-black text-slate-800 dark:text-white">
+                                        {dashboard.today.transaction_count} <span className="text-sm font-bold text-slate-400">tickets</span>
+                                    </p>
+                                    <p className="text-[10px] text-slate-400 font-medium mt-1.5">
+                                        📦 {dashboard.today.units_sold} unidades vendidas
+                                    </p>
+                                </div>
+
+                                {/* Pending Debt (global) */}
+                                {dashboard.debt.total_pending > 0 ? (
+                                    <Link
+                                        to="/admin/creditos"
+                                        className="bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-800 hover:border-amber-400 dark:hover:border-amber-600 rounded-2xl p-4 sm:p-5 shadow-sm transition-all hover:-translate-y-0.5 group cursor-pointer"
+                                    >
+                                        <p className="text-xs text-amber-600 dark:text-amber-400 uppercase tracking-wider font-bold mb-1">Por Cobrar</p>
+                                        <p className="text-2xl sm:text-3xl font-black text-amber-700 dark:text-amber-300">
+                                            ${dashboard.debt.total_pending.toFixed(2)}
+                                        </p>
+                                        <p className="text-[10px] text-amber-500 font-medium mt-1.5 flex items-center gap-1">
+                                            👥 {dashboard.debt.customers_with_debt} clientes · {dashboard.debt.pending_tickets} tickets
+                                            {dashboard.debt.oldest_debt_days > 30 && (
+                                                <span className="bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 px-1.5 py-0.5 rounded-full font-bold ml-1">
+                                                    ⚠ {dashboard.debt.oldest_debt_days}d
+                                                </span>
+                                            )}
+                                        </p>
+                                    </Link>
+                                ) : (
+                                    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 sm:p-5 shadow-sm transition-colors">
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-bold mb-1">Por Cobrar</p>
+                                        <p className="text-2xl sm:text-3xl font-black text-slate-400 dark:text-slate-500">$0.00</p>
+                                        <p className="text-[10px] text-slate-400 font-medium mt-1.5">Sin deudas pendientes ✨</p>
+                                    </div>
+                                )}
+
+                                {/* Stock Alerts */}
+                                <Link
+                                    to={canAccessAdmin ? "/admin/inventory" : "#"}
+                                    className={`rounded-2xl p-4 sm:p-5 shadow-sm transition-all hover:-translate-y-0.5 group cursor-pointer ${
+                                        dashboard.stock.out_of_stock_count > 0
+                                            ? 'bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800 hover:border-red-400'
+                                            : dashboard.stock.low_stock_count > 0
+                                                ? 'bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-800 hover:border-amber-400'
+                                                : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700'
+                                    }`}
+                                >
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-bold mb-1">Inventario</p>
+                                    <p className="text-2xl sm:text-3xl font-black text-slate-800 dark:text-white">
+                                        {dashboard.stock.out_of_stock_count > 0
+                                            ? `🚫 ${dashboard.stock.out_of_stock_count}`
+                                            : dashboard.stock.low_stock_count > 0
+                                                ? `⚠️ ${dashboard.stock.low_stock_count}`
+                                                : '✅ OK'
+                                        }
+                                    </p>
+                                    <p className="text-[10px] text-slate-400 font-medium mt-1.5">
+                                        {dashboard.stock.total_items} productos · {dashboard.stock.low_stock_count} bajos · {dashboard.stock.out_of_stock_count} agotados
+                                    </p>
+                                </Link>
+                            </div>
+                        )}
+
+                        {/* ── Plan Badge ───────────────────────────────── */}
+                        {planInfo && (
+                            <div className={`mb-5 rounded-xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between text-sm font-bold border gap-2 ${
+                                trialEndsAt && trialDaysLeft <= 3
+                                    ? 'bg-red-50 border-red-200 text-red-700'
+                                    : trialEndsAt && trialDaysLeft <= 7
+                                        ? 'bg-amber-50 border-amber-200 text-amber-700'
+                                        : 'bg-blue-50 border-blue-200 text-blue-700'
+                            }`}>
+                                <div className="flex items-center gap-2">
+                                    <span>{planInfo.plan === 'TRIAL' ? '🕐' : '✅'}</span>
+                                    <span>
+                                        {planInfo.plan === 'TRIAL'
+                                            ? `${planInfo.plan_label} — ${trialDaysLeft} día(s) restante(s)`
+                                            : `${planInfo.plan_label}${planInfo.price > 0 ? ` ($${planInfo.price}/mes)` : ''} — Activo`
+                                        }
+                                    </span>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs font-medium opacity-70">
+                                    <span>📱 {planInfo.max_devices > 1 ? `Hasta ${planInfo.max_devices} disp.` : '1 dispositivo'}</span>
+                                    <span>👥 {planInfo.current_users}/{planInfo.max_users} usuarios</span>
+                                    <span>📦 {planInfo.current_items}/{planInfo.max_items} items</span>
+                                    {planInfo.credit_sales ? <span>📒 Créditos</span> : <span className="text-slate-400">🚫 Créditos</span>}
+                                    {planInfo.payment_methods && (
+                                        <span className="text-slate-400">💳 {planInfo.payment_methods.join(', ')}</span>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Hero POS Card */}
+                        <Link
+                            to="/pos"
+                            className="group block bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-700 hover:via-purple-700 hover:to-indigo-700 text-white rounded-2xl p-6 sm:p-8 transition-all shadow-lg shadow-violet-200/50 dark:shadow-violet-900/30 hover:-translate-y-0.5 mb-5 relative overflow-hidden"
+                        >
+                            <div className="absolute -right-8 -top-8 w-40 h-40 bg-white/5 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
+                            <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-white/5 rounded-full blur-xl" />
+                            <div className="relative flex items-center gap-4 sm:gap-6">
+                                <div className="text-4xl sm:text-5xl lg:text-6xl shrink-0">🛒</div>
+                                <div>
+                                    <div className="font-black text-xl sm:text-2xl lg:text-3xl tracking-tight">Punto de Venta</div>
+                                    <div className="opacity-80 text-sm sm:text-base mt-1">Abrir caja y comenzar a vender →</div>
+                                </div>
+                                <div className="ml-auto hidden sm:flex items-center gap-2 bg-white/10 px-4 py-2 rounded-xl backdrop-blur-sm border border-white/10">
+                                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                                    <span className="text-xs font-bold opacity-80">Terminal Activa</span>
+                                </div>
+                            </div>
+                        </Link>
+
+                        {/* Module Cards Grid */}
+                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-6">
+                            {/* Inventario — ADMIN y MANAGER */}
+                            {canAccessAdmin && (
+                                <div className="space-y-3">
+                                    <Link
+                                        to="/admin/inventory"
+                                        className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-violet-400 dark:hover:border-violet-500 text-slate-800 dark:text-white rounded-2xl p-5 sm:p-7 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 block"
+                                    >
+                                        <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">📦</div>
+                                        <div className="font-bold text-base sm:text-lg lg:text-xl">Inventario</div>
+                                        <div className="text-slate-400 dark:text-slate-400 text-xs sm:text-sm mt-1">Ver catálogo →</div>
+                                    </Link>
+                                    <Link
+                                        to="/admin/inventory"
+                                        className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-400 text-slate-800 dark:text-white rounded-2xl p-4 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 block text-center"
+                                    >
+                                        <div className="text-2xl mb-1">🤖</div>
+                                        <div className="font-bold text-sm">Escanear Factura</div>
+                                        <div className="text-slate-400 text-[10px] mt-0.5">Cargar con IA →</div>
+                                    </Link>
+                                </div>
+                            )}
+
+                            {/* Dashboard General (Ventas) — ADMIN y MANAGER */}
+                            {canAccessAdmin && (
+                                <Link
+                                    to="/admin/sales"
+                                    className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-violet-400 dark:hover:border-violet-500 text-slate-800 dark:text-white rounded-2xl p-5 sm:p-7 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                                >
+                                    <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">📊</div>
+                                    <div className="font-bold text-base sm:text-lg lg:text-xl">Dashboard General</div>
+                                    <div className="text-slate-400 dark:text-slate-400 text-xs sm:text-sm mt-1">Estadísticas de ventas →</div>
+                                </Link>
+                            )}
+
+                            {/* Reporte Z / Historial de Caja — ADMIN y MANAGER */}
+                            {canAccessAdmin && (
+                                <Link
+                                    to="/admin/shifts"
+                                    className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-violet-400 dark:hover:border-violet-500 text-slate-800 dark:text-white rounded-2xl p-5 sm:p-7 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                                >
+                                    <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">🔐</div>
+                                    <div className="font-bold text-base sm:text-lg lg:text-xl">Historial de Cajas (Z)</div>
+                                    <div className="text-slate-400 dark:text-slate-400 text-xs sm:text-sm mt-1">Reportes y cortes →</div>
+                                </Link>
+                            )}
+
+                            {/* Configuración — Solo ADMIN */}
+                            {canAccessSettings && (
+                                <Link
+                                    to="/admin/settings"
+                                    className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-violet-400 dark:hover:border-violet-500 text-slate-800 dark:text-white rounded-2xl p-5 sm:p-7 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                                >
+                                    <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">⚙️</div>
+                                    <div className="font-bold text-base sm:text-lg lg:text-xl">Configuración</div>
+                                    <div className="text-slate-400 dark:text-slate-400 text-xs sm:text-sm mt-1">IVA, tema, terminal →</div>
+                                </Link>
+                            )}
+
+                            {/* Fiados — ADMIN y MANAGER */}
+                            {enableCreditSales && canAccessAdmin && (
+                                <Link
+                                    to="/admin/creditos"
+                                    className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-amber-400 text-slate-800 dark:text-white rounded-2xl p-5 sm:p-7 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                                >
+                                    <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">📒</div>
+                                    <div className="font-bold text-base sm:text-lg lg:text-xl">Créditos y Cuentas</div>
+                                    <div className="text-primary text-xs sm:text-sm mt-1 font-semibold">Gestionar créditos →</div>
+                                </Link>
+                            )}
+
+                            {/* Clientes — ADMIN y MANAGER */}
+                            {canAccessAdmin && (
+                                <Link
+                                    to="/admin/customers"
+                                    className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-sky-400 dark:hover:border-sky-500 text-slate-800 dark:text-white rounded-2xl p-5 sm:p-7 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                                >
+                                    <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">👥</div>
+                                    <div className="font-bold text-base sm:text-lg lg:text-xl">Clientes</div>
+                                    <div className="text-slate-400 dark:text-slate-400 text-xs sm:text-sm mt-1">Ver y gestionar →</div>
+                                </Link>
+                            )}
+
+                            {/* Sorteos — ADMIN y MANAGER */}
+                            {canAccessAdmin && (
+                                <Link
+                                    to="/admin/raffles"
+                                    className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-pink-400 dark:hover:border-pink-500 text-slate-800 dark:text-white rounded-2xl p-5 sm:p-7 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                                >
+                                    <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">🎁</div>
+                                    <div className="font-bold text-base sm:text-lg lg:text-xl">Sorteos</div>
+                                    <div className="text-slate-400 dark:text-slate-400 text-xs sm:text-sm mt-1">Sorteos en vivo →</div>
+                                </Link>
+                            )}
+
+                            {/* Inteligencia de Negocios — ADMIN y MANAGER */}
+                            {canAccessAdmin && (
+                                <Link
+                                    to="/admin/bi"
+                                    className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-violet-400 dark:hover:border-violet-500 text-slate-800 dark:text-white rounded-2xl p-5 sm:p-7 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                                >
+                                    <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">🧠</div>
+                                    <div className="font-bold text-base sm:text-lg lg:text-xl">Inteligencia</div>
+                                    <div className="text-slate-400 dark:text-slate-400 text-xs sm:text-sm mt-1">Productos más vendidos →</div>
+                                </Link>
+                            )}
+
+                            {/* Sugerencias — visible para TODOS los roles */}
+                            <a
+                                href="https://merx-pos.canny.io/sugerencias-merxpos"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-400 text-slate-800 dark:text-white rounded-2xl p-5 sm:p-7 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                            >
+                                <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">💡</div>
+                                <div className="font-bold text-base sm:text-lg lg:text-xl">Sugerencias</div>
+                                <div className="text-slate-400 dark:text-slate-400 text-xs sm:text-sm mt-1">Proponer mejoras →</div>
+                            </a>
+
+                            {/* Panel SaaS — Solo SUPER_ADMIN */}
+                            {userRole === 'SUPER_ADMIN' && (
+                                <Link
+                                    to="/super-admin"
+                                    className="group bg-gradient-to-br from-indigo-900 to-purple-900 text-white rounded-2xl p-5 sm:p-7 transition-all shadow-lg shadow-indigo-200/50 dark:shadow-indigo-900/30 hover:shadow-indigo-300 hover:-translate-y-0.5"
+                                >
+                                    <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">🔒</div>
+                                    <div className="font-bold text-base sm:text-lg lg:text-xl">Panel SaaS</div>
+                                    <div className="text-indigo-200 text-xs sm:text-sm mt-1">Gestionar tiendas →</div>
+                                </Link>
+                            )}
+
+                            {/* Centro de Comando — Solo SUPER_ADMIN */}
+                            {userRole === 'SUPER_ADMIN' && (
+                                <Link
+                                    to="/master-dashboard"
+                                    className="group relative overflow-hidden bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 hover:border-violet-500 text-white rounded-2xl p-5 sm:p-7 transition-all shadow-lg hover:shadow-violet-900/30 hover:-translate-y-0.5"
+                                >
+                                    <div className="absolute -right-4 -top-4 w-20 h-20 bg-violet-500/10 rounded-full blur-xl group-hover:bg-violet-500/20 transition-colors" />
+                                    <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">📡</div>
+                                    <div className="font-bold text-base sm:text-lg lg:text-xl">Centro de Comando</div>
+                                    <div className="text-slate-400 text-xs sm:text-sm mt-1">Métricas del negocio →</div>
+                                </Link>
+                            )}
+                        </div>
+
+                        {/* Sync Status Bar */}
+                        <div className="bg-primary-light dark:bg-slate-800 border border-primary/30 dark:border-slate-700 rounded-xl p-4 text-sm text-primary dark:text-slate-300 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
+                                <span className="text-xs sm:text-sm font-medium">Dexie Outbox Sync activo — datos en tiempo real</span>
+                            </div>
+                        </div>
+                    </>
                 )}
-
-                {/* Hero POS Card — Prominent, full width */}
-                <Link
-                    to="/pos"
-                    className="group block bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-700 hover:via-purple-700 hover:to-indigo-700 text-white rounded-2xl p-6 sm:p-8 transition-all shadow-lg shadow-violet-200/50 dark:shadow-violet-900/30 hover:-translate-y-0.5 mb-5 relative overflow-hidden"
-                >
-                    <div className="absolute -right-8 -top-8 w-40 h-40 bg-white/5 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
-                    <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-white/5 rounded-full blur-xl" />
-                    <div className="relative flex items-center gap-4 sm:gap-6">
-                        <div className="text-4xl sm:text-5xl lg:text-6xl shrink-0">🛒</div>
-                        <div>
-                            <div className="font-black text-xl sm:text-2xl lg:text-3xl tracking-tight">Punto de Venta</div>
-                            <div className="opacity-80 text-sm sm:text-base mt-1">Abrir caja y comenzar a vender →</div>
-                        </div>
-                        <div className="ml-auto hidden sm:flex items-center gap-2 bg-white/10 px-4 py-2 rounded-xl backdrop-blur-sm border border-white/10">
-                            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                            <span className="text-xs font-bold opacity-80">Terminal Activa</span>
-                        </div>
-                    </div>
-                </Link>
-
-                {/* Module Cards Grid — 3 cols on desktop */}
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-6">
-                    {/* Inventario — ADMIN y MANAGER */}
-                    {canAccessAdmin && (
-                        <div className="space-y-3">
-                            <Link
-                                to="/admin/inventory"
-                                className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-violet-400 dark:hover:border-violet-500 text-slate-800 dark:text-white rounded-2xl p-5 sm:p-7 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 block"
-                            >
-                                <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">📦</div>
-                                <div className="font-bold text-base sm:text-lg lg:text-xl">Inventario</div>
-                                <div className="text-slate-400 dark:text-slate-400 text-xs sm:text-sm mt-1">Ver catálogo →</div>
-                            </Link>
-                            <Link
-                                to="/admin/inventory"
-                                className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-400 text-slate-800 dark:text-white rounded-2xl p-4 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 block text-center"
-                            >
-                                <div className="text-2xl mb-1">🤖</div>
-                                <div className="font-bold text-sm">Escanear Factura</div>
-                                <div className="text-slate-400 text-[10px] mt-0.5">Cargar con IA →</div>
-                            </Link>
-                        </div>
-                    )}
-
-                    {/* Dashboard General (Ventas) — ADMIN y MANAGER */}
-                    {canAccessAdmin && (
-                        <Link
-                            to="/admin/sales"
-                            className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-violet-400 dark:hover:border-violet-500 text-slate-800 dark:text-white rounded-2xl p-5 sm:p-7 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
-                        >
-                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">📊</div>
-                            <div className="font-bold text-base sm:text-lg lg:text-xl">Dashboard General</div>
-                            <div className="text-slate-400 dark:text-slate-400 text-xs sm:text-sm mt-1">Estadísticas de ventas →</div>
-                        </Link>
-                    )}
-
-                    {/* Reporte Z / Historial de Caja — ADMIN y MANAGER */}
-                    {canAccessAdmin && (
-                        <Link
-                            to="/admin/shifts"
-                            className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-violet-400 dark:hover:border-violet-500 text-slate-800 dark:text-white rounded-2xl p-5 sm:p-7 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
-                        >
-                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">🔐</div>
-                            <div className="font-bold text-base sm:text-lg lg:text-xl">Historial de Cajas (Z)</div>
-                            <div className="text-slate-400 dark:text-slate-400 text-xs sm:text-sm mt-1">Reportes y cortes →</div>
-                        </Link>
-                    )}
-
-                    {/* Configuración — Solo ADMIN */}
-                    {canAccessSettings && (
-                        <Link
-                            to="/admin/settings"
-                            className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-violet-400 dark:hover:border-violet-500 text-slate-800 dark:text-white rounded-2xl p-5 sm:p-7 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
-                        >
-                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">⚙️</div>
-                            <div className="font-bold text-base sm:text-lg lg:text-xl">Configuración</div>
-                            <div className="text-slate-400 dark:text-slate-400 text-xs sm:text-sm mt-1">IVA, tema, terminal →</div>
-                        </Link>
-                    )}
-
-                    {/* Fiados — ADMIN y MANAGER (si está habilitado) */}
-                    {enableCreditSales && canAccessAdmin && (
-                        <Link
-                            to="/admin/creditos"
-                            className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-amber-400 text-slate-800 dark:text-white rounded-2xl p-5 sm:p-7 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
-                        >
-                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">📒</div>
-                            <div className="font-bold text-base sm:text-lg lg:text-xl">Créditos y Cuentas</div>
-                            <div className="text-primary text-xs sm:text-sm mt-1 font-semibold">Gestionar créditos →</div>
-                        </Link>
-                    )}
-
-                    {/* Clientes — ADMIN y MANAGER */}
-                    {canAccessAdmin && (
-                        <Link
-                            to="/admin/customers"
-                            className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-sky-400 dark:hover:border-sky-500 text-slate-800 dark:text-white rounded-2xl p-5 sm:p-7 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
-                        >
-                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">👥</div>
-                            <div className="font-bold text-base sm:text-lg lg:text-xl">Clientes</div>
-                            <div className="text-slate-400 dark:text-slate-400 text-xs sm:text-sm mt-1">Ver y gestionar →</div>
-                        </Link>
-                    )}
-
-                    {/* Sorteos — ADMIN y MANAGER */}
-                    {canAccessAdmin && (
-                        <Link
-                            to="/admin/raffles"
-                            className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-pink-400 dark:hover:border-pink-500 text-slate-800 dark:text-white rounded-2xl p-5 sm:p-7 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
-                        >
-                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">🎁</div>
-                            <div className="font-bold text-base sm:text-lg lg:text-xl">Sorteos</div>
-                            <div className="text-slate-400 dark:text-slate-400 text-xs sm:text-sm mt-1">Sorteos en vivo →</div>
-                        </Link>
-                    )}
-
-                    {/* Inteligencia de Negocios — ADMIN y MANAGER */}
-                    {canAccessAdmin && (
-                        <Link
-                            to="/admin/bi"
-                            className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-violet-400 dark:hover:border-violet-500 text-slate-800 dark:text-white rounded-2xl p-5 sm:p-7 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
-                        >
-                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">🧠</div>
-                            <div className="font-bold text-base sm:text-lg lg:text-xl">Inteligencia</div>
-                            <div className="text-slate-400 dark:text-slate-400 text-xs sm:text-sm mt-1">Productos más vendidos →</div>
-                        </Link>
-                    )}
-
-                    {/* Sugerencias — visible para TODOS los roles */}
-                    <a
-                        href="https://merx-pos.canny.io/sugerencias-merxpos"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-400 text-slate-800 dark:text-white rounded-2xl p-5 sm:p-7 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
-                    >
-                        <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">💡</div>
-                        <div className="font-bold text-base sm:text-lg lg:text-xl">Sugerencias</div>
-                        <div className="text-slate-400 dark:text-slate-400 text-xs sm:text-sm mt-1">Proponer mejoras →</div>
-                    </a>
-
-                    {/* Panel SaaS — Solo SUPER_ADMIN */}
-                    {userRole === 'SUPER_ADMIN' && (
-                        <Link
-                            to="/super-admin"
-                            className="group bg-gradient-to-br from-indigo-900 to-purple-900 text-white rounded-2xl p-5 sm:p-7 transition-all shadow-lg shadow-indigo-200/50 dark:shadow-indigo-900/30 hover:shadow-indigo-300 hover:-translate-y-0.5"
-                        >
-                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">🔒</div>
-                            <div className="font-bold text-base sm:text-lg lg:text-xl">Panel SaaS</div>
-                            <div className="text-indigo-200 text-xs sm:text-sm mt-1">Gestionar tiendas →</div>
-                        </Link>
-                    )}
-
-                    {/* Centro de Comando — Solo SUPER_ADMIN */}
-                    {userRole === 'SUPER_ADMIN' && (
-                        <Link
-                            to="/master-dashboard"
-                            className="group relative overflow-hidden bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 hover:border-violet-500 text-white rounded-2xl p-5 sm:p-7 transition-all shadow-lg hover:shadow-violet-900/30 hover:-translate-y-0.5"
-                        >
-                            <div className="absolute -right-4 -top-4 w-20 h-20 bg-violet-500/10 rounded-full blur-xl group-hover:bg-violet-500/20 transition-colors" />
-                            <div className="text-3xl sm:text-4xl lg:text-5xl mb-2 sm:mb-3">📡</div>
-                            <div className="font-bold text-base sm:text-lg lg:text-xl">Centro de Comando</div>
-                            <div className="text-slate-400 text-xs sm:text-sm mt-1">Métricas del negocio →</div>
-                        </Link>
-                    )}
-                </div>
-
-                {/* Sync Status Bar */}
-                <div className="bg-primary-light dark:bg-slate-800 border border-primary/30 dark:border-slate-700 rounded-xl p-4 text-sm text-primary dark:text-slate-300 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
-                        <span className="text-xs sm:text-sm font-medium">Dexie Outbox Sync activo — datos en tiempo real</span>
-                    </div>
-                </div>
             </div>
         </div>
     );
